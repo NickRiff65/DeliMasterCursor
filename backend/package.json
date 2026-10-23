@@ -1,0 +1,38 @@
+{
+  "name": "delimaster-backend",
+  "version": "0.1.0",
+  "description": "API REST de DeliMaster",
+  "type": "module",
+  "main": "src/server.js",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "node --watch --env-file=.env src/server.js",
+    "start": "node src/server.js",
+    "db:crear": "node --env-file=.env src/db/crear-bases.js",
+    "migrate": "node --env-file=.env src/db/migrate.js",
+    "db:demo": "node --env-file=.env src/db/datos-demo.js",
+    "test": "node --env-file-if-exists=.env --test --test-concurrency=1 \"tests/**/*.test.js\"",
+    "crear-admin": "node --env-file=.env src/db/crear-admin.js",
+    "probar-correo": "node --env-file=.env scripts/probar-correo.js"
+  },
+  "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "cors": "^2.8.5",
+    "express": "^5.2.1",
+    "express-rate-limit": "^8.7.1",
+    "helmet": "^8.0.0",
+    "jsonwebtoken": "^9.0.3",
+    "nodemailer": "^10.0.16",
+    "pg": "^8.13.1",
+    "socket.io": "^4.8.4",
+    "tesseract.js": "^7.0.0",
+    "transbank-sdk": "^6.1.1",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "socket.io-client": "^4.8.4",
+    "supertest": "^7.0.0"
+  }
+}

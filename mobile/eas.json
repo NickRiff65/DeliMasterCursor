@@ -1,0 +1,26 @@
+{
+  "cli": {
+    "version": ">= 16.0.0",
+    "appVersionSource": "local"
+  },
+  "build": {
+    "lite": {
+      "distribution": "internal",
+      "channel": "equipo",
+      "android": {
+        "buildType": "apk"
+      },
+      "env": {
+        "APP_VARIANTE": "lite",
+        "EXPO_PUBLIC_API_URL": "https://delimaster.tail9c0ea1.ts.net/api"
+      }
+    },
+    "pro": {
+      "extends": "lite",
+      "env": {
+        "APP_VARIANTE": "pro",
+        "EXPO_PUBLIC_API_URL": "https://delimaster.tail9c0ea1.ts.net/api"
+      }
+    }
+  }
+}

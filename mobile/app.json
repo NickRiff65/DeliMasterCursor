@@ -1,0 +1,47 @@
+{
+  "expo": {
+    "name": "DeliMaster",
+    "slug": "delimaster",
+    "version": "0.2.0",
+    "scheme": "delimaster",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "cl.delimaster.lite"
+    },
+    "android": {
+      "package": "cl.delimaster.lite",
+      "adaptiveIcon": {
+        "backgroundColor": "#0F766E",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      }
+    },
+    "web": {
+      "favicon": "./assets/favicon.png",
+      "bundler": "metro"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-status-bar",
+      "expo-secure-store",
+      [
+        "expo-image-picker",
+        {
+          "cameraPermission": "DeliMaster usa la cámara para fotografiar tus boletas de materiales y calcular tu ganancia.",
+          "photosPermission": "DeliMaster accede a tus fotos para que subas boletas de materiales."
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "DeliMaster usa tu ubicación para marcar el trabajo y para confirmar que el maestro llegó al lugar."
+        }
+      ],
+      "expo-notifications"
+    ]
+  }
+}

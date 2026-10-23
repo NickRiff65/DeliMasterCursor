@@ -1,0 +1,9 @@
+# Cabeceras de seguridad del panel publicado (formato _headers: Netlify, Cloudflare Pages).
+# OWASP A05: el panel no se puede incrustar en otro sitio y solo carga recursos propios y de la API.
+/*
+  Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' https: data:; connect-src 'self' https:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'
+  X-Frame-Options: DENY
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: no-referrer
+  Permissions-Policy: camera=(), microphone=(), geolocation=()
+  Strict-Transport-Security: max-age=31536000; includeSubDomains

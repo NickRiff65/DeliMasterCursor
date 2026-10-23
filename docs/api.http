@@ -1,0 +1,97 @@
+# Ejemplos de peticiones a la API de DeliMaster.
+# Se ejecutan con la extensión "REST Client" de VS Code: botón "Send Request" sobre cada bloque.
+# Requiere el servidor corriendo (npm.cmd run dev) y los datos de demostración (npm.cmd run db:demo).
+
+@api = http://localhost:3000/api
+
+### Estado del servicio
+GET {{api}}/salud
+
+### Categorías habilitadas
+GET {{api}}/categorias
+
+### Catálogo: electricistas en Chillán (HU-01)
+GET {{api}}/prestadores?categoria=electricidad&comuna=chillan
+
+### Catálogo: poda de altura, página 1
+GET {{api}}/prestadores?categoria=poda-altura&pagina=1&limite=10
+
+### Registro de un cliente nuevo (HU-10)
+POST {{api}}/auth/registro
+Content-Type: application/json
+
+{
+  "rol": "cliente",
+  "nombre": "Cliente de Prueba",
+  "email": "cliente.prueba@correo.cl",
+  "password": "prueba123",
+  "comuna": "Chillán"
+}
+
+### Inicio de sesión con un prestador de demostración (contraseña: CLAVE_DEMO en backend/src/db/datos-demo.js)
+# @name login
+POST {{api}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "pedro.munoz@demo.cl",
+  "password": "demo1234"
+}
+
+### Ficha del prestador con sesión (usa el token del login anterior)
+GET {{api}}/prestadores/yo
+Authorization: Bearer {{login.response.body.token}}
+
+### Editar ficha: agregar poda de altura y una comuna
+PUT {{api}}/prestadores/yo
+Authorization: Bearer {{login.response.body.token}}
+Content-Type: application/json
+
+{
+  "categorias": ["electricidad", "poda-altura"],
+  "comunas_atendidas": ["Chillán", "Bulnes"]
+}
+
+# ======================== HU-11 · Verificación de prestadores ========================
+
+### 1. Pedro solicita verificación SEC (usa el token del login de Pedro de más arriba)
+# @name solicitud
+POST {{api}}/prestadores/yo/verificaciones
+Authorization: Bearer {{login.response.body.token}}
+Content-Type: application/json
+
+{
+  "categoria": "electricidad",
+  "numero_registro": "SEC-458210"
+}
+
+### 2. Pedro revisa el estado de sus solicitudes
+GET {{api}}/prestadores/yo/verificaciones
+Authorization: Bearer {{login.response.body.token}}
+
+### 3. Inicio de sesión del administrador de demostración
+# @name loginAdmin
+POST {{api}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "admin@demo.cl",
+  "password": "demo1234"
+}
+
+### 4. El administrador ve las solicitudes pendientes (incluye la URL del buscador oficial)
+GET {{api}}/admin/verificaciones?estado=pendiente
+Authorization: Bearer {{loginAdmin.response.body.token}}
+
+### 5. El administrador aprueba la solicitud de Pedro
+PATCH {{api}}/admin/verificaciones/{{solicitud.response.body.verificacion.id}}
+Authorization: Bearer {{loginAdmin.response.body.token}}
+Content-Type: application/json
+
+{
+  "decision": "aprobada",
+  "fuente_url": "https://www.sec.cl"
+}
+
+### 6. Ahora Pedro aparece en el catálogo de electricidad
+GET {{api}}/prestadores?categoria=electricidad

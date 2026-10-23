@@ -1,0 +1,12 @@
+node_modules/
+.env
+*.log
+coverage/
+dist/
+build/
+.expo/
+.DS_Store
+
+# Backend: caché del lector de boletas y archivos subidos
+backend/.cache/
+backend/uploads/
