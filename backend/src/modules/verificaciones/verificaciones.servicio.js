@@ -146,6 +146,13 @@ export async function resolver(id, adminId, { decision, fuente_url, observacion,
 //    para que alcance a subir el certificado nuevo) y OTRA VEZ al vencer, explicándole que su
 //    categoría dejó de mostrarse hasta que renueve.
 // Cada aviso se marca en la propia fila (migración 021) para no repetirlo en cada revisión.
+// Un certificado viejo no genera avisos si el maestro ya tiene otro aprobado que dura más:
+// la categoría sigue habilitada y el aviso sería falso.
+const SIN_RENOVACION = `NOT EXISTS (SELECT 1 FROM verificaciones n
+                                     WHERE n.prestador_id = v.prestador_id AND n.categoria_id = v.categoria_id
+                                       AND n.id <> v.id AND n.estado = 'aprobada'
+                                       AND (n.vence_en IS NULL OR n.vence_en > v.vence_en))`;
+
 export async function revisarVencimientos(db = pool) {
   const fecha = (f) => new Date(`${f}T00:00:00`).toLocaleDateString('es-CL', { day: 'numeric', month: 'long', year: 'numeric' });
 
@@ -155,7 +162,8 @@ export async function revisarVencimientos(db = pool) {
       WHERE v.estado = 'aprobada' AND v.aviso_por_vencer_en IS NULL
         AND v.vence_en IS NOT NULL
         AND v.vence_en >= current_date
-        AND v.vence_en <= current_date + $1::int`,
+        AND v.vence_en <= current_date + $1::int
+        AND ${SIN_RENOVACION}`,
     [DIAS_AVISO_RENOVACION]);
   for (const v of porVencer.rows) {
     await crearNotificacion(db, v.prestador_id, {
@@ -170,7 +178,8 @@ export async function revisarVencimientos(db = pool) {
     `SELECT v.id, v.prestador_id, v.organismo, to_char(v.vence_en, 'YYYY-MM-DD') AS vence_en, c.nombre AS categoria_nombre
        FROM verificaciones v JOIN categorias c ON c.id = v.categoria_id
       WHERE v.estado = 'aprobada' AND v.aviso_vencida_en IS NULL
-        AND v.vence_en IS NOT NULL AND v.vence_en < current_date`);
+        AND v.vence_en IS NOT NULL AND v.vence_en < current_date
+        AND ${SIN_RENOVACION}`);
   for (const v of vencidas.rows) {
     await crearNotificacion(db, v.prestador_id, {
       titulo: `Tu verificación ${v.organismo} venció`,
@@ -186,9 +195,9 @@ export async function revisarVencimientos(db = pool) {
 // La app promete avisar al maestro cuando el equipo revise su solicitud
 function avisoResolucion({ categoria, organismo }, decision, observacion) {
   return decision === 'aprobada'
-    ? { titulo: `✅ Quedaste verificado en ${categoria}`,
+    ? { titulo: `✅ Quedaste verificado en ${categoria}`, tipo: 'verificacion',
       texto: `Revisamos tu registro en ${organismo}. Ya puedes aparecer en el catálogo para este servicio.` }
-    : { titulo: `No pudimos verificarte en ${categoria}`,
+    : { titulo: `No pudimos verificarte en ${categoria}`, tipo: 'verificacion',
       texto: `Motivo: ${observacion} Revisa tus datos y envía una nueva solicitud desde Mis verificaciones.` };
 }
 

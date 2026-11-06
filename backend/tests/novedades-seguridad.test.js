@@ -163,14 +163,13 @@ describe('Privacidad de la dirección, calificación bilateral y vencimientos SE
   // ---------------------------------------------------------- (1) vencimientos SEC automáticos
   test('el barrido avisa una sola vez antes del vencimiento y al vencer la verificación', async () => {
     const { revisarVencimientos } = await import('../src/modules/verificaciones/verificaciones.servicio.js');
-    const { rows: [cat] } = await pool.query("SELECT id FROM categorias WHERE slug = 'electricidad'");
-    const insertar = (dias, codigo) => pool.query(
+    const insertar = (slug, organismo, dias, codigo) => pool.query(
       `INSERT INTO verificaciones (prestador_id, categoria_id, organismo, numero_registro, codigo_certificado, estado, vence_en, revisado_en)
-       VALUES ($1, $2, 'SEC', 'SEC-1', $3, 'aprobada', current_date + $4::int, now())`,
-      [prestador.id, cat.id, codigo, dias]);
-    await insertar(10, 'QR-POR-VENCER');
-    await insertar(-2, 'QR-VENCIDA');
-    await insertar(60, 'QR-LEJANA');   // fuera de la ventana: no debe avisar
+       SELECT $1, id, $2, 'SEC-1', $3, 'aprobada', current_date + $4::int, now() FROM categorias WHERE slug = $5`,
+      [prestador.id, organismo, codigo, dias, slug]);
+    await insertar('electricidad', 'SEC', 10, 'QR-POR-VENCER');
+    await insertar('gas', 'SEC', -2, 'QR-VENCIDA');
+    await insertar('tala', 'CONAF', 60, 'QR-LEJANA');   // fuera de la ventana: no debe avisar
 
     const r1 = await revisarVencimientos(pool);
     assert.deepEqual(r1, { porVencer: 1, vencidas: 1 });
@@ -182,5 +181,19 @@ describe('Privacidad de la dirección, calificación bilateral y vencimientos SE
 
     const r2 = await revisarVencimientos(pool);   // es idempotente: no repite avisos
     assert.deepEqual(r2, { porVencer: 0, vencidas: 0 });
+  });
+
+  test('un certificado viejo no avisa si el maestro ya lo renovó', async () => {
+    const { revisarVencimientos } = await import('../src/modules/verificaciones/verificaciones.servicio.js');
+    const insertar = (dias, codigo) => pool.query(
+      `INSERT INTO verificaciones (prestador_id, categoria_id, organismo, numero_registro, codigo_certificado, estado, vence_en, revisado_en)
+       SELECT $1, id, 'SEC', 'SEC-1', $2, 'aprobada', current_date + $3::int, now() FROM categorias WHERE slug = 'electricidad'`,
+      [prestador.id, codigo, dias]);
+    await insertar(-2, 'QR-ANTERIOR');
+    await insertar(10, 'QR-RENOVADA-QUE-VENCE-PRONTO');
+    await insertar(80, 'QR-RENOVADA');
+    assert.deepEqual(await revisarVencimientos(pool), { porVencer: 0, vencidas: 0 });
+    const { rowCount } = await pool.query("SELECT 1 FROM notificaciones WHERE usuario_id = $1 AND tipo = 'verificacion'", [prestador.id]);
+    assert.equal(rowCount, 0);
   });
 });
