@@ -44,6 +44,38 @@ describe('HU-11 · Verificación de prestadores', { skip: !hayBaseDeDatos && mot
   const enCatalogo = async () =>
     (await request(app).get('/api/prestadores?categoria=electricidad')).body.prestadores.map((p) => p.id);
 
+  test('el prestador recibe un aviso cuando aprueban o rechazan su solicitud', async () => {
+    const avisos = async () => (await comoPrestador(request(app).get('/api/notificaciones'))).body.notificaciones;
+    const { body: { verificacion: primera } } = await solicitar();
+    assert.equal((await avisos()).length, 0, 'solicitar no genera aviso');
+
+    const rechazo = await comoAdmin(request(app).patch(`/api/admin/verificaciones/${primera.id}`))
+      .send({ decision: 'rechazada', observacion: 'El código no aparece en el sitio de la SEC.' });
+    assert.equal(rechazo.status, 200);
+    let lista = await avisos();
+    assert.equal(lista.length, 1);
+    assert.match(lista[0].titulo, /No pudimos verificarte en /);
+    assert.match(lista[0].texto, /El código no aparece en el sitio de la SEC\./);
+    assert.equal(lista[0].solicitud_id, null);
+
+    const { body: { verificacion: segunda } } = await solicitar();
+    const aprobada = await comoAdmin(request(app).patch(`/api/admin/verificaciones/${segunda.id}`)).send(APROBAR());
+    assert.equal(aprobada.status, 200);
+    lista = await avisos();
+    assert.equal(lista.length, 2);
+    assert.match(lista[0].titulo, /Quedaste verificado en /);
+  });
+
+  test('si la fecha no sirve no se aprueba ni se avisa', async () => {
+    const { body: { verificacion: v } } = await solicitar();
+    const patch = (datos) => comoAdmin(request(app).patch(`/api/admin/verificaciones/${v.id}`)).send(datos);
+    assert.equal((await patch({ decision: 'aprobada' })).status, 422);
+    assert.equal((await patch({ decision: 'aprobada', vence_en: enDias(120) })).status, 422);
+    const avisos = await comoPrestador(request(app).get('/api/notificaciones'));
+    assert.equal(avisos.body.notificaciones.length, 0);
+    assert.equal((await patch(APROBAR())).status, 200);
+  });
+
   test('el prestador solicita verificación SEC y queda pendiente', async () => {
     const res = await solicitar();
     assert.equal(res.status, 201);

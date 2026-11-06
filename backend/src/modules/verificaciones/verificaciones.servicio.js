@@ -1,4 +1,4 @@
-import { pool } from '../../db/pool.js';
+import { pool, enTransaccion } from '../../db/pool.js';
 import { AppError } from '../../utils/AppError.js';
 import { crearNotificacion } from '../notificaciones/notificaciones.servicio.js';
 
@@ -110,27 +110,31 @@ export async function resolver(id, adminId, { decision, fuente_url, observacion,
   if (actual.estado !== 'pendiente') throw new AppError('Esta solicitud ya fue resuelta', 409, 'YA_RESUELTA');
   if (decision === 'aprobada') validarVencimiento(actual.organismo, vence_en);
 
-  // La condición estado = 'pendiente' en el UPDATE evita que dos administradores
-  // resuelvan la misma solicitud al mismo tiempo.
-  const { rows } = await pool.query(
-    `UPDATE verificaciones v
-        SET estado = $2, fuente_url = COALESCE($3, fuente_url), observacion = $4,
-            revisado_por = $5, revisado_en = now(), vence_en = $6
-      WHERE v.id = $1 AND v.estado = 'pendiente'
-      RETURNING v.id, v.organismo`,
-    [id, decision, fuente_url ?? null, observacion ?? null, adminId, decision === 'aprobada' ? vence_en ?? null : null]);
+  await enTransaccion(async (db) => {
+    // La condición estado = 'pendiente' en el UPDATE evita que dos administradores
+    // resuelvan la misma solicitud al mismo tiempo.
+    const { rows } = await db.query(
+      `UPDATE verificaciones v
+          SET estado = $2, fuente_url = COALESCE($3, fuente_url), observacion = $4,
+              revisado_por = $5, revisado_en = now(), vence_en = $6
+        WHERE v.id = $1 AND v.estado = 'pendiente'
+        RETURNING v.id, v.organismo, v.prestador_id,
+                  (SELECT c.nombre FROM categorias c WHERE c.id = v.categoria_id) AS categoria`,
+      [id, decision, fuente_url ?? null, observacion ?? null, adminId, decision === 'aprobada' ? vence_en ?? null : null]);
 
-  if (!rows[0]) {
-    const { rowCount } = await pool.query('SELECT 1 FROM verificaciones WHERE id = $1', [id]);
-    throw rowCount
-      ? new AppError('Esta solicitud ya fue resuelta', 409, 'YA_RESUELTA')
-      : new AppError('Solicitud de verificación no encontrada', 404, 'VERIFICACION_NO_ENCONTRADA');
-  }
-  // Si no se indicó fuente, se deja la oficial del organismo como respaldo de dónde se consultó.
-  if (!fuente_url) {
-    await pool.query('UPDATE verificaciones SET fuente_url = COALESCE(fuente_url, $2) WHERE id = $1',
-      [id, FUENTES_OFICIALES[rows[0].organismo]]);
-  }
+    if (!rows[0]) {
+      const { rowCount } = await db.query('SELECT 1 FROM verificaciones WHERE id = $1', [id]);
+      throw rowCount
+        ? new AppError('Esta solicitud ya fue resuelta', 409, 'YA_RESUELTA')
+        : new AppError('Solicitud de verificación no encontrada', 404, 'VERIFICACION_NO_ENCONTRADA');
+    }
+    // Si no se indicó fuente, se deja la oficial del organismo como respaldo de dónde se consultó.
+    if (!fuente_url) {
+      await db.query('UPDATE verificaciones SET fuente_url = COALESCE(fuente_url, $2) WHERE id = $1',
+        [id, FUENTES_OFICIALES[rows[0].organismo]]);
+    }
+    await crearNotificacion(db, rows[0].prestador_id, avisoResolucion(rows[0], decision, observacion));
+  });
   return obtener(id);
 }
 
@@ -177,6 +181,15 @@ export async function revisarVencimientos(db = pool) {
   }
 
   return { porVencer: porVencer.rowCount, vencidas: vencidas.rowCount };
+}
+
+// La app promete avisar al maestro cuando el equipo revise su solicitud
+function avisoResolucion({ categoria, organismo }, decision, observacion) {
+  return decision === 'aprobada'
+    ? { titulo: `✅ Quedaste verificado en ${categoria}`,
+      texto: `Revisamos tu registro en ${organismo}. Ya puedes aparecer en el catálogo para este servicio.` }
+    : { titulo: `No pudimos verificarte en ${categoria}`,
+      texto: `Motivo: ${observacion} Revisa tus datos y envía una nueva solicitud desde Mis verificaciones.` };
 }
 
 // La SEC exige fecha de vencimiento (la del certificado, máximo tres meses); los demás organismos, solo si la hay.

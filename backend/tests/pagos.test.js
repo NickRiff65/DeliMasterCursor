@@ -151,6 +151,74 @@ describe('HU-03 · Pago en garantía con Webpay', { skip: !hayBaseDeDatos && mot
     assert.equal((await consultar('SELECT 1 FROM ledger_movimientos WHERE solicitud_id = $1')).length, 0);
   });
 
+  describe('si Transbank no puede hacer la devolución automática', () => {
+    let reintentarDevoluciones, admin, pago;
+    const devolucion = async () => (await consultar("SELECT respuesta->>'reembolso' AS r, (respuesta->>'reembolso_intentos')::int AS i FROM pagos WHERE solicitud_id = $1"))[0];
+    const fallidas = async () => (await como(admin)(request(app).get('/api/admin/resumen'))).body.devoluciones_fallidas;
+    const pasaElTiempo = () => pool.query(
+      "UPDATE pagos SET respuesta = respuesta || '{\"reembolso_intento_en\": \"2020-01-01T00:00:00Z\"}'::jsonb WHERE id = $1", [pago]);
+
+    beforeEach(async () => {
+      ({ reintentarDevoluciones } = await import('../src/modules/pagos/pagos.servicio.js'));
+      const { firmarToken } = await import('../src/modules/auth/auth.servicio.js');
+      const { rows: [a] } = await pool.query(
+        "INSERT INTO usuarios (rol, nombre, email, password_hash) VALUES ('admin', 'Admin', 'admin@test.cl', 'x') RETURNING id, rol");
+      admin = { id: a.id, token: firmarToken(a) };
+
+      const token = tokenDe(await iniciar());
+      await como(cliente)(request(app).post(`/api/solicitudes/${solicitudId}/cancelar`)).send({});
+      simulada.respuesta = aprobado();
+      const normal = simulada.reembolsar;
+      simulada.reembolsar = async () => { throw new Error('Transbank no disponible'); };
+      await request(app).post('/api/pagos/webpay/retorno').type('form').send({ token_ws: token });
+      simulada.reembolsar = normal;
+      pago = (await consultar('SELECT id FROM pagos WHERE solicitud_id = $1'))[0].id;
+    });
+
+    test('queda anotada y el panel la muestra con el cliente y el monto', async () => {
+      assert.deepEqual(await devolucion(), { r: 'fallido', i: 1 });
+      const lista = await fallidas();
+      assert.equal(lista.length, 1);
+      assert.equal(lista[0].monto, 45000);
+      assert.equal(lista[0].cliente, 'Ana Pérez');
+      assert.equal(lista[0].error, 'Transbank no disponible');
+    });
+
+    test('el reloj la reintenta pasados 15 minutos y al lograrlo sale del panel', async () => {
+      assert.equal(await reintentarDevoluciones(), 0, 'no reintenta antes de tiempo');
+      assert.equal(simulada.reembolsos.length, 0);
+      await pasaElTiempo();
+      assert.equal(await reintentarDevoluciones(), 1);
+      assert.equal(simulada.reembolsos.length, 1);
+      assert.equal(simulada.reembolsos[0].monto, 45000);
+      assert.deepEqual(await devolucion(), { r: 'realizado', i: 2 });
+      assert.deepEqual(await fallidas(), []);
+      await pasaElTiempo();
+      assert.equal(await reintentarDevoluciones(), 0, 'una devolución hecha no se repite');
+    });
+
+    test('si sigue fallando se acumulan los intentos', async () => {
+      const normal = simulada.reembolsar;
+      simulada.reembolsar = async () => { throw new Error('Sigue caído'); };
+      await pasaElTiempo();
+      await reintentarDevoluciones();
+      simulada.reembolsar = normal;
+      assert.deepEqual(await devolucion(), { r: 'fallido', i: 2 });
+      assert.equal((await fallidas())[0].error, 'Sigue caído');
+    });
+
+    test('el equipo puede marcarla como devuelta a mano y ya no se reintenta', async () => {
+      const marcar = () => como(admin)(request(app).post(`/api/admin/pagos/${pago}/devolucion-manual`)).send({});
+      assert.equal((await como(cliente)(request(app).post(`/api/admin/pagos/${pago}/devolucion-manual`)).send({})).status, 403);
+      assert.equal((await marcar()).status, 200);
+      assert.deepEqual(await fallidas(), []);
+      await pasaElTiempo();
+      assert.equal(await reintentarDevoluciones(), 0);
+      assert.equal(simulada.reembolsos.length, 0);
+      assert.equal((await marcar()).status, 404);
+    });
+  });
+
   test('al reintentar el pago, el intento abandonado queda anulado', async () => {
     const primero = tokenDe(await iniciar());
     await iniciar();

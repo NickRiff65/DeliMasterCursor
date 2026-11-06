@@ -51,6 +51,16 @@ export async function resumen() {
           WHERE m.bloqueado AND u.activo GROUP BY m.emisor_id HAVING count(*) >= ${UMBRAL_MODERACION}) x)::int AS usuarios_por_revisar
   `);
 
+  // Pagos cobrados que Transbank no pudo devolver: el cliente sigue sin su dinero
+  const { rows: devoluciones } = await pool.query(
+    `SELECT p.id, p.solicitud_id, p.orden_compra, p.monto, u.nombre AS cliente,
+            (p.respuesta->>'reembolso_intentos')::int AS intentos, p.respuesta->>'reembolso_error' AS error
+       FROM pagos p
+       JOIN solicitudes s ON s.id = p.solicitud_id
+       JOIN usuarios u ON u.id = s.cliente_id
+      WHERE p.estado = 'anulado' AND p.respuesta->>'reembolso' = 'fallido'
+      ORDER BY p.creado_en`);
+
   const { rows: dinero } = await pool.query(
     `SELECT estado, sum(monto_bruto)::int AS bruto, sum(comision)::int AS comision, sum(monto_neto)::int AS neto,
             sum(monto_reembolsado)::int AS reembolsado_parcial, count(*)::int AS cantidad
@@ -84,6 +94,7 @@ export async function resumen() {
       transferencias_atrasadas: d.transferencias_atrasadas,
       usuarios_por_revisar: d.usuarios_por_revisar,
     },
+    devoluciones_fallidas: devoluciones,
     dinero: {
       retenido: neto('retenido') + (porEstado.retenido?.comision ?? 0),
       por_transferir: neto('liberado'),
@@ -110,6 +121,15 @@ export async function resumen() {
         `Revisar usuarios con ${UMBRAL_MODERACION} o más bloqueos`),
     ],
   };
+}
+
+// El equipo devolvió el pago a mano en el portal de Transbank: deja de reintentarse y sale del resumen
+export async function marcarDevolucionManual(adminId, pagoId) {
+  const { rowCount } = await pool.query(
+    `UPDATE pagos SET respuesta = respuesta || jsonb_build_object('reembolso', 'manual', 'reembolso_manual_por', $2::text, 'reembolso_manual_en', now())
+      WHERE id = $1 AND estado = 'anulado' AND respuesta->>'reembolso' = 'fallido'`,
+    [pagoId, adminId]);
+  if (!rowCount) throw new AppError('Este pago no tiene una devolución pendiente', 404, 'DEVOLUCION_NO_ENCONTRADA');
 }
 
 // ------------------------------------------------------------------ HU-16: disputas

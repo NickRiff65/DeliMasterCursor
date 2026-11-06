@@ -159,7 +159,7 @@ async function aplicarPagoAutorizado(pago, { codigo, respuesta }) {
     if (s.estado !== ESTADO_ESPERADO[pago.concepto]) {
       // La solicitud cambió mientras el cliente pagaba (por ejemplo, la canceló): se devuelve el dinero
       await db.query("UPDATE pagos SET estado = 'anulado', respuesta = COALESCE(respuesta, '{}'::jsonb) || $2::jsonb WHERE id = $1",
-        [pago.id, { ...respuesta, motivo: `solicitud_${s.estado}`, reembolso: 'solicitado' }]);
+        [pago.id, { ...respuesta, motivo: `solicitud_${s.estado}`, reembolso: 'solicitado', reembolso_intento_en: new Date().toISOString() }]);
       return 'reembolsado';
     }
 
@@ -200,10 +200,40 @@ async function aplicarPagoAutorizado(pago, { codigo, respuesta }) {
     return 'aprobado';
   });
 
-  if (resultado === 'reembolsado') {
-    await reembolsarPago(pago, pago.monto).catch(() => {}); // se reintenta manualmente si falla
-  }
+  if (resultado === 'reembolsado') await devolverPagoAnulado(pago);
   return resultado;
+}
+
+// ------------------------------------------------------------------ devolución de un pago que ya no corresponde
+// Transbank ya cobró, así que el dinero debe volver al cliente aunque Transbank falle en este momento:
+// el intento queda anotado, el reloj de plazos lo repite y el panel lo muestra hasta que se resuelva.
+const MINUTOS_ENTRE_DEVOLUCIONES = 15;
+
+async function devolverPagoAnulado(pago, intentosPrevios = 0) {
+  const intentos = intentosPrevios + 1;
+  let cambios;
+  try {
+    const devolucion = await reembolsarPago(pago, pago.monto);
+    cambios = { reembolso: 'realizado', reembolso_intentos: intentos, reembolso_respuesta: devolucion };
+  } catch (err) {
+    console.error(JSON.stringify({ evento: 'devolucion_fallida', pago: pago.id, intento: intentos, error: err.message }));
+    cambios = { reembolso: 'fallido', reembolso_intentos: intentos, reembolso_error: err.message };
+  }
+  await pool.query('UPDATE pagos SET respuesta = respuesta || $2::jsonb WHERE id = $1', [pago.id, cambios]);
+}
+
+// También recoge las que quedaron a medias si el servidor se cayó justo después de anular el pago.
+// El UPDATE reserva cada pago, para que dos revisiones seguidas no intenten devolver lo mismo.
+export async function reintentarDevoluciones() {
+  const { rows } = await pool.query(
+    `UPDATE pagos SET respuesta = respuesta || jsonb_build_object('reembolso_intento_en', now())
+      WHERE estado = 'anulado' AND respuesta->>'reembolso' IN ('solicitado', 'fallido')
+        AND COALESCE((respuesta->>'reembolso_intento_en')::timestamptz, creado_en) < now() - make_interval(mins => $1)
+      RETURNING id, monto, medio, token_webpay, orden_compra, orden_hija,
+                COALESCE((respuesta->>'reembolso_intentos')::int, 0) AS intentos`,
+    [MINUTOS_ENTRE_DEVOLUCIONES]);
+  for (const pago of rows) await devolverPagoAnulado(pago, pago.intentos);
+  return rows.length;
 }
 
 // ------------------------------------------------------------------ tarjeta guardada (Webpay Oneclick)

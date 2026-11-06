@@ -1,5 +1,5 @@
-import { describe, test, expect } from 'vitest';
-import { render, screen, within, fireEvent } from '@testing-library/react';
+import { describe, test, expect, vi } from 'vitest';
+import { render, screen, within, fireEvent, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import Resumen from '../src/paginas/Resumen.jsx';
 import { GraficoMensual } from '../src/componentes/GraficoMensual.jsx';
@@ -31,6 +31,46 @@ describe('Resumen e indicadores (HU-14)', () => {
     expect(within(filas[1]).getByText('Cumple')).toBeInTheDocument();
     expect(within(filas[2]).getByText('Bajo la meta')).toBeInTheDocument();
     expect(within(filas[3]).getByText('Sin datos aún')).toBeInTheDocument();
+  });
+});
+
+describe('Devoluciones que Transbank no pudo hacer', () => {
+  const devolucion = { id: 'p1', solicitud_id: 's1', orden_compra: 'DM123', monto: 45000, cliente: 'Ana Pérez', intentos: 3, error: 'Transbank no disponible' };
+
+  test('sin problemas la sección no aparece', async () => {
+    simularApi({ 'GET /admin/resumen': { ...resumenVacio, devoluciones_fallidas: [] } });
+    mostrar(<Resumen />);
+    await screen.findByText('Resumen');
+    expect(screen.queryByText('Devoluciones con problemas')).not.toBeInTheDocument();
+  });
+
+  test('muestra cliente, monto e intentos, y permite marcarla como devuelta a mano', async () => {
+    let lista = [devolucion];
+    const llamadas = simularApi({
+      'GET /admin/resumen': () => ({ ...resumenVacio, devoluciones_fallidas: lista }),
+      'POST /admin/pagos/p1/devolucion-manual': () => { lista = []; return { ok: true }; },
+    });
+    const confirmar = vi.spyOn(window, 'confirm').mockReturnValue(true);
+    mostrar(<Resumen />);
+    expect(await screen.findByText('Devoluciones con problemas')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Ana Pérez' })).toHaveAttribute('href', '/solicitudes/s1');
+    expect(screen.getByText(/\$45\.000/)).toBeInTheDocument();
+    expect(screen.getByText(/3 intentos/)).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Ya lo devolví' }));
+    expect(confirmar).toHaveBeenCalled();
+    await waitFor(() => expect(screen.queryByText('Devoluciones con problemas')).not.toBeInTheDocument());
+    expect(llamadas.some((l) => l.metodo === 'POST' && l.ruta === '/admin/pagos/p1/devolucion-manual')).toBe(true);
+    confirmar.mockRestore();
+  });
+
+  test('si no confirma, no se marca', async () => {
+    const llamadas = simularApi({ 'GET /admin/resumen': { ...resumenVacio, devoluciones_fallidas: [devolucion] } });
+    const confirmar = vi.spyOn(window, 'confirm').mockReturnValue(false);
+    mostrar(<Resumen />);
+    await userEvent.click(await screen.findByRole('button', { name: 'Ya lo devolví' }));
+    expect(llamadas.some((l) => l.metodo === 'POST')).toBe(false);
+    confirmar.mockRestore();
   });
 });
 

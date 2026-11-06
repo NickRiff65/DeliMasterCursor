@@ -1,6 +1,7 @@
 // Los plazos del dinero no pueden depender de que alguien abra la app.
 // Cada minuto se liberan las asignaciones sin respuesta, se cierran los trabajos
-// que el cliente no confirmó y se devuelven las visitas a las que nadie llegó.
+// que el cliente no confirmó, se devuelven las visitas a las que nadie llegó y se reintentan
+// las devoluciones que Transbank no pudo hacer.
 // El servicio se carga al encender el reloj para no exigir la base al importar este archivo.
 
 const INTERVALO_MS = Number(process.env.PLAZOS_INTERVALO_MS ?? 60_000);
@@ -26,6 +27,7 @@ export function iniciarRelojPlazos() {
   console.log(`Revisión de plazos cada ${Math.round(INTERVALO_MS / 1000)} s`);
   return crearRelojPlazos(async () => {
     const { liberarVencidas } = await import('../modules/solicitudes/solicitudes.servicio.js');
-    return liberarVencidas();
+    const { reintentarDevoluciones } = await import('../modules/pagos/pagos.servicio.js');
+    return Promise.all([liberarVencidas(), reintentarDevoluciones()]);
   });
 }

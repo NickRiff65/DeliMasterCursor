@@ -1,13 +1,54 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { useDatos, Cargando, Insignia } from '../componentes/comunes.jsx';
+import { api } from '../api.js';
+import { useDatos, Cargando, Insignia, Aviso } from '../componentes/comunes.jsx';
 import { GraficoMensual } from '../componentes/GraficoMensual.jsx';
 import { pesos } from '../formato.js';
 
+// Clientes que pagaron una solicitud que ya no corresponde y a los que Transbank aún no les devuelve el dinero
+function DevolucionesFallidas({ lista, alCambiar }) {
+  const [error, setError] = useState(null);
+
+  async function marcar(id) {
+    if (!window.confirm('¿Ya devolviste este pago desde el portal de Transbank?')) return;
+    setError(null);
+    try {
+      await api.post(`/admin/pagos/${id}/devolucion-manual`);
+      alCambiar();
+    } catch (e) {
+      setError(e.message);
+    }
+  }
+
+  return (
+    <section className="tarjeta">
+      <h2>Devoluciones con problemas</h2>
+      <p className="suave">
+        Estos clientes pagaron una solicitud que ya no estaba vigente y Transbank no pudo devolverles el dinero.
+        El sistema reintenta cada 15 minutos; si sigue fallando, devuélvelo desde el portal de Transbank.
+      </p>
+      <Aviso mensaje={error} />
+      <div className="lista">
+        {lista.map((d) => (
+          <div key={d.id} className="fila-titulo">
+            <span>
+              <Link to={`/solicitudes/${d.solicitud_id}`}>{d.cliente}</Link> · {pesos(d.monto)} · orden <span className="mono">{d.orden_compra}</span>
+              {' '}· {d.intentos} intento{d.intentos === 1 ? '' : 's'}
+              {d.error ? <span className="suave pequeno"> · {d.error}</span> : null}
+            </span>
+            <button className="boton secundario" onClick={() => marcar(d.id)}>Ya lo devolví</button>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 // HU-14: métricas de la plataforma y pendientes del equipo
 export default function Resumen() {
-  const { datos, error } = useDatos('/admin/resumen');
+  const { datos, error, recargar } = useDatos('/admin/resumen');
   if (!datos) return <Cargando error={error} />;
-  const { pendientes: p, dinero, indicadores, usuarios, cerrados_por_mes } = datos;
+  const { pendientes: p, dinero, indicadores, usuarios, cerrados_por_mes, devoluciones_fallidas: devoluciones = [] } = datos;
 
   const tareas = [
     ['/verificaciones', p.verificaciones, 'verificaciones por revisar',
@@ -24,6 +65,8 @@ export default function Resumen() {
         <h1>Resumen</h1>
         <p className="suave">{usuarios.clientes} clientes y {usuarios.prestadores} prestadores registrados.</p>
       </header>
+
+      {devoluciones.length ? <DevolucionesFallidas lista={devoluciones} alCambiar={recargar} /> : null}
 
       <section className="cuadricula-4">
         {tareas.map(([ruta, n, texto, nota]) => (

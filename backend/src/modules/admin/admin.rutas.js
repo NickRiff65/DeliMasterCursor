@@ -24,6 +24,12 @@ rutasAdmin.get('/resumen', async (_req, res) => {
   res.json(await servicio.resumen());
 });
 
+// Devolución automática que falló y el equipo hizo a mano en el portal de Transbank
+rutasAdmin.post('/pagos/:id/devolucion-manual', exigirId('Pago', 'PAGO_NO_ENCONTRADO'), async (req, res) => {
+  await servicio.marcarDevolucionManual(req.usuario.id, req.params.id);
+  res.json({ ok: true });
+});
+
 // HU-16: disputas
 rutasAdmin.get('/disputas', validarConsulta(esquemaFiltroDisputas), async (req, res) => {
   res.json({ disputas: await servicio.listarDisputas(req.consulta) });
