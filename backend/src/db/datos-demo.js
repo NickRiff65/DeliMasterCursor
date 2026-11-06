@@ -371,6 +371,16 @@ async function trabajo(db, t) {
       `INSERT INTO resenas (solicitud_id, cliente_id, prestador_id, estrellas, comentario, creado_en)
        VALUES ($1, $2, $3, $4, $5, $6)`,
       [t.id, t.cliente, t.prestador, t.resena.estrellas, t.resena.comentario, despues(t.cerrada, 3)]);
+    // Calificación bilateral: en la mayoría de los trabajos cerrados el maestro también
+    // calificó al cliente, así la reputación de los clientes demo no parte vacía.
+    if (t.estado === 'cerrada' && azar() < 0.8) {
+      await db.query(
+        `INSERT INTO resenas_prestador (solicitud_id, prestador_id, cliente_id, estrellas, comentario, creado_en)
+         VALUES ($1, $2, $3, $4, $5, $6) ON CONFLICT (solicitud_id) DO NOTHING`,
+        [t.id, t.prestador, t.cliente, elegir([5, 5, 4, 5, 3]),
+         elegir(['Cliente puntual y claro con lo que necesitaba', 'Buen trato, todo coordinado por la app', 'Estaba en el lugar a la hora acordada', 'Pago sin problemas, recomendado']),
+         despues(t.cerrada, 3)]);
+    }
   }
   return true;
 }
@@ -490,6 +500,15 @@ async function recalcularReputacion(db) {
     LEFT JOIN (SELECT prestador_id, count(*)::int AS cerrados
                  FROM solicitudes WHERE estado = 'cerrada' GROUP BY prestador_id) c ON c.prestador_id = x.usuario_id
     WHERE p.usuario_id = x.usuario_id`);
+  // Y la reputación de los clientes, desde las calificaciones que les dejaron los maestros
+  await db.query(`
+    UPDATE usuarios u SET
+      calificacion_promedio = r.promedio,
+      total_resenas = COALESCE(r.total, 0)
+    FROM usuarios x
+    LEFT JOIN (SELECT cliente_id, round(avg(estrellas)::numeric, 2) AS promedio, count(*)::int AS total
+                 FROM resenas_prestador GROUP BY cliente_id) r ON r.cliente_id = x.id
+    WHERE u.id = x.id`);
 }
 
 async function cargar() {

@@ -94,3 +94,14 @@ rutasSolicitudes.post('/:id/no-llego', autorizar('cliente'), async (req, res) =>
 rutasSolicitudes.post('/:id/resena', autorizar('cliente'), validar(esquemaResena), async (req, res) => {
   res.status(201).json({ solicitud: await servicio.resenar(req.usuario, idValido(req), req.body) });
 });
+
+// Calificación bilateral: el prestador también califica al cliente del trabajo cerrado
+rutasSolicitudes.post('/:id/resena-cliente', autorizar('prestador'), validar(esquemaResena), async (req, res) => {
+  res.status(201).json({ solicitud: await servicio.resenarCliente(req.usuario, idValido(req), req.body) });
+});
+
+// Privacidad: el cliente comparte su dirección exacta cuando la visita ya quedó concretada.
+// Al primer contacto el prestador solo ve la comuna; el pago asegurado también la revela.
+rutasSolicitudes.post('/:id/compartir-direccion', autorizar('cliente'), async (req, res) => {
+  res.json({ solicitud: await servicio.compartirDireccion(req.usuario, idValido(req)) });
+});

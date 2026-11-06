@@ -90,6 +90,8 @@ export function crearApp() {
         'POST /api/solicitudes/:id/cerrar': 'El cliente confirma el cierre: el pago pasa a liberado',
         'POST /api/solicitudes/:id/reportar': 'El cliente reporta un problema (dinero sigue retenido)',
         'POST /api/solicitudes/:id/resena': 'Calificar un trabajo cerrado (HU-06); recalcula la reputación (HU-07)',
+        'POST /api/solicitudes/:id/resena-cliente': 'El prestador califica al cliente del trabajo cerrado; recalcula la reputación del cliente',
+        'POST /api/solicitudes/:id/compartir-direccion': 'El cliente comparte su dirección exacta con el prestador una vez concretada la visita (antes solo ve la comuna)',
         'GET /api/solicitudes/:id/mensajes': 'Historial del chat (HU-04)',
         'POST /api/solicitudes/:id/mensajes': 'Enviar mensaje con filtro anti-fuga (HU-04)',
         'WebSocket (Socket.io) evento "unirse"': 'Recibir mensajes en tiempo real de una solicitud',
