@@ -1,5 +1,6 @@
 import { pool } from '../../db/pool.js';
 import { AppError } from '../../utils/AppError.js';
+import { crearNotificacion } from '../notificaciones/notificaciones.servicio.js';
 
 // Dónde debe consultar el administrador según el organismo (no tienen API pública).
 export const FUENTES_OFICIALES = {
@@ -131,6 +132,51 @@ export async function resolver(id, adminId, { decision, fuente_url, observacion,
       [id, FUENTES_OFICIALES[rows[0].organismo]]);
   }
   return obtener(id);
+}
+
+// ------------------------------------------------------------------ automatización de vencimientos
+// La SEC y el SAG no tienen API pública para consultar ni renovar certificados, por lo que la
+// revisión de fondo sigue siendo humana (resolver). Lo que sí se automatiza es todo lo demás:
+//  · el catálogo ya oculta solo las categorías vencidas (sqlVigente se aplica en cada consulta);
+//  · este barrido avisa al prestador ANTES de que venza (dentro de la ventana de renovación,
+//    para que alcance a subir el certificado nuevo) y OTRA VEZ al vencer, explicándole que su
+//    categoría dejó de mostrarse hasta que renueve.
+// Cada aviso se marca en la propia fila (migración 021) para no repetirlo en cada revisión.
+export async function revisarVencimientos(db = pool) {
+  const fecha = (f) => new Date(`${f}T00:00:00`).toLocaleDateString('es-CL', { day: 'numeric', month: 'long', year: 'numeric' });
+
+  const porVencer = await db.query(
+    `SELECT v.id, v.prestador_id, v.organismo, to_char(v.vence_en, 'YYYY-MM-DD') AS vence_en, c.nombre AS categoria_nombre
+       FROM verificaciones v JOIN categorias c ON c.id = v.categoria_id
+      WHERE v.estado = 'aprobada' AND v.aviso_por_vencer_en IS NULL
+        AND v.vence_en IS NOT NULL
+        AND v.vence_en >= current_date
+        AND v.vence_en <= current_date + $1::int`,
+    [DIAS_AVISO_RENOVACION]);
+  for (const v of porVencer.rows) {
+    await crearNotificacion(db, v.prestador_id, {
+      titulo: `Tu certificado ${v.organismo} está por vencer`,
+      texto: `Tu verificación de ${v.categoria_nombre} vence el ${fecha(v.vence_en)}. Ya puedes subir el certificado nuevo desde tu ficha: si vence, la categoría deja de mostrarse en el catálogo hasta que lo renueves.`,
+      tipo: 'verificacion',
+    });
+    await db.query('UPDATE verificaciones SET aviso_por_vencer_en = now() WHERE id = $1', [v.id]);
+  }
+
+  const vencidas = await db.query(
+    `SELECT v.id, v.prestador_id, v.organismo, to_char(v.vence_en, 'YYYY-MM-DD') AS vence_en, c.nombre AS categoria_nombre
+       FROM verificaciones v JOIN categorias c ON c.id = v.categoria_id
+      WHERE v.estado = 'aprobada' AND v.aviso_vencida_en IS NULL
+        AND v.vence_en IS NOT NULL AND v.vence_en < current_date`);
+  for (const v of vencidas.rows) {
+    await crearNotificacion(db, v.prestador_id, {
+      titulo: `Tu verificación ${v.organismo} venció`,
+      texto: `El certificado de ${v.categoria_nombre} venció el ${fecha(v.vence_en)}, por lo que esa categoría ya no se muestra en el catálogo. Sube el certificado renovado desde tu ficha para volver a aparecer.`,
+      tipo: 'verificacion',
+    });
+    await db.query('UPDATE verificaciones SET aviso_vencida_en = now() WHERE id = $1', [v.id]);
+  }
+
+  return { porVencer: porVencer.rowCount, vencidas: vencidas.rowCount };
 }
 
 // La SEC exige fecha de vencimiento (la del certificado, máximo tres meses); los demás organismos, solo si la hay.

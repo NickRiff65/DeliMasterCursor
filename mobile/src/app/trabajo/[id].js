@@ -9,6 +9,7 @@ import { Campo } from '../../components/Campo';
 import { EstadoSolicitud } from '../../components/EstadoSolicitud';
 import { CuentaRegresiva } from '../../components/CuentaRegresiva';
 import { SelectorEstrellas } from '../../components/SelectorEstrellas';
+import { Estrellas } from '../../components/Estrellas';
 import { GastosDelTrabajo } from '../../components/GastosDelTrabajo';
 import { FotosEvidencia } from '../../components/FotosEvidencia';
 import { SelectorHorario } from '../../components/SelectorHorario';
@@ -46,6 +47,8 @@ export default function DetalleTrabajo() {
   const [jornada, setJornada] = useState(null);      // días y horas de atención del maestro (su ficha)
   const [campos, setCampos] = useState({});
   const [codigo, setCodigo] = useState('');
+  const [estrellasCliente, setEstrellasCliente] = useState(0);
+  const [comentarioCliente, setComentarioCliente] = useState('');
   const [manoObra, setManoObra] = useState('');
   const [materiales, setMateriales] = useState('');
   const [detalle, setDetalle] = useState('');
@@ -141,6 +144,9 @@ export default function DetalleTrabajo() {
         </View>
         <Text style={estilos.descripcion}>“{s.descripcion}”</Text>
         <Text style={estilos.suave}>Cliente: {s.cliente.nombre} · 📍 {s.comuna}</Text>
+        {s.cliente.total_resenas
+          ? <Estrellas promedio={s.cliente.calificacion_promedio} total={s.cliente.total_resenas} />
+          : <Text style={estilos.suave}>Cliente sin calificaciones todavía</Text>}
         <Text style={estilos.suave}>Publicada: {fechaCorta(s.creado_en)}</Text>
       </View>
 
@@ -160,7 +166,7 @@ export default function DetalleTrabajo() {
             <Text style={estilos.texto}>{s.comuna}. El cliente no indicó la dirección exacta: pídesela por el chat.</Text>
           ) : (
             <Text style={estilos.texto}>
-              {s.comuna}. Verás la dirección exacta cuando el cliente pague {s.modalidad === 'visita' || !s.modalidad ? 'la visita o el trabajo' : 'el trabajo'}.
+              {s.comuna}. Por seguridad del cliente, verás su dirección exacta cuando pague {s.modalidad === 'visita' || !s.modalidad ? 'la visita o el trabajo' : 'el trabajo'} o cuando la comparta desde su app una vez concretada la visita.
             </Text>
           )}
         </View>
@@ -391,6 +397,25 @@ export default function DetalleTrabajo() {
               {s.resena.comentario ? <Text style={estilos.texto}>“{s.resena.comentario}”</Text> : null}
             </View>
           ) : <Text style={[estilos.suave, { marginTop: espacio.s }]}>{s.cliente.nombre} aún no deja su calificación.</Text>}
+          {/* Calificación bilateral: el maestro también califica al cliente del trabajo cerrado */}
+          {s.resena_prestador ? (
+            <View style={{ marginTop: espacio.m }}>
+              <Text style={estilos.suave}>Tu calificación a {s.cliente.nombre}</Text>
+              <SelectorEstrellas valor={s.resena_prestador.estrellas} soloLectura tamano={24} />
+              {s.resena_prestador.comentario ? <Text style={estilos.texto}>“{s.resena_prestador.comentario}”</Text> : null}
+            </View>
+          ) : (
+            <View style={{ marginTop: espacio.m, gap: espacio.s }}>
+              <Text style={estilos.nombre}>¿Cómo fue trabajar con {s.cliente.nombre}?</Text>
+              <SelectorEstrellas valor={estrellasCliente} onCambio={setEstrellasCliente} />
+              <Campo etiqueta="Comentario (opcional)" value={comentarioCliente} onChangeText={setComentarioCliente} multiline maxLength={500}
+                placeholder="Cuéntales a otros maestros cómo fue el trato y el pago" />
+              <Boton titulo="Enviar calificación" cargando={accion === 'resena-cliente'} deshabilitado={!estrellasCliente || Boolean(accion)}
+                onPress={() => ejecutar('resena-cliente', () => api.post(`/solicitudes/${s.id}/resena-cliente`,
+                  { estrellas: estrellasCliente, ...(comentarioCliente.trim() ? { comentario: comentarioCliente.trim() } : {}) }))} />
+              <Text style={estilos.suave}>Su reputación la ven otros maestros antes de aceptar sus trabajos.</Text>
+            </View>
+          )}
         </View>
       ) : null}
 

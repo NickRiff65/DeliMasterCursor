@@ -10,7 +10,7 @@ import { calcularComision } from '../pagos/pagos.servicio.js';
 import { expulsarDeSala } from '../../socket.js';
 import { rangoVisita, REGLAS_VISITA } from './visita.js';
 import { avisar } from '../../utils/avisos.js';
-import { notificarCambio } from '../notificaciones/notificaciones.servicio.js';
+import { notificarCambio, crearNotificacion } from '../notificaciones/notificaciones.servicio.js';
 
 // ------------------------------------------------------------------ máquina de estados
 // Transiciones permitidas. Dos modalidades de cobro, que el prestador elige al aceptar:
@@ -98,6 +98,7 @@ const sqlSolicitud = (where, extra = '') => `
   SELECT s.id, s.grupo_id, s.estado, s.descripcion_original AS descripcion, s.comuna,
          s.precio_acordado, s.creado_en, s.creado_en_dispositivo, s.asignada_en, s.confirmada_en,
          s.direccion, s.referencia, s.latitud::float AS latitud, s.longitud::float AS longitud,
+         s.direccion_compartida_en,
          CASE WHEN s.estado = 'asignada'
               THEN s.asignada_en + make_interval(mins => ${Number(config.plazoRespuestaMin)}) END AS responder_antes_de,
          s.finalizada_en, s.cerrado_en, s.motivo_disputa,
@@ -126,9 +127,15 @@ const sqlSolicitud = (where, extra = '') => `
          NULLIF(lm.monto_reembolsado, 0) AS monto_reembolsado,
          CASE WHEN r.id IS NULL THEN NULL
               ELSE json_build_object('estrellas', r.estrellas, 'comentario', r.comentario, 'creado_en', r.creado_en) END AS resena,
+         CASE WHEN rp.id IS NULL THEN NULL
+              ELSE json_build_object('estrellas', rp.estrellas, 'comentario', rp.comentario, 'creado_en', rp.creado_en) END AS resena_prestador,
          c.slug AS categoria, c.nombre AS categoria_nombre,
-         -- Solo nombre: el teléfono y el correo nunca se comparten entre las partes
-         json_build_object('id', cu.id, 'nombre', split_part(cu.nombre, ' ', 1)) AS cliente,
+         -- Solo nombre y reputación: el teléfono, el correo y (hasta concretar) la dirección
+         -- nunca se comparten entre las partes. La reputación del cliente la construyen los
+         -- maestros que ya trabajaron con él (calificación bilateral).
+         json_build_object('id', cu.id, 'nombre', split_part(cu.nombre, ' ', 1),
+                           'calificacion_promedio', cu.calificacion_promedio::float,
+                           'total_resenas', cu.total_resenas) AS cliente,
          CASE WHEN pu.id IS NULL THEN NULL
               ELSE json_build_object('id', pu.id, 'nombre', pu.nombre) END AS prestador
     FROM solicitudes s
@@ -144,13 +151,24 @@ const sqlSolicitud = (where, extra = '') => `
              (sum(m.monto_reembolsado) FILTER (WHERE m.estado <> 'reembolsado'))::int AS monto_reembolsado
         FROM ledger_movimientos m WHERE m.solicitud_id = s.id) lm ON true
     LEFT JOIN resenas r ON r.solicitud_id = s.id
+    LEFT JOIN resenas_prestador rp ON rp.solicitud_id = s.id
   ${where} ${extra}`;
 
 // Lo que ve cada parte: el código de llegada solo lo ve el cliente (lo dicta cuando llega el prestador),
 // y el prestador recibe el rango permitido para la tarifa de visita mientras decide si acepta.
-// Estados en que el maestro ya ve la dirección exacta: hay un pago asegurado (la visita o el trabajo)
+// Estados en que el maestro ya ve la dirección exacta: hay un pago asegurado (la visita o el trabajo).
+// Al primer contacto solo ve la comuna: la dirección es un dato sensible del cliente y además
+// compartirla demasiado pronto facilita acordar el trabajo por fuera de la plataforma.
+// El cliente también puede compartirla voluntariamente apenas la visita quedó concretada
+// (compartirDireccion), lo que queda registrado en direccion_compartida_en.
 const ESTADOS_CON_DIRECCION = ['visita_pagada', 'en_diagnostico', 'cotizada', 'pagada', 'finalizada', 'en_disputa'];
-export const direccionVisible = (s) => ESTADOS_CON_DIRECCION.includes(s.estado) || (s.estado === 'confirmada' && s.modalidad === 'visita');
+export const direccionVisible = (s) =>
+  Boolean(s.direccion_compartida_en) || ESTADOS_CON_DIRECCION.includes(s.estado)
+  || (s.estado === 'confirmada' && s.modalidad === 'visita');
+
+// Estados desde los que el cliente puede compartir su dirección: el maestro ya aceptó y la
+// visita (o el trabajo) quedó acordada. Antes de eso no hay motivo para revelarla.
+const ESTADOS_PARA_COMPARTIR = ['confirmada', 'visita_por_pagar', 'visita_pagada', 'en_diagnostico', 'cotizada', 'pagada'];
 
 function vistaPara(usuario, s) {
   const { codigo_llegada: codigo, ...resto } = s;
@@ -159,6 +177,11 @@ function vistaPara(usuario, s) {
     vista.direccion_visible = direccionVisible(s);
     // Antes de eso, solo la comuna (evita que se acuerde el trabajo por fuera de la plataforma)
     if (!vista.direccion_visible) Object.assign(vista, { direccion: null, referencia: null, latitud: null, longitud: null });
+  }
+  if (usuario.rol === 'cliente' && usuario.id === s.cliente?.id) {
+    // El cliente sabe en todo momento si el maestro ya puede ver su dirección y si puede compartirla
+    vista.direccion_visible_para_prestador = direccionVisible(s);
+    vista.puede_compartir_direccion = ESTADOS_PARA_COMPARTIR.includes(s.estado) && !direccionVisible(s);
   }
   if ((usuario.id === s.cliente?.id || usuario.rol === 'admin') && s.estado === 'visita_pagada') vista.codigo_llegada = codigo;
   if (usuario.rol === 'prestador' && s.estado === 'asignada') vista.rango_visita = rangoVisita(s.comuna);
@@ -780,6 +803,65 @@ export async function resenar(usuario, id, { estrellas, comentario }) {
          FROM (SELECT round(avg(estrellas)::numeric, 2) AS promedio, count(*)::int AS total
                  FROM resenas WHERE prestador_id = $1) r
         WHERE p.usuario_id = $1`, [s.prestador_id]);
+  });
+  return obtener(usuario, id);
+}
+
+// ------------------------------------------------------------------ privacidad: compartir la dirección
+// El cliente comparte voluntariamente su dirección exacta con el maestro una vez que la visita
+// (o el trabajo) ya quedó concretada. No es un cambio de estado: queda registrado con su momento
+// y en el historial, y el maestro recibe un aviso. Sin compartir, la dirección se sigue
+// revelando automáticamente cuando el pago queda asegurado (direccionVisible).
+export async function compartirDireccion(usuario, id) {
+  await enTransaccion(async (db) => {
+    const s = await bloquear(db, id);
+    if (s.cliente_id !== usuario.id) throw new AppError('Solicitud no encontrada', 404, 'SOLICITUD_NO_ENCONTRADA');
+    if (!ESTADOS_PARA_COMPARTIR.includes(s.estado)) {
+      throw new AppError('Todavía no puedes compartir tu dirección: primero debe concretarse la visita o el trabajo', 409, 'ESTADO_INVALIDO');
+    }
+    if (direccionVisible(s)) return;   // ya la compartió o ya es visible por el pago: no se duplica el aviso
+    await db.query('UPDATE solicitudes SET direccion_compartida_en = now() WHERE id = $1', [id]);
+    // No es un cambio de estado, por lo que no pasa por registrarEvento (dispararía los avisos
+    // del estado como si hubiera ocurrido de nuevo): se anota el hecho en el historial y listo.
+    await db.query(
+      `INSERT INTO solicitud_eventos (solicitud_id, estado_anterior, estado_nuevo, actor_id, detalle)
+       VALUES ($1, $2, $2, $3, $4)`,
+      [id, s.estado, usuario.id, 'El cliente compartió su dirección exacta con el maestro']);
+    await crearNotificacion(db, s.prestador_id, {
+      titulo: 'El cliente compartió su dirección',
+      texto: 'Ya puedes ver la dirección exacta del trabajo en el detalle de la solicitud.',
+      solicitudId: id,
+    });
+  });
+  return obtener(usuario, id);
+}
+
+// ------------------------------------------------------------------ calificación del cliente (bilateral)
+// Espejo de resenar (HU-06) en el sentido contrario: al cerrar el trabajo, el maestro también
+// califica al cliente. Esa reputación la ven los demás maestros en la solicitud antes de
+// aceptar, igual que los clientes ven la del maestro en el catálogo (HU-07).
+export async function resenarCliente(usuario, id, { estrellas, comentario }) {
+  await enTransaccion(async (db) => {
+    const s = await bloquear(db, id);
+    if (s.prestador_id !== usuario.id) throw new AppError('Solicitud no encontrada', 404, 'SOLICITUD_NO_ENCONTRADA');
+    if (s.estado !== 'cerrada') {
+      throw new AppError('Solo puedes calificar al cliente de un trabajo cerrado oficialmente', 409, 'ESTADO_INVALIDO');
+    }
+    try {
+      await db.query(
+        `INSERT INTO resenas_prestador (solicitud_id, prestador_id, cliente_id, estrellas, comentario)
+         VALUES ($1, $2, $3, $4, $5)`, [id, usuario.id, s.cliente_id, estrellas, comentario ?? null]);
+    } catch (err) {
+      if (err.code === '23505') throw new AppError('Ya calificaste a este cliente', 409, 'YA_CALIFICADO');
+      throw err;
+    }
+    // La reputación del cliente se recalcula desde sus calificaciones reales (no se acumula a mano)
+    await db.query(
+      `UPDATE usuarios u SET
+         calificacion_promedio = r.promedio, total_resenas = r.total
+         FROM (SELECT round(avg(estrellas)::numeric, 2) AS promedio, count(*)::int AS total
+                 FROM resenas_prestador WHERE cliente_id = $1) r
+        WHERE u.id = $1`, [s.cliente_id]);
   });
   return obtener(usuario, id);
 }

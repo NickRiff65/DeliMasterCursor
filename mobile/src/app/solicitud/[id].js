@@ -143,6 +143,33 @@ export default function DetalleSolicitud() {
         {s.referencia ? <Text style={estilos.suave}>Referencia: {s.referencia}</Text> : null}
       </View>
 
+      {/* Privacidad de la dirección: el maestro solo ve la comuna hasta que la visita se concreta */}
+      {s.prestador && !['creada', 'asignada', 'cerrada', 'cancelada'].includes(s.estado) ? (
+        <View style={estilos.tarjeta}>
+          <Text style={estilos.subtitulo}>🔒 Tu dirección está protegida</Text>
+          {s.direccion_visible_para_prestador ? (
+            <Text style={estilos.texto}>
+              {s.prestador.nombre.split(' ')[0]} ya puede ver tu dirección exacta, porque la visita quedó concretada
+              {s.direccion_compartida_en ? ' y tú la compartiste desde esta app' : ''}.
+            </Text>
+          ) : (
+            <>
+              <Text style={estilos.texto}>
+                Por tu seguridad, {s.prestador.nombre.split(' ')[0]} solo ve tu comuna ({s.comuna}), no tu dirección.
+                La verá automáticamente cuando el pago de la visita o del trabajo quede confirmado.
+              </Text>
+              {s.puede_compartir_direccion ? (
+                <View style={{ marginTop: espacio.s }}>
+                  <Boton titulo="📍 Compartir mi dirección ahora" variante="secundario"
+                    cargando={accion === 'compartir-direccion'} deshabilitado={Boolean(accion)}
+                    onPress={() => ejecutar('compartir-direccion', () => api.post(`/solicitudes/${s.id}/compartir-direccion`))} />
+                </View>
+              ) : null}
+            </>
+          )}
+        </View>
+      ) : null}
+
       <Aviso mensaje={error} />
       {fotosUrl === 'fallidas' ? (
         <Aviso mensaje="Tu solicitud se publicó, pero no pudimos subir alguna foto. Puedes agregarla de nuevo en «Fotos»." />

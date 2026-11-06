@@ -94,8 +94,37 @@ describe('DeliMaster Pro', () => {
 
   test('antes del pago el maestro solo ve la comuna; después, la dirección exacta y el mapa', async () => {
     await abrirTrabajo(trabajo({ estado: 'confirmada', precio_acordado: 50000, direccion: null, direccion_visible: false }));
-    expect(await screen.findByText(/Chillán\. Verás la dirección exacta cuando el cliente pague el trabajo/)).toBeOnTheScreen();
+    expect(await screen.findByText(/Chillán\. Por seguridad del cliente, verás su dirección exacta cuando pague el trabajo/)).toBeOnTheScreen();
     expect(screen.queryByRole('button', { name: '🗺️ Abrir en el mapa' })).not.toBeOnTheScreen();
+  });
+
+  test('al cerrar el trabajo, el maestro califica al cliente (calificación bilateral)', async () => {
+    const cerrada = trabajo({
+      estado: 'cerrada', precio_acordado: 50000, comision: 6000, monto_neto: 44000, estado_pago: 'liberado',
+      resena: { estrellas: 5, comentario: 'Excelente trabajo' },
+      cliente: { id: 'c1', nombre: 'Valentina', calificacion_promedio: 4.5, total_resenas: 2 },
+    });
+    usarVariante('pro');
+    const llamadas = simularApi({
+      'GET /auth/yo': { usuario: prestador },
+      'GET /notificaciones': { notificaciones: [], no_leidas: 0 },
+      [`GET /solicitudes/${ID}`]: { solicitud: cerrada },
+      [`POST /solicitudes/${ID}/resena-cliente`]: {
+        solicitud: { ...cerrada, resena_prestador: { estrellas: 5, comentario: null } },
+      },
+    });
+    await abrirApp({ ruta: `/trabajo/${ID}`, pantallas: { 'trabajo/[id]': DetalleTrabajo } });
+    // Ve la reputación que otros maestros le han dado a la clienta
+    expect(await screen.findByText(/¿Cómo fue trabajar con Valentina\?/)).toBeOnTheScreen();
+    const user = userEvent.setup();
+    // Hay dos selectores en pantalla (la reseña recibida, de solo lectura, y el formulario):
+    // se toca el último, que es el editable.
+    const estrellas5 = screen.getAllByRole('button', { name: '5 estrellas' });
+    await user.press(estrellas5[estrellas5.length - 1]);
+    await user.press(screen.getByRole('button', { name: 'Enviar calificación' }));
+    const envio = llamadas.find((l) => l.metodo === 'POST' && l.ruta.endsWith('/resena-cliente'));
+    expect(envio.cuerpo).toEqual({ estrellas: 5 });
+    expect(await screen.findByText(/Tu calificación a Valentina/)).toBeOnTheScreen();
   });
 
   test('con el pago asegurado ve la dirección, la referencia y la abre en el mapa', async () => {
