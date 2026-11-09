@@ -46,6 +46,47 @@ describe('Verificaciones (Pro)', () => {
     expect(screen.queryByRole('button', { name: 'Enviar solicitud' })).not.toBeOnTheScreen();
   });
 
+  describe('verificación automática con la SEC', () => {
+    async function completar(estado) {
+      usarVariante('pro');
+      sesionGuardada();
+      let lista = [];
+      const llamadas = simularApi({
+        'GET /auth/yo': { usuario: prestador },
+        'GET /categorias': { categorias: CATEGORIAS },
+        'GET /prestadores/yo/verificaciones': () => ({ verificaciones: lista }),
+        'POST /prestadores/yo/verificaciones': () => {
+          const v = verificacion('electricidad', 'Electricidad', { estado });
+          lista = [v];
+          return { verificacion: v };
+        },
+      });
+      await abrirApp({ ruta: '/verificaciones', pantallas: { verificaciones: Verificaciones } });
+      const user = userEvent.setup();
+      await user.type(await screen.findByLabelText('N.º de registro SEC'), 'SEC-123');
+      await user.type(screen.getByLabelText('Código del certificado SEC'), '7731-2209');
+      expect(screen.getByRole('button', { name: 'Enviar solicitud' })).toBeDisabled();
+      await user.type(screen.getByLabelText('RUT'), '12.345.678-5');
+      await user.type(screen.getByLabelText('Apellido paterno'), 'Soto');
+      expect(screen.getByText(/autorizas a DeliMaster a consultar tu RUT/)).toBeOnTheScreen();
+      await user.press(screen.getByRole('button', { name: 'Enviar solicitud' }));
+      return llamadas.find((l) => l.metodo === 'POST');
+    }
+
+    test('envía RUT y apellidos, y si la SEC lo confirma dice que quedó verificado', async () => {
+      const envio = await completar('aprobada');
+      expect(envio.cuerpo).toEqual({
+        categoria: 'electricidad', numero_registro: 'SEC-123', codigo_certificado: '7731-2209', rut: '12.345.678-5', apellido_paterno: 'Soto',
+      });
+      expect(await screen.findByText('✅ La SEC confirmó tu registro: ya quedaste verificado.')).toBeOnTheScreen();
+    });
+
+    test('si queda en revisión, avisa que el equipo la revisará', async () => {
+      await completar('pendiente');
+      expect(await screen.findByText('Solicitud enviada. Te avisaremos cuando el equipo la revise.')).toBeOnTheScreen();
+    });
+  });
+
   test('cuando su certificado está por vencer, ofrece renovarlo', async () => {
     await abrir([verificacion('electricidad', 'Electricidad', { vence_en: enDias(5) }), verificacion('gas', 'Instalaciones de gas')]);
     expect(await screen.findByText(/Tu verificación de Electricidad vence el/)).toBeOnTheScreen();

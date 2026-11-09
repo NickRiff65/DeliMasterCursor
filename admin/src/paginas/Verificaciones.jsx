@@ -39,6 +39,8 @@ function Datos({ v }) {
     <dl className="datos">
       <div><dt>Prestador</dt><dd>{v.prestador_nombre}</dd></div>
       <div><dt>Servicio</dt><dd>{v.categoria_nombre} · {v.organismo}</dd></div>
+      {v.rut ? <div><dt>RUT</dt><dd className="mono">{v.rut}</dd></div> : null}
+      {v.apellido_paterno ? <div><dt>Apellidos</dt><dd>{v.apellido_paterno} {v.apellido_materno ?? ''}</dd></div> : null}
       <div><dt>N.º de registro o licencia</dt><dd className="mono">{v.numero_registro}</dd></div>
       {v.codigo_certificado ? <div><dt>Código del certificado</dt><dd className="mono">{v.codigo_certificado}</dd></div> : null}
       <div><dt>Solicitada</dt><dd>{fecha(v.creado_en)}</dd></div>
@@ -84,6 +86,7 @@ function Pendiente({ v, alResolver }) {
         </a>
       </div>
       <Datos v={v} />
+      {v.consulta_motivo ? <Aviso tipo="alerta" mensaje={`Necesita revisión: ${v.consulta_motivo}`} /> : null}
       <div className="formulario">
         <label>
           Vencimiento del certificado {esSec ? '(obligatorio para la SEC)' : '(si tiene)'}
@@ -131,7 +134,9 @@ function Resuelta({ v }) {
       </div>
       <Datos v={v} />
       <p className="suave pequeno">
-        Revisada el {fecha(v.revisado_en)}{v.revisado_por ? ` por ${v.revisado_por}` : ''}
+        {v.metodo_revision === 'automatica'
+          ? `Verificada automáticamente con la ${v.organismo} el ${fecha(v.revisado_en)}`
+          : <>Revisada el {fecha(v.revisado_en)}{v.revisado_por ? ` por ${v.revisado_por}` : ''}</>}
         {v.fuente_url ? <> · <a href={v.fuente_url} target="_blank" rel="noreferrer">fuente</a></> : null}
         {v.observacion ? ` · ${v.observacion}` : ''}
       </p>

@@ -25,7 +25,7 @@ export function crearRelojVerificaciones(revisar, { intervaloMs = INTERVALO_MS, 
 export function iniciarRelojVerificaciones() {
   console.log(`Revisión de vencimientos de verificaciones cada ${Math.round(INTERVALO_MS / 3_600_000)} h`);
   return crearRelojVerificaciones(async () => {
-    const { revisarVencimientos } = await import('../modules/verificaciones/verificaciones.servicio.js');
-    return revisarVencimientos();
+    const { revisarVencimientos, revalidarAutomaticas } = await import('../modules/verificaciones/verificaciones.servicio.js');
+    return Promise.all([revisarVencimientos(), revalidarAutomaticas()]);
   });
 }

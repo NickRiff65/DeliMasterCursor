@@ -43,6 +43,9 @@ export default function Verificaciones() {
   const [categoria, setCategoria] = useState(null);
   const [numero, setNumero] = useState('');
   const [codigo, setCodigo] = useState('');
+  const [rut, setRut] = useState('');
+  const [paterno, setPaterno] = useState('');
+  const [materno, setMaterno] = useState('');
   const [errores, setErrores] = useState({});
   const [error, setError] = useState(null);
   const [exito, setExito] = useState(null);
@@ -72,14 +75,21 @@ export default function Verificaciones() {
     setExito(null);
     setEnviando(true);
     try {
-      await api.post('/prestadores/yo/verificaciones', {
+      const { verificacion } = await api.post('/prestadores/yo/verificaciones', {
         categoria,
         numero_registro: numero.trim(),
         ...(codigo.trim() ? { codigo_certificado: codigo.trim() } : {}),
+        ...(esSec ? {
+          rut: rut.trim(),
+          apellido_paterno: paterno.trim(),
+          ...(materno.trim() ? { apellido_materno: materno.trim() } : {}),
+        } : {}),
       });
       setNumero('');
       setCodigo('');
-      setExito('Solicitud enviada. Te avisaremos cuando el equipo la revise.');
+      setExito(verificacion.estado === 'aprobada'
+        ? '✅ La SEC confirmó tu registro: ya quedaste verificado.'
+        : 'Solicitud enviada. Te avisaremos cuando el equipo la revise.');
       await cargarLista();
     } catch (e) {
       setErrores(e.campos);
@@ -163,8 +173,18 @@ export default function Verificaciones() {
             ayuda="Descarga tu certificado de instalador autorizado en sec.cl con tu ClaveÚnica: el código está bajo el QR. Vence a los 3 meses y te pediremos renovarlo."
           />
         ) : null}
+        {esSec ? (
+          <>
+            <Campo etiqueta="RUT" value={rut} onChangeText={setRut} error={errores.rut} placeholder="Ej.: 12.345.678-5" autoCapitalize="characters" />
+            <Campo etiqueta="Apellido paterno" value={paterno} onChangeText={setPaterno} error={errores.apellido_paterno} autoCapitalize="words" />
+            <Campo etiqueta="Apellido materno" value={materno} onChangeText={setMaterno} error={errores.apellido_materno} autoCapitalize="words" />
+            <Text style={estilos.ayuda}>
+              Al enviar, autorizas a DeliMaster a consultar tu RUT y tus apellidos en el registro público de la SEC. Si coinciden, quedas verificado de inmediato.
+            </Text>
+          </>
+        ) : null}
         <Boton titulo={estadoActual === 'por_vencer' ? 'Renovar verificación' : 'Enviar solicitud'} onPress={solicitar} cargando={enviando}
-          deshabilitado={!numero.trim() || (esSec && !codigo.trim())} />
+          deshabilitado={!numero.trim() || (esSec && (!codigo.trim() || !rut.trim() || !paterno.trim()))} />
           </>
         ) : null}
       </View>

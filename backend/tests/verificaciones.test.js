@@ -106,14 +106,14 @@ describe('HU-11 · Verificación de prestadores', { skip: !hayBaseDeDatos && mot
     const pendientes = await comoAdmin(request(app).get('/api/admin/verificaciones'));
     assert.equal(pendientes.status, 200);
     assert.equal(pendientes.body.verificaciones[0].prestador_nombre, 'Juan Soto');
-    assert.equal(pendientes.body.verificaciones[0].fuente_sugerida, 'https://www.sec.cl');
+    assert.equal(pendientes.body.verificaciones[0].fuente_sugerida, 'https://wlhttp.sec.cl/validadorInstaladores/');
 
     const res = await comoAdmin(request(app).patch(`/api/admin/verificaciones/${body.verificacion.id}`))
       .send(APROBAR());
     assert.equal(res.status, 200);
     assert.equal(res.body.verificacion.estado, 'aprobada');
     assert.equal(res.body.verificacion.vence_en, enDias(80));
-    assert.equal(res.body.verificacion.fuente_url, 'https://www.sec.cl');
+    assert.equal(res.body.verificacion.fuente_url, 'https://wlhttp.sec.cl/validadorInstaladores/');
 
     // Queda registro de quién revisó
     const { rows } = await pool.query('SELECT revisado_por, revisado_en FROM verificaciones WHERE id = $1', [body.verificacion.id]);

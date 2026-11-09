@@ -286,8 +286,11 @@ export async function eliminarCuenta(usuario, { password }) {
       // Sale del catálogo y se borran su ficha y sus datos bancarios
       await db.query(
         `UPDATE prestadores SET descripcion = NULL, comunas_atendidas = '{}', disponible = false,
-                rut = NULL, banco = NULL, tipo_cuenta = NULL, numero_cuenta = NULL
+                rut = NULL, rut_verificado = NULL, banco = NULL, tipo_cuenta = NULL, numero_cuenta = NULL
           WHERE usuario_id = $1`, [usuario.id]);
+      await db.query(
+        `UPDATE verificaciones SET rut = NULL, apellido_paterno = NULL, apellido_materno = NULL, consulta_motivo = NULL
+          WHERE prestador_id = $1`, [usuario.id]);
       await db.query('DELETE FROM prestador_categorias WHERE prestador_id = $1', [usuario.id]);
     }
   });

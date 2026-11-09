@@ -172,6 +172,13 @@ export async function obtenerDatosPago(id) {
 }
 
 export async function guardarDatosPago(id, { rut, banco, tipo_cuenta, numero_cuenta }) {
+  // Quien se verificó con un RUT solo puede cobrar en una cuenta de ese mismo RUT
+  const { rows: [p] } = await pool.query('SELECT rut_verificado FROM prestadores WHERE usuario_id = $1', [id]);
+  if (p?.rut_verificado && p.rut_verificado !== rut) {
+    const err = new AppError('La cuenta debe estar a nombre del RUT con que te verificaste', 422, 'DATOS_INVALIDOS');
+    err.campos = { rut: 'Debe ser el RUT con que te verificaste' };
+    throw err;
+  }
   await pool.query(
     'UPDATE prestadores SET rut = $2, banco = $3, tipo_cuenta = $4, numero_cuenta = $5 WHERE usuario_id = $1',
     [id, rut, banco, tipo_cuenta, numero_cuenta]);

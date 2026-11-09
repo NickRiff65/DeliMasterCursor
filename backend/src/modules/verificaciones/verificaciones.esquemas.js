@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { normalizarRut, rutValido } from '../../utils/rut.js';
 
 export const esquemaSolicitud = z.object({
   categoria: z.string().trim().toLowerCase().regex(/^[a-z0-9-]+$/, 'Categoría no válida'),
@@ -10,6 +11,14 @@ export const esquemaSolicitud = z.object({
     .min(4, 'El código del certificado es muy corto')
     .max(60, 'El código del certificado es demasiado largo')
     .optional(),
+  // Datos para consultar el registro de la SEC. Son opcionales para no romper las APK antiguas:
+  // sin ellos la solicitud va a revisión manual.
+  rut: z.string().trim()
+    .refine(rutValido, 'El RUT no es válido (revisa el dígito verificador)')
+    .transform(normalizarRut)
+    .optional(),
+  apellido_paterno: z.string().trim().min(2, 'Ingresa tu apellido paterno').max(60, 'El apellido es demasiado largo').optional(),
+  apellido_materno: z.string().trim().min(2, 'Ingresa tu apellido materno').max(60, 'El apellido es demasiado largo').optional(),
 });
 
 export const esquemaFiltroAdmin = z.object({

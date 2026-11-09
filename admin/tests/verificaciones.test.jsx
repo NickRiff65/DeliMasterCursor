@@ -55,6 +55,30 @@ describe('Verificaciones (HU-11, HU-17)', () => {
     window.removeEventListener('delimaster:pendientes', aviso);
   });
 
+  test('una excepción muestra el RUT, los apellidos y por qué llegó al panel', async () => {
+    simularApi({
+      'GET /admin/verificaciones?estado=pendiente': { verificaciones: [{
+        ...pendiente, rut: '12345678-5', apellido_paterno: 'Fuentes', apellido_materno: 'Soto', consulta_motivo: 'La SEC no tiene registrado ese RUT con estos datos.',
+      }] },
+    });
+    mostrar(<Verificaciones />);
+    expect(await screen.findByText('12345678-5')).toBeInTheDocument();
+    expect(screen.getByText('Fuentes Soto')).toBeInTheDocument();
+    expect(screen.getByText('Necesita revisión: La SEC no tiene registrado ese RUT con estos datos.')).toBeInTheDocument();
+  });
+
+  test('una aprobación automática se identifica como tal', async () => {
+    simularApi({
+      'GET /admin/verificaciones?estado=pendiente': { verificaciones: [] },
+      'GET /admin/verificaciones?estado=aprobada': { verificaciones: [{
+        ...pendiente, estado: 'aprobada', metodo_revision: 'automatica', revisado_en: '2026-11-08T12:00:00Z', vence_en: enDias(80), revisado_por: null,
+      }] },
+    });
+    mostrar(<Verificaciones />);
+    await userEvent.click(await screen.findByRole('tab', { name: 'Aprobadas' }));
+    expect(await screen.findByText(/Verificada automáticamente con la SEC/)).toBeInTheDocument();
+  });
+
   test('en las aprobadas se ve cuánto falta para que venza cada certificado', async () => {
     simularApi({
       'GET /admin/verificaciones?estado=pendiente': { verificaciones: [] },
