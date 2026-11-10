@@ -23,7 +23,7 @@ const MINUTOS_CODIGO = 15;
 const INTENTOS_CODIGO = 5;
 
 // Datos que se pueden devolver al propio usuario. Nunca incluye password_hash.
-const COLUMNAS_PUBLICAS = 'id, rol, nombre, nombres, apellidos, email, telefono, comuna, creado_en, terminos_version';
+const COLUMNAS_PUBLICAS = 'id, rol, nombre, nombres, apellidos, email, telefono, comuna, creado_en, terminos_version, calificacion_promedio, total_resenas';
 
 // Nombre y apellido por separado. Las cuentas anteriores a la migración 018 solo tienen el nombre completo:
 // la primera palabra se toma como nombre y el resto como apellido.
@@ -33,7 +33,14 @@ function separarNombre(u) {
   return { nombres: primero, apellidos: resto.join(' ') };
 }
 
-const publico = (u) => ({ ...u, ...separarNombre(u), terminos_pendientes: u.terminos_version !== VERSION_TERMINOS });
+// calificacion_promedio / total_resenas del propio usuario: su reputación COMO CLIENTE
+// (la dejan los maestros al cerrar un trabajo, tabla resenas_prestador). NUMERIC llega como texto.
+const publico = (u) => ({
+  ...u,
+  ...separarNombre(u),
+  terminos_pendientes: u.terminos_version !== VERSION_TERMINOS,
+  calificacion_promedio: u.calificacion_promedio == null ? null : Number(u.calificacion_promedio),
+});
 
 export function firmarToken(usuario) {
   return jwt.sign({ rol: usuario.rol }, config.jwtSecret, {

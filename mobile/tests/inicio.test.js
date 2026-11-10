@@ -71,7 +71,7 @@ describe('Maestros disponibles', () => {
       'GET /auth/yo': { usuario: cliente },
       'GET /categorias': { categorias: [{ slug: 'poda-altura', nombre: 'Poda en altura' }] },
       'GET /comunas': { comunas: ['Chillán'] },
-      'GET /prestadores?comuna=Chill%C3%A1n&pagina=1&limite=20': { prestadores: [maestro], paginacion: { total: 1, pagina: 1, paginas: 1 } },
+      'GET /prestadores?comuna=Chill%C3%A1n&orden=reputacion&pagina=1&limite=20': { prestadores: [maestro], paginacion: { total: 1, pagina: 1, paginas: 1 } },
       'GET /prestadores/p1': { prestador: {
         ...maestro, verificaciones: [], resenas: [], trabajos_cerrados: 12, miembro_desde: '2026-01-01', disponible: true,
       } },

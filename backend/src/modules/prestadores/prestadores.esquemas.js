@@ -11,6 +11,10 @@ export const esquemaCatalogo = z.object({
   comuna: esquemaComuna.optional(),
   pagina: z.coerce.number().int().min(1).default(1),
   limite: z.coerce.number().int().min(1).max(50).default(20),
+  // Orden que elige el cliente; por defecto, reputación (CU-05)
+  orden: z.enum(['reputacion', 'trabajos', 'resenas']).default('reputacion'),
+  // Solo maestros atendiendo ahora según su horario (CU-05: «verificados y en horario»)
+  disponible_ahora: z.enum(['true', 'false']).default('false').transform((v) => v === 'true'),
 });
 
 // Ficha que edita el propio prestador

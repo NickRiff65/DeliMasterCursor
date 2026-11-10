@@ -49,7 +49,7 @@ export const tokenGuardado = () => SecureStore.__datos.get(CLAVE_TOKEN) ?? null;
 // Todas las rutas de src/app. Las que no se prueban se reemplazan por una pantalla que solo dice su nombre.
 const RUTAS = [
   'login', 'registro', 'recuperar', 'aceptar-terminos', 'panel', 'ficha', 'verificaciones', 'recibidas',
-  'trabajo/[id]', 'finanzas', 'datos-pago', 'index', 'maestros', 'prestador/[id]', 'nueva-solicitud',
+  'trabajo/[id]', 'finanzas', 'datos-pago', 'agenda', 'index', 'maestros', 'prestador/[id]', 'nueva-solicitud',
   'solicitud/[id]', 'chat/[id]', 'avisos', 'cuenta', 'terminos', 'privacidad',
 ];
 const falsa = (ruta) => function PantallaFalsa() { return <Text>Pantalla {ruta}</Text>; };

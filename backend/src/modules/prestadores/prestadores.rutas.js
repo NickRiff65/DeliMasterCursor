@@ -19,6 +19,11 @@ rutasPrestadores.get('/yo', autenticar, autorizar('prestador'), async (req, res)
   res.json({ ficha: await servicio.obtenerFicha(req.usuario.id) });
 });
 
+// CU-16: agenda de visitas del propio prestador
+rutasPrestadores.get('/yo/agenda', autenticar, autorizar('prestador'), async (req, res) => {
+  res.json({ agenda: await servicio.miAgenda(req.usuario.id) });
+});
+
 rutasPrestadores.put('/yo', autenticar, autorizar('prestador'), validar(esquemaFicha), async (req, res) => {
   res.json({ ficha: await servicio.actualizarFicha(req.usuario.id, req.body) });
 });

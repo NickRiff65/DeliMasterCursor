@@ -35,3 +35,9 @@ export const esquemaEstadoUsuario = z.object({
   activo: z.boolean({ error: 'Indica si la cuenta queda activa' }),
   motivo: z.string().trim().min(5, 'Indica el motivo').max(300).optional(),
 }).refine((d) => d.activo || d.motivo, { path: ['motivo'], message: 'Indica el motivo de la desactivación' });
+
+// Panel contable: rango de fechas (por defecto, los últimos 30 días)
+export const esquemaContabilidad = z.object({
+  desde: z.iso.date('Fecha «desde» no válida').optional(),
+  hasta: z.iso.date('Fecha «hasta» no válida').optional(),
+});

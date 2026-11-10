@@ -25,6 +25,7 @@ export function Marco({ children }) {
     ['/disputas', 'Disputas', p?.disputas],
     ['/liquidaciones', 'Transferencias', p?.prestadores_por_pagar],
     ['/moderacion', 'Moderación', p?.usuarios_por_revisar],
+    ['/contabilidad', 'Contabilidad', null],
   ];
 
   return (

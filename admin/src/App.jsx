@@ -8,6 +8,7 @@ import Disputas from './paginas/Disputas.jsx';
 import Solicitud from './paginas/Solicitud.jsx';
 import Liquidaciones from './paginas/Liquidaciones.jsx';
 import Moderacion from './paginas/Moderacion.jsx';
+import Contabilidad from './paginas/Contabilidad.jsx';
 
 export default function App() {
   const { usuario } = useSesion();
@@ -21,6 +22,7 @@ export default function App() {
         <Route path="/solicitudes/:id" element={<Solicitud />} />
         <Route path="/liquidaciones" element={<Liquidaciones />} />
         <Route path="/moderacion" element={<Moderacion />} />
+        <Route path="/contabilidad" element={<Contabilidad />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Marco>

@@ -33,7 +33,23 @@ const SQL_PUNTAJE = `(${PESO_PREVIO} * ${CALIFICACION_PREVIA} + p.calificacion_p
                      / (${PESO_PREVIO} + p.total_resenas)`;
 
 // ------------------------------------------------------------------ catálogo (HU-01)
-export async function listarCatalogo({ categoria, comuna, pagina, limite }) {
+// Órdenes que el cliente puede elegir en el catálogo (CU-05); la reputación es el orden por defecto
+const ORDENES_CATALOGO = {
+  reputacion: `${SQL_PUNTAJE} DESC, p.trabajos_cerrados DESC, u.creado_en DESC`,
+  trabajos: 'p.trabajos_cerrados DESC, p.total_resenas DESC, u.creado_en DESC',
+  resenas: 'p.total_resenas DESC, p.trabajos_cerrados DESC, u.creado_en DESC',
+};
+
+// ¿Está atendiendo ahora? Día (ISO: 1 = lunes … 7 = domingo) y hora actual de Chile
+// dentro de los días y el rango horario que el propio maestro declaró en su ficha.
+const SQL_EN_HORARIO = `(
+  extract(isodow from (now() AT TIME ZONE 'America/Santiago'))::int = ANY (p.dias_atencion)
+  AND (now() AT TIME ZONE 'America/Santiago')::time >= p.hora_inicio
+  AND (now() AT TIME ZONE 'America/Santiago')::time < p.hora_fin
+)`;
+
+export async function listarCatalogo({ categoria, comuna, pagina, limite, orden = 'reputacion', disponible_ahora = false }) {
+  const ordenSql = ORDENES_CATALOGO[orden] ?? ORDENES_CATALOGO.reputacion;
   const { rows } = await pool.query(
     `WITH ${CTE_HABILITADAS}
      SELECT u.id, u.nombre, p.descripcion, p.comunas_atendidas, ${sqlHorario('p')} AS horario,
@@ -47,11 +63,12 @@ export async function listarCatalogo({ categoria, comuna, pagina, limite }) {
        JOIN habilitadas h ON h.prestador_id = p.usuario_id
       WHERE u.activo AND p.disponible
         AND ($2::text IS NULL OR $2 = ANY (p.comunas_atendidas))
+        AND (NOT $5::boolean OR ${SQL_EN_HORARIO})
       GROUP BY u.id, p.usuario_id
      HAVING ($1::text IS NULL OR bool_or(h.slug = $1))
-      ORDER BY ${SQL_PUNTAJE} DESC, p.trabajos_cerrados DESC, u.creado_en DESC
+      ORDER BY ${ordenSql}
       LIMIT $3 OFFSET $4`,
-    [categoria ?? null, comuna ?? null, limite, (pagina - 1) * limite],
+    [categoria ?? null, comuna ?? null, limite, (pagina - 1) * limite, disponible_ahora],
   );
   const total = rows.length ? Number(rows[0].total) : 0;
   return {
@@ -96,6 +113,26 @@ export async function perfilPublico(id) {
 }
 
 // ------------------------------------------------------------------ ficha propia del prestador
+// ------------------------------------------------------------------ agenda del maestro (CU-16)
+// Sus próximas visitas programadas, desde el inicio del día de hoy (hora de Chile) en adelante:
+// la visita pagada que aún no confirma, y los trabajos que nacieron de una visita ya realizada.
+export async function miAgenda(id) {
+  const { rows } = await pool.query(
+    `SELECT s.id, s.estado, s.visita_programada_en, s.tarifa_visita, s.comuna, s.descripcion_original AS descripcion,
+            cat.nombre AS categoria, u.nombre AS cliente
+       FROM solicitudes s
+       JOIN usuarios u   ON u.id = s.cliente_id
+       JOIN categorias cat ON cat.id = s.categoria_id      WHERE s.prestador_id = $1
+        AND s.visita_programada_en IS NOT NULL
+        AND s.estado IN ('visita_pagada', 'en_diagnostico', 'cotizada', 'confirmada')
+        AND s.visita_programada_en >= ((now() AT TIME ZONE 'America/Santiago')::date::timestamp AT TIME ZONE 'America/Santiago')
+      ORDER BY s.visita_programada_en ASC
+      LIMIT 50`,
+    [id],
+  );
+  return rows;
+}
+
 export async function obtenerFicha(id) {
   const { rows } = await pool.query(
     `SELECT u.id, u.nombre, p.descripcion, p.comunas_atendidas, p.disponible, ${sqlHorario('p')} AS horario,

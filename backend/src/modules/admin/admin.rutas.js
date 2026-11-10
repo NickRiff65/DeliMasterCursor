@@ -5,7 +5,7 @@ import { AppError } from '../../utils/AppError.js';
 import { urlApi } from '../../utils/seguridad.js';
 import { resolverDisputa } from '../solicitudes/solicitudes.servicio.js';
 import {
-  esquemaResolverDisputa, esquemaFiltroDisputas, esquemaTransferencia, esquemaEstadoUsuario,
+  esquemaResolverDisputa, esquemaFiltroDisputas, esquemaTransferencia, esquemaEstadoUsuario, esquemaContabilidad,
 } from './admin.esquemas.js';
 import * as servicio from './admin.servicio.js';
 
@@ -22,6 +22,11 @@ rutasAdmin.use(autenticar, autorizar('admin'));
 // HU-14: métricas y pendientes del equipo
 rutasAdmin.get('/resumen', async (_req, res) => {
   res.json(await servicio.resumen());
+});
+
+// Panel contable: movimientos del libro mayor y gastos con boleta del período
+rutasAdmin.get('/contabilidad', validarConsulta(esquemaContabilidad), async (req, res) => {
+  res.json(await servicio.contabilidad(req.consulta));
 });
 
 // Devolución automática que falló y el equipo hizo a mano en el portal de Transbank
