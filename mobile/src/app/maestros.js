@@ -12,6 +12,13 @@ import { useTema } from '../context/tema';
 
 const POR_PAGINA = 20;
 
+// Orden del catálogo: lo resuelve la API (parámetro «orden»)
+const ORDENES = [
+  ['reputacion', 'Reputación'],
+  ['trabajos', 'Más trabajos'],
+  ['resenas', 'Más reseñas'],
+];
+
 // HU-01: maestros disponibles, filtrables por servicio y comuna
 export default function Maestros() {
   useTema();   // vuelve a dibujarse al cambiar entre modo claro y oscuro
@@ -20,6 +27,9 @@ export default function Maestros() {
   const [comunas, setComunas] = useState([]);
   const [categoria, setCategoria] = useState(null);
   const [comuna, setComuna] = useState(usuario?.comuna ?? null);
+  const [soloEnHorario, setSoloEnHorario] = useState(false);
+  const [soloNuevos, setSoloNuevos] = useState(false);
+  const [orden, setOrden] = useState('reputacion');
   const [prestadores, setPrestadores] = useState([]);
   const [paginacion, setPaginacion] = useState(null);
   const [cargando, setCargando] = useState(true);
@@ -36,7 +46,10 @@ export default function Maestros() {
     setCargando(true);
     setError(null);
     try {
-      const res = await api.get(`/prestadores${consulta({ categoria, comuna, pagina, limite: POR_PAGINA })}`);
+      const res = await api.get(`/prestadores${consulta({
+        categoria, comuna, orden, disponible_ahora: soloEnHorario ? true : undefined,
+        nuevos: soloNuevos ? true : undefined, pagina, limite: POR_PAGINA,
+      })}`);
       setPrestadores((prev) => (pagina === 1 ? res.prestadores : [...prev, ...res.prestadores]));
       setPaginacion(res.paginacion);
     } catch (e) {
@@ -44,7 +57,7 @@ export default function Maestros() {
     } finally {
       setCargando(false);
     }
-  }, [categoria, comuna]);
+  }, [categoria, comuna, orden, soloEnHorario, soloNuevos]);
 
   // Cada cambio de filtro recarga desde la primera página
   useEffect(() => { cargar(1); }, [cargar]);
@@ -68,6 +81,18 @@ export default function Maestros() {
             </ScrollView>
 
             <SelectorComuna comunas={comunas} valor={comuna} onCambio={setComuna} permitirTodas />
+
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={estilos.chips} contentContainerStyle={estilos.chipsContenido}>
+              <Chip texto="🕒 Solo en horario ahora" activo={soloEnHorario} onPress={() => setSoloEnHorario((v) => !v)} />
+              <Chip texto="✨ Nuevos" activo={soloNuevos} onPress={() => setSoloNuevos((v) => !v)} />
+            </ScrollView>
+
+            <Text style={estilos.ordenEtiqueta}>Ordenar por</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={estilos.chips} contentContainerStyle={estilos.chipsContenido}>
+              {ORDENES.map(([valor, texto]) => (
+                <Chip key={valor} texto={texto} activo={orden === valor} onPress={() => setOrden(valor)} />
+              ))}
+            </ScrollView>
 
             {paginacion ? (
               <Text style={estilos.resultado}>
@@ -105,6 +130,7 @@ const estilos = crearEstilos((colores) => ({
   // Margen para que la sombra de los filtros no se corte en el borde de la fila
   chipsContenido: { paddingVertical: 10, paddingHorizontal: espacio.m },
   resultado: { color: colores.textoSuave, fontSize: 14, marginVertical: espacio.m },
+  ordenEtiqueta: { color: colores.textoSuave, fontSize: 13, fontWeight: '700', marginTop: espacio.xs },
   vacio: { alignItems: 'center', padding: espacio.xl },
   vacioTitulo: { fontSize: 17, fontWeight: '700', color: colores.texto },
   vacioTexto: { fontSize: 15, color: colores.textoSuave, marginTop: espacio.xs },

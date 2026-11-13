@@ -124,6 +124,63 @@ export async function resumen() {
 }
 
 // El equipo devolvió el pago a mano en el portal de Transbank: deja de reintentarse y sale del resumen
+// ------------------------------------------------------------------ panel contable (HU-09 / HU-14)
+// Libro mayor del período: cada movimiento con su cliente, maestro, bruto, comisión y neto,
+// los totales por estado del ledger y los gastos registrados con su boleta (y lo que leyó el OCR).
+// Es la vista que el Panel Web no tenía: la contabilidad vivía solo en la app del maestro.
+export async function contabilidad({ desde, hasta } = {}) {
+  const hoy = new Date();
+  const iso = (d) => d.toISOString().slice(0, 10);
+  const desdeTxt = desde ?? iso(new Date(hoy.getTime() - 30 * 24 * 60 * 60 * 1000));
+  const hastaTxt = hasta ?? iso(hoy);
+  const [movimientos, totales, gastos] = await Promise.all([
+    pool.query(
+      `SELECT lm.id, lm.creado_en, lm.liberado_en, lm.transferido_en, lm.estado,
+              lm.monto_bruto, lm.comision, lm.monto_neto, lm.comprobante, lm.solicitud_id,
+              uc.nombre AS cliente, up.nombre AS prestador, cat.nombre AS categoria
+         FROM ledger_movimientos lm
+         JOIN solicitudes s  ON s.id = lm.solicitud_id
+         JOIN usuarios uc    ON uc.id = s.cliente_id
+         JOIN usuarios up    ON up.id = lm.prestador_id
+         LEFT JOIN categorias cat ON cat.id = s.categoria_id
+        WHERE lm.creado_en >= $1::date AND lm.creado_en < ($2::date + 1)
+        ORDER BY lm.creado_en DESC
+        LIMIT 200`,
+      [desdeTxt, hastaTxt],
+    ),
+    pool.query(
+      `SELECT estado, count(*)::int AS cantidad,
+              coalesce(sum(monto_bruto), 0)::int AS bruto,
+              coalesce(sum(comision), 0)::int AS comision,
+              coalesce(sum(monto_neto), 0)::int AS neto
+         FROM ledger_movimientos
+        WHERE creado_en >= $1::date AND creado_en < ($2::date + 1)
+        GROUP BY estado
+        ORDER BY estado`,
+      [desdeTxt, hastaTxt],
+    ),
+    pool.query(
+      `SELECT g.id, g.creado_en, g.monto, g.origen, g.descripcion, g.solicitud_id,
+              up.nombre AS prestador,
+              (g.boleta_id IS NOT NULL) AS con_boleta,
+              b.ocr_monto, b.ocr_lector
+         FROM gastos g
+         JOIN usuarios up ON up.id = g.prestador_id
+         LEFT JOIN boletas b ON b.id = g.boleta_id
+        WHERE g.creado_en >= $1::date AND g.creado_en < ($2::date + 1)
+        ORDER BY g.creado_en DESC
+        LIMIT 200`,
+      [desdeTxt, hastaTxt],
+    ),
+  ]);
+  return {
+    rango: { desde: desdeTxt, hasta: hastaTxt },
+    totales: totales.rows,
+    movimientos: movimientos.rows,
+    gastos: gastos.rows,
+  };
+}
+
 export async function marcarDevolucionManual(adminId, pagoId) {
   const { rowCount } = await pool.query(
     `UPDATE pagos SET respuesta = respuesta || jsonb_build_object('reembolso', 'manual', 'reembolso_manual_por', $2::text, 'reembolso_manual_en', now())
@@ -206,7 +263,7 @@ export async function detalleSolicitud(admin, id, urlApi) {
                           FROM ledger_eventos le LEFT JOIN usuarios u ON u.id = le.actor_id
                          WHERE le.movimiento_id = lm.id), '[]') AS eventos
          FROM ledger_movimientos lm WHERE lm.solicitud_id = $1`, [id]),
-    pool.query('SELECT id, rol, descripcion, creado_en FROM evidencias WHERE solicitud_id = $1 ORDER BY creado_en, id', [id]),
+    pool.query('SELECT id, rol, descripcion, creado_en, sospechosa FROM evidencias WHERE solicitud_id = $1 ORDER BY creado_en, id', [id]),
     // Gastos en materiales del maestro: el equipo ve cuáles tienen boleta (los sin boleta se pueden devolver)
     pool.query(
       `SELECT id, monto, descripcion, boleta_id, creado_en, rechazado_en IS NOT NULL AS rechazado

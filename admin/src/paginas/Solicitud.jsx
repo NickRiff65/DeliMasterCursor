@@ -159,6 +159,12 @@ export default function Solicitud() {
                   <figcaption className="pequeno suave">
                     {f.rol === 'cliente' ? 'Cliente' : 'Prestador'} · {fechaHora(f.creado_en)}
                     {f.descripcion ? <span className="bloque">{f.descripcion}</span> : null}
+                    {f.sospechosa ? (
+                      <span className="bloque">
+                        <Insignia tono="alerta">⚠ Sospechosa</Insignia>
+                        <span className="bloque">Sin datos de cámara: podría ser una captura o una imagen descargada</span>
+                      </span>
+                    ) : null}
                   </figcaption>
                 </figure>
               ))}

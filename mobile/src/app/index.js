@@ -126,7 +126,7 @@ const estilos = crearEstilos((colores) => ({
     alignSelf: 'flex-start', backgroundColor: '#FFFFFF', borderRadius: radio.pildora,
     paddingHorizontal: espacio.m, paddingVertical: 9, marginTop: espacio.m,
   },
-  pedirBotonTexto: { color: '#0F766E', fontWeight: '800', fontSize: 14 },
+  pedirBotonTexto: { color: '#0B7568', fontWeight: '800', fontSize: 14 },
   maestros: {
     flexDirection: 'row', alignItems: 'center', gap: espacio.m, marginTop: espacio.m, padding: espacio.m,
     backgroundColor: colores.superficie, borderRadius: radio.l, borderWidth: 1, borderColor: colores.bordeTarjeta,

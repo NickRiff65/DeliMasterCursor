@@ -203,6 +203,24 @@ export default function Panel() {
         <Text style={estilos.enlace}>{datosPagoCompletos ? 'Ver →' : 'Completar →'}</Text>
       </Pressable>
 
+      {/* CU-16: agenda de visitas programadas */}
+      <Pressable style={[estilos.tarjeta, estilos.fila]} onPress={() => router.push('/agenda')} accessibilityRole="button">
+        <View style={{ flex: 1 }}>
+          <Text style={estilos.tarjetaTitulo}>📅 Mi agenda</Text>
+          <Text style={estilos.suave}>Tus próximas visitas programadas, en orden de fecha.</Text>
+        </View>
+        <Text style={estilos.enlace}>Ver →</Text>
+      </Pressable>
+
+      {/* Portafolio tipo CV: fotos de trabajos anteriores que ven los clientes */}
+      <Pressable style={[estilos.tarjeta, estilos.fila]} onPress={() => router.push('/portafolio')} accessibilityRole="button">
+        <View style={{ flex: 1 }}>
+          <Text style={estilos.tarjetaTitulo}>🖼️ Mi portafolio</Text>
+          <Text style={estilos.suave}>Fotos de tus trabajos anteriores, para que los clientes te conozcan.</Text>
+        </View>
+        <Text style={estilos.enlace}>Ver →</Text>
+      </Pressable>
+
       {/* HU-09: acceso al panel contable */}
       <Pressable style={[estilos.tarjeta, estilos.fila]} onPress={() => router.push('/finanzas')} accessibilityRole="button">
         <View style={{ flex: 1 }}>

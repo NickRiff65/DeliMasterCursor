@@ -74,6 +74,8 @@ function Navegacion() {
           <Stack.Screen name="ficha" options={conInicio({ title: 'Editar mi ficha' })} />
           <Stack.Screen name="verificaciones" options={conInicio({ title: 'Verificaciones' })} />
           <Stack.Screen name="recibidas" options={conInicio({ title: 'Solicitudes recibidas' })} />
+          <Stack.Screen name="agenda" options={conInicio({ title: 'Mi agenda' })} />
+          <Stack.Screen name="portafolio" options={conInicio({ title: 'Mi portafolio' })} />
           <Stack.Screen name="trabajo/[id]" options={conInicio({ title: 'Detalle del trabajo' })} />
           <Stack.Screen name="finanzas" options={conInicio({ title: 'Mis finanzas' })} />
           <Stack.Screen name="datos-pago" options={conInicio({ title: 'Datos para recibir pagos' })} />

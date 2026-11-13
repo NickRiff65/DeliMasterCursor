@@ -4,6 +4,7 @@
 import { pool } from '../../db/pool.js';
 import { AppError } from '../../utils/AppError.js';
 import { decodificarImagen, evidencias as almacen, MIME_POR_EXTENSION } from '../gastos/almacen.js';
+import { extraerExif, esSospechosa } from '../../utils/imagenes.js';
 
 // Mientras la solicitud está activa (desde que se publica hasta que se cierra o se resuelve la disputa)
 export const ESTADOS_PARA_SUBIR = [
@@ -25,7 +26,7 @@ async function solicitudDe(usuario, solicitudId) {
 export async function listar(usuario, solicitudId, urlApi) {
   const { s } = await solicitudDe(usuario, solicitudId);
   const { rows } = await pool.query(
-    `SELECT id, rol, autor_id, descripcion, creado_en FROM evidencias
+    `SELECT id, rol, autor_id, descripcion, creado_en, sospechosa FROM evidencias
       WHERE solicitud_id = $1 ORDER BY creado_en, id`, [solicitudId]);
   return {
     fotos: rows.map(({ autor_id: autor, ...f }) => ({
@@ -50,11 +51,18 @@ export async function guardarFoto(usuario, solicitudId, base64, descripcion) {
   }
 
   const imagen = decodificarImagen(base64);
+  // El EXIF se lee del archivo ORIGINAL, antes de que el almacén lo convierta a WebP:
+  // una foto sin fecha ni equipo de cámara queda marcada como sospechosa (antifraude).
+  // Las coordenadas se guardan como respaldo del equipo y nunca se exponen a la otra parte.
+  const exif = extraerExif(imagen.buffer);
   const archivo = await almacen.guardar(imagen);
   try {
     const { rows: [f] } = await pool.query(
-      `INSERT INTO evidencias (solicitud_id, autor_id, rol, archivo, descripcion) VALUES ($1, $2, $3, $4, $5) RETURNING id`,
-      [solicitudId, usuario.id, rol, archivo, descripcion ?? null]);
+      `INSERT INTO evidencias (solicitud_id, autor_id, rol, archivo, descripcion,
+                               exif_fecha, exif_lat, exif_lng, exif_dispositivo, sospechosa)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING id`,
+      [solicitudId, usuario.id, rol, archivo, descripcion ?? null,
+        exif.fechaOriginal, exif.lat, exif.lng, exif.dispositivo, esSospechosa(exif)]);
     return f.id;
   } catch (err) {
     await almacen.eliminar(archivo);   // no dejar archivos huérfanos si falla el registro

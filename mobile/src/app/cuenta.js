@@ -9,6 +9,7 @@ import { Aviso } from '../components/Aviso';
 import { Boton } from '../components/Boton';
 import { Campo } from '../components/Campo';
 import { Casilla } from '../components/Casilla';
+import { Estrellas } from '../components/Estrellas';
 import { SelectorComuna } from '../components/SelectorComuna';
 import { colores, crearEstilos, espacio, radio } from '../theme';
 import { useTema } from '../context/tema';
@@ -23,6 +24,7 @@ export default function Cuenta() {
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <ScrollView contentContainerStyle={estilos.contenido} keyboardShouldPersistTaps="handled">
         <MisDatos usuario={usuario} alGuardar={actualizarUsuario} />
+        <ReputacionCliente usuario={usuario} />
         <Apariencia />
         {ES_PRO ? null : <TarjetaGuardada />}
         <CambiarPassword alCambiar={abrirSesion} />
@@ -37,6 +39,28 @@ export default function Cuenta() {
         <EliminarCuenta alTerminar={cerrarSesion} />
       </ScrollView>
     </KeyboardAvoidingView>
+  );
+}
+
+// La reputación que los maestros le han dado como cliente al cerrar trabajos: es la que otros
+// maestros ven antes de aceptar un trabajo suyo (viene en GET /auth/yo, junto a la sesión)
+function ReputacionCliente({ usuario }) {
+  return (
+    <View style={estilos.tarjeta}>
+      <Text style={estilos.titulo}>⭐ Tu reputación como cliente</Text>
+      {usuario.total_resenas > 0 ? (
+        <>
+          <Estrellas promedio={usuario.calificacion_promedio} total={usuario.total_resenas} tamano={16} />
+          <Text style={estilos.ayudaTema}>
+            Es el promedio de las calificaciones que te dejaron los maestros al cerrar tus trabajos.
+          </Text>
+        </>
+      ) : (
+        <Text style={estilos.ayudaTema}>
+          Aún no tienes calificaciones como cliente: cuando un maestro cierre un trabajo contigo, podrá calificarte, y otros maestros verán esa reputación antes de aceptar.
+        </Text>
+      )}
+    </View>
   );
 }
 

@@ -1,70 +1,72 @@
 import { Platform, StyleSheet } from 'react-native';
 
-// Identidad visual de DeliMaster: verde azulado (confianza) con acento ámbar (reputación).
+// Identidad visual de DeliMaster: verde azulado profundo (confianza) con acento ámbar
+// (reputación), neutros cálidos y sombras suaves en capas. Rediseño 2026: paleta más pulida,
+// con la escala tipográfica `fuente` y espaciados de 4 pt consistentes en toda la app.
 // Dos paletas con los mismos nombres; la vigente la elige TemaProvider (context/tema.js) según
 // la preferencia de "Mi cuenta": automático (la del teléfono), claro u oscuro.
 export const paletas = {
   claro: {
-    primario: '#0F766E',
-    primarioOscuro: '#115E59',     // texto verde sobre fondos claros (precios, avatares)
-    primarioSuave: '#CCFBF1',
+    primario: '#0B7568',
+    primarioOscuro: '#095E54',     // texto verde sobre fondos claros (precios, avatares)
+    primarioSuave: '#D9F2EA',
     sobrePrimario: '#FFFFFF',      // texto e íconos sobre el color primario
-    acento: '#F59E0B',
-    texto: '#1F2937',
-    textoSuave: '#6B7280',
-    borde: '#E5E7EB',
-    estrellaVacia: '#9CA3AF',      // estrellas sin marcar al calificar
-    fondo: '#F9FAFB',
+    acento: '#E8930C',
+    texto: '#182230',
+    textoSuave: '#5F6B7A',
+    borde: '#E3E7EC',
+    estrellaVacia: '#A3ACB9',      // estrellas sin marcar al calificar
+    fondo: '#F6F7F5',
     superficie: '#FFFFFF',
-    logoPro: '#1F2937',
-    error: '#DC2626',
-    errorSuave: '#FEE2E2',
-    errorBorde: '#FCA5A5',
-    errorTexto: '#991B1B',
-    verificado: '#047857',
-    exitoFondo: '#F0FDF4',
-    exitoBorde: '#BBF7D0',
-    exitoTexto: '#166534',
-    exitoInsignia: '#DCFCE7',
-    exitoSuave: '#ECFDF5',
-    avisoFondo: '#FFFBEB',
-    avisoBorde: '#FDE68A',
-    avisoTexto: '#92400E',
-    avisoInsignia: '#FEF3C7',
-    infoFondo: '#E0F2FE',
-    infoTexto: '#075985',
-    indigoFondo: '#E0E7FF',
-    indigoTexto: '#3730A3',
-    neutroFondo: '#F3F4F6',
-    neutroTexto: '#374151',
+    logoPro: '#182230',
+    error: '#C92A2A',
+    errorSuave: '#FDECEC',
+    errorBorde: '#F3B3B3',
+    errorTexto: '#8F1D1D',
+    verificado: '#06755A',
+    exitoFondo: '#EFFAF3',
+    exitoBorde: '#B9E8CB',
+    exitoTexto: '#17603A',
+    exitoInsignia: '#D8F3E2',
+    exitoSuave: '#EAF7F0',
+    avisoFondo: '#FFF8E6',
+    avisoBorde: '#F5D67B',
+    avisoTexto: '#8A5A00',
+    avisoInsignia: '#FCEFC7',
+    infoFondo: '#E1F0FA',
+    infoTexto: '#0B5B7E',
+    indigoFondo: '#E2E6FA',
+    indigoTexto: '#37348F',
+    neutroFondo: '#EEF1F4',
+    neutroTexto: '#3D4756',
     // Diseño: degradados (de más oscuro arriba a más claro abajo), sombras y tarjetas
-    fondoArriba: '#CCFBF1',        // color del encabezado: continúa el degradado del fondo
-    degradadoFondo: 'linear-gradient(180deg, #CCFBF1 0%, #E3F8F3 26%, #F3F9F8 58%, #FFFFFF 100%)',
-    degradadoHeroe: 'linear-gradient(135deg, #0B4F4A 0%, #0F766E 52%, #14B8A6 100%)',
-    degradadoHeroePro: 'linear-gradient(135deg, #0F172A 0%, #1F2937 55%, #0F766E 100%)',
-    degradadoBoton: 'linear-gradient(135deg, #0F766E 0%, #14B8A6 100%)',
-    sombra: '0px 8px 24px rgba(15, 118, 110, 0.10)',
-    sombraFuerte: '0px 12px 28px rgba(15, 118, 110, 0.30)',
-    bordeTarjeta: 'rgba(15, 118, 110, 0.08)',
+    fondoArriba: '#D9F2EA',        // color del encabezado: continúa el degradado del fondo
+    degradadoFondo: 'linear-gradient(180deg, #D9F2EA 0%, #E7F5EF 26%, #F4F8F6 58%, #FFFFFF 100%)',
+    degradadoHeroe: 'linear-gradient(135deg, #074A42 0%, #0B7568 52%, #12A594 100%)',
+    degradadoHeroePro: 'linear-gradient(135deg, #0D1526 0%, #182230 55%, #0B7568 100%)',
+    degradadoBoton: 'linear-gradient(135deg, #0B7568 0%, #12A594 100%)',
+    sombra: '0px 6px 20px rgba(11, 117, 104, 0.08)',
+    sombraFuerte: '0px 10px 26px rgba(11, 117, 104, 0.26)',
+    bordeTarjeta: 'rgba(11, 117, 104, 0.10)',
     campoFondo: '#FFFFFF',
     sobreHeroe: '#FFFFFF',
     sobreHeroeSuave: 'rgba(255, 255, 255, 0.82)',
     burbujaHeroe: 'rgba(255, 255, 255, 0.10)',
   },
   oscuro: {
-    primario: '#2DD4BF',
-    primarioOscuro: '#5EEAD4',
-    primarioSuave: '#134E4A',
-    sobrePrimario: '#042F2E',      // texto oscuro: el blanco no contrasta con el verde claro
-    acento: '#FBBF24',
-    texto: '#F3F4F6',
-    textoSuave: '#9CA3AF',
-    borde: '#374151',
-    estrellaVacia: '#6B7280',
-    fondo: '#111827',
-    superficie: '#1F2937',
-    logoPro: '#374151',
-    error: '#F87171',
+    primario: '#2EC4B6',
+    primarioOscuro: '#5FE3D0',
+    primarioSuave: '#12473F',
+    sobrePrimario: '#03211D',      // texto oscuro: el blanco no contrasta con el verde claro
+    acento: '#F5B83D',
+    texto: '#F2F4F7',
+    textoSuave: '#A3ACB9',
+    borde: '#333E4E',
+    estrellaVacia: '#66707E',
+    fondo: '#0F1622',
+    superficie: '#1B2536',
+    logoPro: '#333E4E',
+    error: '#F28080',
     errorSuave: '#450A0A',
     errorBorde: '#7F1D1D',
     errorTexto: '#FCA5A5',
@@ -76,7 +78,7 @@ export const paletas = {
     exitoSuave: '#064E3B',
     avisoFondo: '#422006',
     avisoBorde: '#92400E',
-    avisoTexto: '#FCD34D',
+    avisoTexto: '#F5CD6B',
     avisoInsignia: '#451A03',
     infoFondo: '#0C4A6E',
     infoTexto: '#BAE6FD',
@@ -84,15 +86,15 @@ export const paletas = {
     indigoTexto: '#C7D2FE',
     neutroFondo: '#374151',
     neutroTexto: '#E5E7EB',
-    fondoArriba: '#042F2E',
-    degradadoFondo: 'linear-gradient(180deg, #042F2E 0%, #0A2A2F 28%, #111827 62%, #1E293B 100%)',
-    degradadoHeroe: 'linear-gradient(135deg, #062E2B 0%, #115E59 55%, #0D9488 100%)',
+    fondoArriba: '#03211D',
+    degradadoFondo: 'linear-gradient(180deg, #03211D 0%, #0A2724 28%, #0F1622 62%, #1B2536 100%)',
+    degradadoHeroe: 'linear-gradient(135deg, #052A26 0%, #095E54 55%, #0E9C8A 100%)',
     degradadoHeroePro: 'linear-gradient(135deg, #020617 0%, #1E293B 55%, #115E59 100%)',
-    degradadoBoton: 'linear-gradient(135deg, #14B8A6 0%, #5EEAD4 100%)',
+    degradadoBoton: 'linear-gradient(135deg, #12A594 0%, #5FE3D0 100%)',
     sombra: '0px 8px 24px rgba(0, 0, 0, 0.35)',
     sombraFuerte: '0px 12px 28px rgba(45, 212, 191, 0.22)',
     bordeTarjeta: 'rgba(255, 255, 255, 0.07)',
-    campoFondo: '#111827',
+    campoFondo: '#0F1622',
     sobreHeroe: '#FFFFFF',
     sobreHeroeSuave: 'rgba(255, 255, 255, 0.80)',
     burbujaHeroe: 'rgba(255, 255, 255, 0.08)',
@@ -126,7 +128,11 @@ export function crearEstilos(fabrica) {
 // Fondo degradado (CSS linear-gradient): React Native lo dibuja de forma nativa y la web con CSS
 export const degradado = (css) => (Platform.OS === 'web' ? { backgroundImage: css } : { experimental_backgroundImage: css });
 
-export const espacio = { xs: 4, s: 8, m: 16, l: 24, xl: 32 };
+// Espaciados en escala de 4 pt: todas las pantallas respiran con el mismo ritmo
+export const espacio = { xs: 4, s: 8, m: 16, l: 24, xl: 32, xxl: 40 };
+
+// Escala tipográfica: tamaños de letra consistentes para toda la app
+export const fuente = { xs: 12, s: 14, m: 16, l: 20, xl: 24, xxl: 32 };
 
 // Esquinas redondeadas: tarjetas suaves y botones tipo píldora
 export const radio = { s: 12, m: 20, l: 28, pildora: 999 };

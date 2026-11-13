@@ -21,10 +21,11 @@ const EJEMPLOS = [
   'Se me quedaron las llaves adentro de la casa',
   'Se me quemó un enchufe y saltó el automático',
 ];
-const MAX_FOTOS = 4;
+const MAX_FOTOS = 2;
 
 // HU-08: el cliente describe su necesidad con sus palabras; la app muestra lo que entendió
-// para confirmarlo o corregirlo antes de publicar la solicitud. Puede agregar fotos (cámara o galería)
+// para confirmarlo o corregirlo antes de publicar la solicitud. Puede adjuntar hasta 2 fotos
+// del problema (cámara o galería), que viajan en el campo «fotos» al crear la solicitud,
 // para que el maestro cotice con más exactitud.
 // Si viene desde el perfil de un maestro (?prestador=id), al publicar se le asigna directamente.
 export default function NuevaSolicitud() {
@@ -124,22 +125,6 @@ export default function NuevaSolicitud() {
     }
   }
 
-  // Las fotos se suben a cada solicitud creada. Si alguna falla, la solicitud igual queda publicada
-  // y el cliente puede volver a agregarla desde el detalle.
-  async function subirFotos(solicitudes) {
-    let fallidas = 0;
-    for (const s of solicitudes) {
-      for (const f of fotos) {
-        try {
-          await api.post(`/solicitudes/${s.id}/fotos`, { imagen_base64: f.base64, descripcion: 'Foto de la solicitud' });
-        } catch {
-          fallidas++;
-        }
-      }
-    }
-    return fallidas;
-  }
-
   async function publicar() {
     setError(null);
     if (!elegidas.length) return setError('Elige qué servicio necesitas.');
@@ -156,13 +141,14 @@ export default function NuevaSolicitud() {
         categorias: elegidas,
         comuna,
         ...lugar(),
+        // Hasta 2 fotos del problema: viajan con la creación y quedan en la solicitud
+        ...(fotos.length ? { fotos: fotos.map((f) => f.base64) } : {}),
         creado_en_dispositivo: new Date().toISOString(),
       });
-      const fallidas = fotos.length ? await subirFotos(r.solicitudes) : 0;
       if (prestador) {
         await api.post(`/solicitudes/${r.solicitudes[0].id}/asignar`, { prestador_id: prestador.id });
       }
-      if (r.solicitudes.length === 1) router.replace(`/solicitud/${r.solicitudes[0].id}${fallidas ? '?fotos=fallidas' : ''}`);
+      if (r.solicitudes.length === 1) router.replace(`/solicitud/${r.solicitudes[0].id}`);
       else router.dismissTo('/');
     } catch (e) {
       if (e.codigo === 'SIN_CONEXION') {
@@ -229,8 +215,11 @@ export default function NuevaSolicitud() {
 
         {/* Fotos opcionales: el árbol, la falla o el lugar */}
         <View style={estilos.fotos}>
-          <Text style={estilos.fotosTitulo}>📷 Fotos <Text style={estilos.opcional}>(opcional)</Text></Text>
-          <Text style={estilos.fotosAyuda}>Una foto del árbol, la falla o el lugar ayuda al maestro a cotizar con más exactitud.</Text>
+          <View style={estilos.fotosFila}>
+            <Text style={estilos.fotosTitulo}>📷 Fotos del problema <Text style={estilos.opcional}>(opcional)</Text></Text>
+            <Text style={estilos.fotosContador}>{fotos.length}/{MAX_FOTOS}</Text>
+          </View>
+          <Text style={estilos.fotosAyuda}>Adjunta hasta {MAX_FOTOS} fotos del problema: la falla, el árbol o el lugar ayuda al maestro a cotizar con más exactitud.</Text>
           {fotos.length ? (
             <View style={estilos.grilla}>
               {fotos.map((f, i) => (
@@ -245,7 +234,7 @@ export default function NuevaSolicitud() {
             </View>
           ) : null}
           {fotos.length < MAX_FOTOS ? <BotonesFoto onElegir={agregarFoto} /> : (
-            <Text style={estilos.fotosAyuda}>Puedes agregar hasta {MAX_FOTOS} fotos aquí; después podrás sumar más en la solicitud o por el chat.</Text>
+            <Text style={estilos.fotosAyuda}>Ya adjuntaste las {MAX_FOTOS} fotos permitidas al pedir el servicio; después podrás sumar más en la solicitud o por el chat.</Text>
           )}
         </View>
 
@@ -352,7 +341,9 @@ const estilos = crearEstilos((colores) => ({
     backgroundColor: colores.superficie, borderRadius: radio.m, borderWidth: 1, borderColor: colores.bordeTarjeta,
     padding: espacio.m, marginBottom: espacio.m, boxShadow: colores.sombra,
   },
-  fotosTitulo: { fontSize: 16, fontWeight: '700', color: colores.texto },
+  fotosTitulo: { fontSize: 16, fontWeight: '700', color: colores.texto, flex: 1 },
+  fotosFila: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: espacio.s },
+  fotosContador: { fontSize: 14, fontWeight: '800', color: colores.primarioOscuro },
   opcional: { fontSize: 13, fontWeight: '500', color: colores.textoSuave },
   fotosAyuda: { fontSize: 13, color: colores.textoSuave, marginTop: espacio.xs, lineHeight: 18 },
   grilla: { flexDirection: 'row', flexWrap: 'wrap', gap: espacio.s, marginTop: espacio.s },

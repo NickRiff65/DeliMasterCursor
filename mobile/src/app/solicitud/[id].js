@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-native';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { api, consulta } from '../../lib/api';
@@ -56,6 +56,8 @@ export default function DetalleSolicitud() {
   const [estrellas, setEstrellas] = useState(0);
   const [comentario, setComentario] = useState('');
   const [tarjeta, setTarjeta] = useState(null);        // tarjeta guardada del cliente (Webpay Oneclick)
+  const scrollRef = useRef(null);                      // para bajar hasta «Elige quién lo hará»
+  const yElegirRef = useRef(0);                        // posición de la lista de candidatos
 
   const cargar = useCallback(async () => {
     try {
@@ -132,7 +134,7 @@ export default function DetalleSolicitud() {
   }
 
   return (
-    <ScrollView contentContainerStyle={estilos.contenido}>
+    <ScrollView ref={scrollRef} contentContainerStyle={estilos.contenido}>
       <View style={estilos.tarjeta}>
         <View style={estilos.fila}>
           <Text style={estilos.categoria}>{s.categoria_nombre}</Text>
@@ -177,7 +179,22 @@ export default function DetalleSolicitud() {
 
       {/* creada: elegir prestador */}
       {s.estado === 'creada' ? (
-        <View>
+        <View onLayout={(e) => { yElegirRef.current = e.nativeEvent.layout.y; }}>
+          {/* Sin respuesta en 1 día hábil: se libera al cliente para elegir a otro maestro,
+              con la misma asignación de siempre (POST /solicitudes/:id/asignar) */}
+          {s.sin_respuesta ? (
+            <View style={[estilos.tarjeta, estilos.esperando]}>
+              <Text style={estilos.nombre}>⏰ El maestro no respondió en 1 día hábil</Text>
+              <Text style={estilos.texto}>
+                Su plazo para responder ya venció{s.respuesta_vence_en ? ` (${fechaCorta(s.respuesta_vence_en)})` : ''}.
+                Puedes elegir a otro maestro para esta misma solicitud, sin crear una nueva.
+              </Text>
+              <View style={{ marginTop: espacio.s }}>
+                <Boton titulo="Elegir otro maestro"
+                  onPress={() => scrollRef.current?.scrollTo?.({ y: Math.max(yElegirRef.current - 8, 0), animated: true })} />
+              </View>
+            </View>
+          ) : null}
           <Text style={estilos.subtitulo}>Elige quién lo hará</Text>
           {!candidatos ? <ActivityIndicator color={colores.primario} /> : candidatos.length ? candidatos.map((p) => (
             <View key={p.id} style={[estilos.tarjeta, estilos.fila]}>

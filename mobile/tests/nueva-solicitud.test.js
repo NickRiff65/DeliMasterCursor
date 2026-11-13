@@ -6,7 +6,7 @@ jest.mock('expo-location', () => ({
 }));
 import * as almacenCola from '../src/lib/almacenCola';
 import NuevaSolicitud from '../src/app/nueva-solicitud';
-import { abrirApp, simularApi, SIN_CONEXION, sesionGuardada, cliente } from './ayudas';
+import { abrirApp, simularApi, SIN_CONEXION, errorApi, sesionGuardada, cliente } from './ayudas';
 
 // HU-08 (el cliente escribe con sus palabras) y HU-12 (sin señal se guarda en el celular)
 const UUID = expect.stringMatching(/^[0-9a-f-]{36}$/);
@@ -121,17 +121,12 @@ describe('Pedir un servicio', () => {
     expect(almacenCola.__todos()[0].datos).toMatchObject({ categorias: ['electricidad'], comuna: 'Chillán' });
   });
 
-  test('se pueden agregar fotos (cámara o galería) y se suben al publicar', async () => {
-    const rutas = {
+  test('se pueden adjuntar hasta 2 fotos del problema y viajan en el campo «fotos» al publicar', async () => {
+    const llamadas = simularApi({
       ...base,
       'POST /solicitudes/interpretar': { categorias: [{ slug: 'poda-altura' }], no_disponibles: [], comuna: null },
-      'POST /solicitudes': (cuerpo) => {
-        // Las fotos se suben a la solicitud recién creada (su id lo genera el celular)
-        rutas[`POST /solicitudes/${cuerpo.id}/fotos`] = { fotos: [], puede_subir: true, maximo_por_persona: 12 };
-        return { solicitudes: [{ id: cuerpo.id, estado: 'creada' }] };
-      },
-    };
-    const llamadas = simularApi(rutas);
+      'POST /solicitudes': (cuerpo) => ({ solicitudes: [{ id: cuerpo.id, estado: 'creada' }] }),
+    });
     ImagePicker.launchImageLibraryAsync
       .mockResolvedValueOnce({ canceled: false, assets: [{ base64: 'FOTO-ARBOL', uri: 'file://arbol.jpg' }] })
       .mockResolvedValueOnce({ canceled: false, assets: [{ base64: 'FOTO-TECHO', uri: 'file://techo.jpg' }] })
@@ -139,30 +134,37 @@ describe('Pedir un servicio', () => {
     const app = await abrirApp({ ruta: '/nueva-solicitud', pantallas: { 'nueva-solicitud': NuevaSolicitud } });
     const user = userEvent.setup();
     await user.type(await screen.findByLabelText('Describe lo que necesitas'), 'Necesito podar un árbol alto');
-    for (let i = 0; i < 3; i++) await user.press(screen.getByRole('button', { name: '🖼️ Galería' }));
-    expect(await screen.findByLabelText('Foto 3')).toBeOnTheScreen();
+    expect(screen.getByText('0/2')).toBeOnTheScreen();
+    for (let i = 0; i < 2; i++) await user.press(screen.getByRole('button', { name: '🖼️ Galería' }));
+    expect(await screen.findByLabelText('Foto 2')).toBeOnTheScreen();
+    expect(screen.getByText('2/2')).toBeOnTheScreen();
+    // Con el máximo adjunto ya no se ofrece agregar más
+    expect(screen.queryByRole('button', { name: '🖼️ Galería' })).not.toBeOnTheScreen();
     await user.press(screen.getByRole('button', { name: 'Quitar foto 2' }));
-    expect(screen.queryByLabelText('Foto 3')).not.toBeOnTheScreen();
+    expect(screen.getByText('1/2')).toBeOnTheScreen();
+    await user.press(screen.getByRole('button', { name: '🖼️ Galería' }));
+    expect(await screen.findByLabelText('Foto 2')).toBeOnTheScreen();
 
     await user.press(screen.getByRole('button', { name: 'Continuar' }));
     await completarDireccion(user);
     await user.press(await screen.findByRole('button', { name: 'Publicar solicitud' }));
     expect(await screen.findByText('Pantalla solicitud/[id]')).toBeOnTheScreen();
-    const id = llamadas.find((l) => l.ruta === '/solicitudes').cuerpo.id;
-    const fotos = llamadas.filter((l) => l.ruta === `/solicitudes/${id}/fotos`);
-    expect(fotos.map((f) => f.cuerpo.imagen_base64)).toEqual(['FOTO-ARBOL', 'FOTO-RAMAS']);
-    expect(app.ruta()).toBe(`/solicitud/${id}`);
+    const publicada = llamadas.find((l) => l.ruta === '/solicitudes').cuerpo;
+    expect(publicada.fotos).toEqual(['FOTO-ARBOL', 'FOTO-RAMAS']);
+    // Ya no hay subida separada de fotos: viajaron con la creación
+    expect(llamadas.some((l) => l.ruta === `/solicitudes/${publicada.id}/fotos`)).toBe(false);
+    expect(app.ruta()).toBe(`/solicitud/${publicada.id}`);
   });
 
-  test('si una foto no se puede subir, la solicitud igual se publica y lo avisa', async () => {
-    const llamadas = simularApi({
+  test('si el servidor rechaza la creación, muestra su mensaje tal cual y se queda en la pantalla', async () => {
+    simularApi({
       ...base,
       'POST /solicitudes/interpretar': { categorias: [{ slug: 'poda-altura' }], no_disponibles: [], comuna: null },
-      'POST /solicitudes': (cuerpo) => ({ solicitudes: [{ id: cuerpo.id, estado: 'creada' }] }),
+      'POST /solicitudes': errorApi(409, 'SOLICITUD_ACTIVA_MISMA_CATEGORIA', 'Ya tienes una solicitud activa de Poda en altura.'),
     });
     ImagePicker.requestCameraPermissionsAsync.mockResolvedValue({ granted: true });
     ImagePicker.launchCameraAsync.mockResolvedValue({ canceled: false, assets: [{ base64: 'FOTO', uri: 'file://f.jpg' }] });
-    const app = await abrirApp({ ruta: '/nueva-solicitud', pantallas: { 'nueva-solicitud': NuevaSolicitud } });
+    await abrirApp({ ruta: '/nueva-solicitud', pantallas: { 'nueva-solicitud': NuevaSolicitud } });
     const user = userEvent.setup();
     await user.type(await screen.findByLabelText('Describe lo que necesitas'), 'Necesito podar un árbol alto');
     await user.press(screen.getByRole('button', { name: '📷 Cámara' }));
@@ -170,9 +172,9 @@ describe('Pedir un servicio', () => {
     await user.press(screen.getByRole('button', { name: 'Continuar' }));
     await completarDireccion(user);
     await user.press(await screen.findByRole('button', { name: 'Publicar solicitud' }));
-    expect(await screen.findByText('Pantalla solicitud/[id]')).toBeOnTheScreen();
-    const id = llamadas.find((l) => l.ruta === '/solicitudes').cuerpo.id;
-    expect(app.ruta()).toBe(`/solicitud/${id}?fotos=fallidas`);
+    expect(await screen.findByRole('alert')).toHaveTextContent('Ya tienes una solicitud activa de Poda en altura.');
+    expect(screen.getByRole('button', { name: 'Publicar solicitud' })).toBeOnTheScreen();
+    expect(screen.queryByText('Pantalla solicitud/[id]')).not.toBeOnTheScreen();
   });
 
   test('pide la dirección exacta y puede guardar la ubicación del celular', async () => {

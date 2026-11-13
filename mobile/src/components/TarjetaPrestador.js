@@ -18,6 +18,9 @@ export function TarjetaPrestador({ prestador, onPress }) {
       <View style={estilos.cuerpo}>
         <View style={estilos.fila}>
           <Text style={estilos.nombre} numberOfLines={1}>{prestador.nombre}</Text>
+          {prestador.es_nuevo ? (
+            <View style={estilos.nuevo}><Text style={estilos.nuevoTexto}>Nuevo</Text></View>
+          ) : null}
           {prestador.total_resenas ? (
             <View style={estilos.nota}>
               <Estrellas promedio={prestador.calificacion_promedio} total={prestador.total_resenas} />
@@ -59,6 +62,8 @@ const estilos = crearEstilos((colores) => ({
   fila: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: espacio.s },
   nombre: { flex: 1, fontSize: 16, fontWeight: '800', color: colores.texto },
   nota: { backgroundColor: colores.avisoFondo, borderRadius: radio.pildora, paddingHorizontal: 8, paddingVertical: 2 },
+  nuevo: { backgroundColor: colores.primario, borderRadius: radio.pildora, paddingHorizontal: 8, paddingVertical: 2 },
+  nuevoTexto: { color: colores.sobrePrimario, fontSize: 12, fontWeight: '800' },
   categorias: { color: colores.texto, fontSize: 13, marginTop: 4, fontWeight: '600' },
   verificado: { color: colores.verificado },
   descripcion: { color: colores.textoSuave, fontSize: 14, marginTop: espacio.xs, lineHeight: 20 },
