@@ -70,7 +70,7 @@ describe('DeliMaster Pro', () => {
       'GET /prestadores/yo/dinero': { retenido: 44000, por_transferir: 35200, transferido: 120500, transferencias: [] },
     });
     await abrirApp({ ruta: '/panel', pantallas: { panel: Panel } });
-    expect(await screen.findByText('💰 Mi dinero')).toBeOnTheScreen();
+    expect(await screen.findByText('Mi dinero')).toBeOnTheScreen();
     expect(screen.getByText('$44.000')).toBeOnTheScreen();
     expect(screen.getByText('$35.200')).toBeOnTheScreen();
     expect(screen.getByText('$120.500')).toBeOnTheScreen();

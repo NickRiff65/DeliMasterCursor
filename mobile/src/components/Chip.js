@@ -1,6 +1,8 @@
 import { Pressable, Text } from 'react-native';
-import { colores, crearEstilos, degradado, espacio, radio } from '../theme';
+import { crearEstilos, espacio, radio } from '../theme';
 
+// Chip de filtro u orden: plano, sin color. Sin seleccionar es gris cálido con borde;
+// seleccionado es tinta con texto claro. La selección se reconoce por contraste, no por color.
 export function Chip({ texto, activo, onPress }) {
   return (
     <Pressable
@@ -8,7 +10,7 @@ export function Chip({ texto, activo, onPress }) {
       accessibilityState={{ selected: activo }}
       onPress={onPress}
       style={({ pressed }) => [
-        estilos.chip, activo && [estilos.activo, degradado(colores.degradadoBoton)], pressed && { transform: [{ scale: 0.95 }] },
+        estilos.chip, activo && estilos.activo, pressed && { opacity: 0.75 },
       ]}
     >
       <Text style={[estilos.texto, activo && estilos.textoActivo]} numberOfLines={1}>{texto}</Text>
@@ -23,12 +25,11 @@ const estilos = crearEstilos((colores) => ({
     justifyContent: 'center',
     borderRadius: radio.pildora,
     borderWidth: 1,
-    borderColor: colores.bordeTarjeta,
-    backgroundColor: colores.superficie,
+    borderColor: colores.borde,
+    backgroundColor: colores.neutroFondo,
     marginRight: espacio.s,
-    boxShadow: colores.sombra,
   },
-  activo: { backgroundColor: colores.primario, borderColor: 'transparent', boxShadow: colores.sombraFuerte },
-  texto: { color: colores.texto, fontSize: 14, fontWeight: '600' },
-  textoActivo: { color: colores.sobrePrimario, fontWeight: '700' },
+  activo: { backgroundColor: colores.texto, borderColor: colores.texto },
+  texto: { color: colores.neutroTexto, fontSize: 14, fontWeight: '600' },
+  textoActivo: { color: colores.fondo, fontWeight: '700' },
 }));

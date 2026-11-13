@@ -21,11 +21,7 @@ export function TarjetaPrestador({ prestador, onPress }) {
           {prestador.es_nuevo ? (
             <View style={estilos.nuevo}><Text style={estilos.nuevoTexto}>Nuevo</Text></View>
           ) : null}
-          {prestador.total_resenas ? (
-            <View style={estilos.nota}>
-              <Estrellas promedio={prestador.calificacion_promedio} total={prestador.total_resenas} />
-            </View>
-          ) : <Estrellas promedio={prestador.calificacion_promedio} total={prestador.total_resenas} />}
+          <Estrellas promedio={prestador.calificacion_promedio} total={prestador.total_resenas} />
         </View>
         <Text style={estilos.categorias} numberOfLines={1}>
           {prestador.categorias.map((c, i) => (
@@ -50,21 +46,20 @@ const estilos = crearEstilos((colores) => ({
   tarjeta: {
     flexDirection: 'row',
     backgroundColor: colores.superficie,
-    borderRadius: radio.l,
+    borderRadius: radio.m,
     padding: espacio.m,
     marginBottom: espacio.m,
     borderWidth: 1,
-    borderColor: colores.bordeTarjeta,
-    boxShadow: colores.sombra,
+    borderColor: colores.borde,
   },
   avatar: { marginRight: espacio.m },
   cuerpo: { flex: 1 },
   fila: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: espacio.s },
-  nombre: { flex: 1, fontSize: 16, fontWeight: '800', color: colores.texto },
-  nota: { backgroundColor: colores.avisoFondo, borderRadius: radio.pildora, paddingHorizontal: 8, paddingVertical: 2 },
-  nuevo: { backgroundColor: colores.primario, borderRadius: radio.pildora, paddingHorizontal: 8, paddingVertical: 2 },
-  nuevoTexto: { color: colores.sobrePrimario, fontSize: 12, fontWeight: '800' },
-  categorias: { color: colores.texto, fontSize: 13, marginTop: 4, fontWeight: '600' },
+  nombre: { flex: 1, fontSize: 16, fontWeight: '700', color: colores.texto },
+  // «Nuevo»: etiqueta de solo texto con borde fino, sin relleno de color
+  nuevo: { borderWidth: 1, borderColor: colores.borde, borderRadius: radio.s, paddingHorizontal: 7, paddingVertical: 1 },
+  nuevoTexto: { color: colores.textoSuave, fontSize: 11, fontWeight: '700', letterSpacing: 0.6, textTransform: 'uppercase' },
+  categorias: { color: colores.textoSuave, fontSize: 13, marginTop: 4, fontWeight: '500' },
   verificado: { color: colores.verificado },
   descripcion: { color: colores.textoSuave, fontSize: 14, marginTop: espacio.xs, lineHeight: 20 },
   comunas: { color: colores.textoSuave, fontSize: 13, marginTop: espacio.xs },

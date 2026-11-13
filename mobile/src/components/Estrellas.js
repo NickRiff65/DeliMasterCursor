@@ -1,14 +1,11 @@
-import { Text, View } from 'react-native';
+import { Text } from 'react-native';
 import { colores, crearEstilos } from '../theme';
 
 // Muestra la reputación: "★ 4,8 (32)" o "Nuevo" si aún no tiene reseñas.
+// Sin insignia de color: «Nuevo» es texto gris y la estrella va en ámbar apagado (token acento).
 export function Estrellas({ promedio, total, tamano = 14 }) {
   if (!total) {
-    return (
-      <View style={estilos.nuevo}>
-        <Text style={[estilos.textoNuevo, { fontSize: tamano - 2 }]}>Nuevo</Text>
-      </View>
-    );
+    return <Text style={[estilos.textoNuevo, { fontSize: tamano - 2 }]}>Nuevo</Text>;
   }
   return (
     <Text style={{ fontSize: tamano, color: colores.texto }} accessibilityLabel={`${promedio} estrellas, ${total} reseñas`}>
@@ -20,6 +17,5 @@ export function Estrellas({ promedio, total, tamano = 14 }) {
 }
 
 const estilos = crearEstilos((colores) => ({
-  nuevo: { backgroundColor: colores.primarioSuave, borderRadius: 6, paddingHorizontal: 8, paddingVertical: 2 },
-  textoNuevo: { color: colores.primarioOscuro, fontWeight: '600' },
+  textoNuevo: { color: colores.textoSuave, fontWeight: '600' },
 }));

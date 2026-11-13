@@ -36,10 +36,6 @@ export default function Login() {
 
   return (
     <SafeAreaView style={[{ flex: 1, backgroundColor: colores.primario }, degradado(ES_PRO ? colores.degradadoHeroePro : colores.degradadoHeroe)]}>
-      {/* Burbujas decorativas del fondo */}
-      <View style={[estilos.burbuja, { width: 260, height: 260, top: -80, right: -90 }]} />
-      <View style={[estilos.burbuja, { width: 180, height: 180, bottom: 60, left: -70 }]} />
-      <View style={[estilos.burbuja, { width: 90, height: 90, top: 140, left: 30 }]} />
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView contentContainerStyle={estilos.contenido} keyboardShouldPersistTaps="handled">
           <View style={estilos.marca}>
@@ -94,7 +90,6 @@ export default function Login() {
 
 const estilos = crearEstilos((colores) => ({
   contenido: { flexGrow: 1, justifyContent: 'center', padding: espacio.l, maxWidth: 480, width: '100%', alignSelf: 'center' },
-  burbuja: { position: 'absolute', borderRadius: 999, backgroundColor: colores.burbujaHeroe },
   marca: { alignItems: 'center', marginBottom: espacio.l },
   logo: {
     width: 76, height: 76, borderRadius: 24, backgroundColor: '#FFFFFF',

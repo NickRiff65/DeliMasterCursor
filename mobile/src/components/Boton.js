@@ -1,7 +1,8 @@
 import { ActivityIndicator, Pressable, Text } from 'react-native';
-import { colores, crearEstilos, degradado, espacio, radio } from '../theme';
+import { colores, crearEstilos, espacio, radio } from '../theme';
 
-// Botón tipo píldora: el principal con degradado y sombra; al tocarlo se hunde levemente
+// Botón tipo píldora, plano: el principal es tinta con texto claro (el mismo criterio del
+// chip seleccionado); el secundario es superficie con borde; sin degradados ni sombras.
 export function Boton({ titulo, onPress, cargando = false, variante = 'primario', deshabilitado = false }) {
   const inactivo = cargando || deshabilitado;
   const secundario = variante === 'secundario';
@@ -14,15 +15,15 @@ export function Boton({ titulo, onPress, cargando = false, variante = 'primario'
       disabled={inactivo}
       style={({ pressed }) => [
         estilos.base,
-        secundario ? estilos.secundario : peligro ? estilos.peligro : [estilos.primario, degradado(colores.degradadoBoton)],
-        pressed && !inactivo && { transform: [{ scale: 0.97 }], opacity: 0.92 },
+        secundario ? estilos.secundario : peligro ? estilos.peligro : estilos.primario,
+        pressed && !inactivo && { opacity: 0.85 },
         inactivo && { opacity: 0.55 },
       ]}
     >
       {cargando ? (
-        <ActivityIndicator color={secundario ? colores.primario : colores.sobrePrimario} />
+        <ActivityIndicator color={secundario ? colores.texto : colores.fondo} />
       ) : (
-        <Text style={[estilos.texto, secundario && { color: colores.primarioOscuro }]}>{titulo}</Text>
+        <Text style={[estilos.texto, secundario && { color: colores.texto }]}>{titulo}</Text>
       )}
     </Pressable>
   );
@@ -36,8 +37,8 @@ const estilos = crearEstilos((colores) => ({
     justifyContent: 'center',
     paddingHorizontal: espacio.l,
   },
-  primario: { backgroundColor: colores.primario, boxShadow: colores.sombraFuerte },
-  secundario: { backgroundColor: colores.primarioSuave, borderWidth: 1.5, borderColor: colores.primario },
+  primario: { backgroundColor: colores.texto },
+  secundario: { backgroundColor: colores.superficie, borderWidth: 1, borderColor: colores.borde },
   peligro: { backgroundColor: colores.error },
-  texto: { color: colores.sobrePrimario, fontSize: 16, fontWeight: '700', letterSpacing: 0.2 },
+  texto: { color: colores.fondo, fontSize: 16, fontWeight: '700', letterSpacing: 0.2 },
 }));

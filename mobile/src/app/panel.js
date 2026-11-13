@@ -76,13 +76,11 @@ export default function Panel() {
     <ScrollView contentContainerStyle={estilos.contenido}>
       {cabecera}
       {/* Portada: saludo, estado en el catálogo y reputación de un vistazo */}
-      <View style={[estilos.portada, degradado(colores.degradadoHeroePro)]}>
-        <View style={[estilos.burbuja, { width: 170, height: 170, top: -60, right: -50 }]} />
-        <View style={[estilos.burbuja, { width: 70, height: 70, bottom: -20, right: 90 }]} />
+      <View style={estilos.portada}>
         <Text style={estilos.portadaEtiqueta}>TU NEGOCIO HOY</Text>
         <Text style={estilos.saludo}>Hola, {usuario.nombre.split(' ')[0]} 👋</Text>
         <View style={estilos.estadoFila}>
-          <View style={[estilos.estadoPunto, { backgroundColor: enCatalogo ? '#34D399' : '#FBBF24' }]} />
+          <View style={[estilos.estadoPunto, { backgroundColor: enCatalogo ? colores.verificado : colores.acento }]} />
           <Text style={estilos.estadoTexto}>{enCatalogo ? 'Visible en el catálogo' : 'Hoy no apareces en el catálogo'}</Text>
         </View>
         <View style={estilos.metricas}>
@@ -124,7 +122,7 @@ export default function Panel() {
       {dinero ? (
         <Pressable style={estilos.tarjeta} onPress={() => router.push('/finanzas')} accessibilityRole="button">
           <View style={estilos.fila}>
-            <Text style={estilos.tarjetaTitulo}>💰 Mi dinero</Text>
+            <Text style={estilos.tarjetaTitulo}>Mi dinero</Text>
             <Text style={estilos.enlace}>Detalle →</Text>
           </View>
           <View style={estilos.dinero}>
@@ -193,7 +191,7 @@ export default function Panel() {
       <Pressable style={[estilos.tarjeta, estilos.fila, !datosPagoCompletos && estilos.alerta]}
         onPress={() => router.push('/datos-pago')} accessibilityRole="button">
         <View style={{ flex: 1 }}>
-          <Text style={[estilos.tarjetaTitulo, !datosPagoCompletos && { color: colores.avisoTexto }]}>💳 Datos para recibir pagos</Text>
+          <Text style={[estilos.tarjetaTitulo, !datosPagoCompletos && { color: colores.avisoTexto }]}>Datos para recibir pagos</Text>
           <Text style={[estilos.suave, !datosPagoCompletos && { color: colores.avisoTexto }]}>
             {datosPagoCompletos
               ? 'Tu cuenta para las transferencias de DeliMaster.'
@@ -206,7 +204,7 @@ export default function Panel() {
       {/* CU-16: agenda de visitas programadas */}
       <Pressable style={[estilos.tarjeta, estilos.fila]} onPress={() => router.push('/agenda')} accessibilityRole="button">
         <View style={{ flex: 1 }}>
-          <Text style={estilos.tarjetaTitulo}>📅 Mi agenda</Text>
+          <Text style={estilos.tarjetaTitulo}>Mi agenda</Text>
           <Text style={estilos.suave}>Tus próximas visitas programadas, en orden de fecha.</Text>
         </View>
         <Text style={estilos.enlace}>Ver →</Text>
@@ -215,7 +213,7 @@ export default function Panel() {
       {/* Portafolio tipo CV: fotos de trabajos anteriores que ven los clientes */}
       <Pressable style={[estilos.tarjeta, estilos.fila]} onPress={() => router.push('/portafolio')} accessibilityRole="button">
         <View style={{ flex: 1 }}>
-          <Text style={estilos.tarjetaTitulo}>🖼️ Mi portafolio</Text>
+          <Text style={estilos.tarjetaTitulo}>Mi portafolio</Text>
           <Text style={estilos.suave}>Fotos de tus trabajos anteriores, para que los clientes te conozcan.</Text>
         </View>
         <Text style={estilos.enlace}>Ver →</Text>
@@ -224,7 +222,7 @@ export default function Panel() {
       {/* HU-09: acceso al panel contable */}
       <Pressable style={[estilos.tarjeta, estilos.fila]} onPress={() => router.push('/finanzas')} accessibilityRole="button">
         <View style={{ flex: 1 }}>
-          <Text style={estilos.tarjetaTitulo}>💰 Mis finanzas</Text>
+          <Text style={estilos.tarjetaTitulo}>Mis finanzas</Text>
           <Text style={estilos.suave}>Ingresos, gastos en materiales y tu ganancia neta del mes.</Text>
         </View>
         <Text style={estilos.enlace}>Ver →</Text>
@@ -269,10 +267,9 @@ export default function Panel() {
 const estilos = crearEstilos((colores) => ({
   contenido: { padding: espacio.m, paddingBottom: espacio.xl, maxWidth: 720, width: '100%', alignSelf: 'center' },
   portada: {
-    backgroundColor: colores.logoPro, borderRadius: radio.l, padding: espacio.l, marginBottom: espacio.m,
-    overflow: 'hidden', boxShadow: colores.sombraFuerte,
+    backgroundColor: colores.logoPro, borderRadius: radio.m, padding: espacio.l, marginBottom: espacio.m,
+    overflow: 'hidden',
   },
-  burbuja: { position: 'absolute', borderRadius: 999, backgroundColor: colores.burbujaHeroe },
   portadaEtiqueta: { color: colores.sobreHeroeSuave, fontSize: 11, fontWeight: '800', letterSpacing: 1.2 },
   saludo: { fontSize: 28, fontWeight: '900', color: colores.sobreHeroe, marginTop: 2, letterSpacing: -0.5 },
   estadoFila: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: espacio.xs },
@@ -283,8 +280,8 @@ const estilos = crearEstilos((colores) => ({
   metricaValor: { color: colores.sobreHeroe, fontSize: 18, fontWeight: '900' },
   metricaNombre: { color: colores.sobreHeroeSuave, fontSize: 12, marginTop: 2 },
   tarjeta: {
-    backgroundColor: colores.superficie, boxShadow: colores.sombra, borderRadius: radio.m, padding: espacio.m,
-    marginBottom: espacio.m, borderWidth: 1, borderColor: colores.bordeTarjeta,
+    backgroundColor: colores.superficie, borderRadius: radio.m, padding: espacio.m,
+    marginBottom: espacio.m, borderWidth: 1, borderColor: colores.borde,
   },
   fila: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: espacio.s },
   tarjetaTitulo: { fontSize: 16, fontWeight: '800', color: colores.texto },
@@ -293,11 +290,11 @@ const estilos = crearEstilos((colores) => ({
   etiqueta: { fontSize: 13, fontWeight: '700', color: colores.textoSuave, marginTop: espacio.m, marginBottom: espacio.xs },
   enlace: { color: colores.primario, fontWeight: '700', fontSize: 15 },
   alerta: { backgroundColor: colores.avisoFondo, borderColor: colores.avisoBorde },
-  pendientes: { backgroundColor: colores.primario, borderColor: 'transparent', boxShadow: colores.sombraFuerte },
+  pendientes: { backgroundColor: colores.primario, borderColor: 'transparent' },
   alertaTitulo: { fontSize: 15, fontWeight: '700', color: colores.avisoTexto, marginBottom: espacio.xs },
   alertaTexto: { fontSize: 14, color: colores.avisoTexto, marginTop: 2 },
   dinero: { flexDirection: 'row', gap: espacio.s, marginVertical: espacio.s },
-  dineroCifra: { flex: 1, backgroundColor: colores.fondo, borderRadius: radio.s, padding: espacio.s, alignItems: 'center' },
+  dineroCifra: { flex: 1, backgroundColor: colores.fondo, borderWidth: 1, borderColor: colores.borde, borderRadius: radio.s, padding: espacio.s, alignItems: 'center' },
   dineroValor: { fontSize: 16, fontWeight: '800', color: colores.texto },
   dineroNombre: { fontSize: 12, color: colores.textoSuave, marginTop: 2 },
 }));

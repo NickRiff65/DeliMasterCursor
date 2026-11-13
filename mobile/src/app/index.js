@@ -62,8 +62,6 @@ export default function Inicio() {
             {/* HU-08: pedir el servicio con tus propias palabras */}
             <Pressable onPress={() => router.push('/nueva-solicitud')} accessibilityRole="button"
               style={({ pressed }) => [estilos.pedir, degradado(colores.degradadoHeroe), pressed && { transform: [{ scale: 0.98 }] }]}>
-              <View style={[estilos.burbuja, { width: 150, height: 150, top: -50, right: -40 }]} />
-              <View style={[estilos.burbuja, { width: 80, height: 80, bottom: -30, right: 70 }]} />
               <Text style={estilos.pedirEtiqueta}>PIDE CON TUS PALABRAS</Text>
               <Text style={estilos.pedirTitulo}>✍️  Escríbelo y lo resolvemos</Text>
               <Text style={estilos.pedirTexto}>“Se rompió una cañería…” · “Me quedé sin llaves…” · y agrega fotos</Text>
@@ -115,10 +113,8 @@ const estilos = crearEstilos((colores) => ({
   saludo: { fontSize: 15, color: colores.textoSuave, fontWeight: '600' },
   pregunta: { fontSize: 28, fontWeight: '900', color: colores.texto, marginBottom: espacio.m, letterSpacing: -0.5 },
   pedir: {
-    backgroundColor: colores.primario, borderRadius: radio.l, padding: espacio.l, overflow: 'hidden',
-    boxShadow: colores.sombraFuerte,
+    backgroundColor: colores.primario, borderRadius: radio.m, padding: espacio.l, overflow: 'hidden',
   },
-  burbuja: { position: 'absolute', borderRadius: 999, backgroundColor: colores.burbujaHeroe },
   pedirEtiqueta: { color: colores.sobreHeroeSuave, fontSize: 11, fontWeight: '800', letterSpacing: 1.2, marginBottom: espacio.xs },
   pedirTitulo: { color: colores.sobreHeroe, fontSize: 20, fontWeight: '800' },
   pedirTexto: { color: colores.sobreHeroeSuave, fontSize: 13, marginTop: espacio.xs, lineHeight: 19 },
@@ -126,7 +122,7 @@ const estilos = crearEstilos((colores) => ({
     alignSelf: 'flex-start', backgroundColor: '#FFFFFF', borderRadius: radio.pildora,
     paddingHorizontal: espacio.m, paddingVertical: 9, marginTop: espacio.m,
   },
-  pedirBotonTexto: { color: '#0B7568', fontWeight: '800', fontSize: 14 },
+  pedirBotonTexto: { color: colores.primarioOscuro, fontWeight: '800', fontSize: 14 },
   maestros: {
     flexDirection: 'row', alignItems: 'center', gap: espacio.m, marginTop: espacio.m, padding: espacio.m,
     backgroundColor: colores.superficie, borderRadius: radio.l, borderWidth: 1, borderColor: colores.bordeTarjeta,

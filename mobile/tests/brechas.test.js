@@ -52,7 +52,7 @@ describe('Catálogo: horario y orden', () => {
     expect(await screen.findByText('1 maestro disponible')).toBeOnTheScreen();
 
     const user = userEvent.setup();
-    await user.press(screen.getByRole('button', { name: '🕒 Solo en horario ahora' }));
+    await user.press(screen.getByRole('button', { name: 'En horario ahora' }));
     expect(await screen.findByText('1 maestro disponible')).toBeOnTheScreen();
     await user.press(screen.getByRole('button', { name: 'Más trabajos' }));
 

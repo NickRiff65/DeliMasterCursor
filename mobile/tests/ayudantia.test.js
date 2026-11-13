@@ -98,7 +98,7 @@ describe('Catálogo: maestros nuevos', () => {
   };
   const pag = (prestadores) => ({ prestadores, paginacion: { total: prestadores.length, pagina: 1, paginas: 1 } });
 
-  test('el chip «✨ Nuevos» agrega nuevos=true y la tarjeta del nuevo muestra el distintivo «Nuevo»', async () => {
+  test('el chip «Nuevos» agrega nuevos=true y la tarjeta del nuevo muestra el distintivo «Nuevo»', async () => {
     const llamadas = simularApi({
       'GET /auth/yo': { usuario: cliente },
       'GET /categorias': { categorias: [{ slug: 'electricidad', nombre: 'Electricidad' }] },
@@ -111,7 +111,7 @@ describe('Catálogo: maestros nuevos', () => {
     // Solo el maestro nuevo lleva el distintivo
     expect(screen.getByText('Nuevo')).toBeOnTheScreen();
 
-    await userEvent.setup().press(screen.getByRole('button', { name: '✨ Nuevos' }));
+    await userEvent.setup().press(screen.getByRole('button', { name: 'Nuevos' }));
     expect(await screen.findByText('1 maestro disponible')).toBeOnTheScreen();
     const rutas = llamadas.filter((l) => l.ruta.startsWith('/prestadores?')).map((l) => l.ruta);
     expect(rutas.at(-1)).toBe('/prestadores?comuna=Chill%C3%A1n&orden=reputacion&nuevos=true&pagina=1&limite=20');
@@ -178,7 +178,7 @@ describe('Mi portafolio (Pro)', () => {
       'GET /prestadores/yo/dinero': { retenido: 0, por_transferir: 0, transferido: 0, transferencias: [] },
     });
     const app = await abrirApp({ ruta: '/panel', pantallas: { panel: Panel } });
-    await userEvent.setup().press(await screen.findByText('🖼️ Mi portafolio'));
+    await userEvent.setup().press(await screen.findByText('Mi portafolio'));
     expect(await screen.findByText('Pantalla portafolio')).toBeOnTheScreen();
     expect(app.ruta()).toBe('/portafolio');
   });

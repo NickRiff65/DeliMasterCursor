@@ -1,103 +1,106 @@
 import { Platform, StyleSheet } from 'react-native';
 
-// Identidad visual de DeliMaster: verde azulado profundo (confianza) con acento ámbar
-// (reputación), neutros cálidos y sombras suaves en capas. Rediseño 2026: paleta más pulida,
-// con la escala tipográfica `fuente` y espaciados de 4 pt consistentes en toda la app.
-// Dos paletas con los mismos nombres; la vigente la elige TemaProvider (context/tema.js) según
-// la preferencia de "Mi cuenta": automático (la del teléfono), claro u oscuro.
+// Identidad visual de DeliMaster: neutro editorial y plano. Superficies blancas y grises
+// cálidos, bordes discretos de 1 px, jerarquía por tipografía y espaciado. Un solo acento
+// sobrio (verde profundo desaturado) usado con cuentagotas; el ámbar queda solo como color
+// semántico apagado (estrellas y avisos). Sin gradientes de color, sin burbujas decorativas
+// y con sombras casi nulas: manda el borde. Los «degradados» se conservan como tokens por
+// compatibilidad, pero son colores planos.
+// Dos paletas con los mismos nombres; la vigente la elige TemaProvider (context/tema.js)
+// según la preferencia de "Mi cuenta": automático (la del teléfono), claro u oscuro.
 export const paletas = {
   claro: {
-    primario: '#0B7568',
-    primarioOscuro: '#095E54',     // texto verde sobre fondos claros (precios, avatares)
-    primarioSuave: '#D9F2EA',
+    primario: '#166B5D',
+    primarioOscuro: '#0E4A40',     // texto verde sobre fondos claros (precios, enlaces)
+    primarioSuave: '#E9EFEC',
     sobrePrimario: '#FFFFFF',      // texto e íconos sobre el color primario
-    acento: '#E8930C',
-    texto: '#182230',
-    textoSuave: '#5F6B7A',
-    borde: '#E3E7EC',
-    estrellaVacia: '#A3ACB9',      // estrellas sin marcar al calificar
-    fondo: '#F6F7F5',
+    acento: '#A87C22',             // ámbar apagado: solo estrellas y avisos
+    texto: '#1C1917',
+    textoSuave: '#57534E',
+    borde: '#E7E5E4',
+    estrellaVacia: '#C7C2BC',      // estrellas sin marcar al calificar
+    fondo: '#FAFAF9',
     superficie: '#FFFFFF',
-    logoPro: '#182230',
-    error: '#C92A2A',
-    errorSuave: '#FDECEC',
-    errorBorde: '#F3B3B3',
-    errorTexto: '#8F1D1D',
-    verificado: '#06755A',
-    exitoFondo: '#EFFAF3',
-    exitoBorde: '#B9E8CB',
-    exitoTexto: '#17603A',
-    exitoInsignia: '#D8F3E2',
-    exitoSuave: '#EAF7F0',
-    avisoFondo: '#FFF8E6',
-    avisoBorde: '#F5D67B',
-    avisoTexto: '#8A5A00',
-    avisoInsignia: '#FCEFC7',
-    infoFondo: '#E1F0FA',
-    infoTexto: '#0B5B7E',
-    indigoFondo: '#E2E6FA',
-    indigoTexto: '#37348F',
-    neutroFondo: '#EEF1F4',
-    neutroTexto: '#3D4756',
-    // Diseño: degradados (de más oscuro arriba a más claro abajo), sombras y tarjetas
-    fondoArriba: '#D9F2EA',        // color del encabezado: continúa el degradado del fondo
-    degradadoFondo: 'linear-gradient(180deg, #D9F2EA 0%, #E7F5EF 26%, #F4F8F6 58%, #FFFFFF 100%)',
-    degradadoHeroe: 'linear-gradient(135deg, #074A42 0%, #0B7568 52%, #12A594 100%)',
-    degradadoHeroePro: 'linear-gradient(135deg, #0D1526 0%, #182230 55%, #0B7568 100%)',
-    degradadoBoton: 'linear-gradient(135deg, #0B7568 0%, #12A594 100%)',
-    sombra: '0px 6px 20px rgba(11, 117, 104, 0.08)',
-    sombraFuerte: '0px 10px 26px rgba(11, 117, 104, 0.26)',
-    bordeTarjeta: 'rgba(11, 117, 104, 0.10)',
+    logoPro: '#1C1917',
+    error: '#B3261E',
+    errorSuave: '#FAEFED',
+    errorBorde: '#E7C8C3',
+    errorTexto: '#8A2A23',
+    verificado: '#166B5D',
+    exitoFondo: '#F0F5F1',
+    exitoBorde: '#CBDACF',
+    exitoTexto: '#2C5B40',
+    exitoInsignia: '#E4EFE7',
+    exitoSuave: '#F0F5F1',
+    avisoFondo: '#FAF6EA',
+    avisoBorde: '#E4D6AE',
+    avisoTexto: '#7A5C13',
+    avisoInsignia: '#F3ECD4',
+    infoFondo: '#EEF2F5',
+    infoTexto: '#3D5A73',
+    indigoFondo: '#F1F0EE',
+    indigoTexto: '#44403C',
+    neutroFondo: '#F5F5F4',
+    neutroTexto: '#44403C',
+    // Superficies «degradado»: hoy son colores planos (el fondo y los héroes no degradan)
+    fondoArriba: '#FAFAF9',        // color del encabezado: el mismo fondo neutro
+    degradadoFondo: 'linear-gradient(180deg, #FAFAF9 0%, #FAFAF9 100%)',
+    degradadoHeroe: 'linear-gradient(135deg, #166B5D 0%, #166B5D 100%)',
+    degradadoHeroePro: 'linear-gradient(135deg, #1C1917 0%, #1C1917 100%)',
+    degradadoBoton: 'linear-gradient(135deg, #166B5D 0%, #166B5D 100%)',
+    sombra: '0px 1px 2px rgba(28, 25, 23, 0.04)',
+    sombraFuerte: '0px 2px 8px rgba(28, 25, 23, 0.07)',
+    bordeTarjeta: '#E7E5E4',
     campoFondo: '#FFFFFF',
     sobreHeroe: '#FFFFFF',
-    sobreHeroeSuave: 'rgba(255, 255, 255, 0.82)',
-    burbujaHeroe: 'rgba(255, 255, 255, 0.10)',
+    sobreHeroeSuave: 'rgba(255, 255, 255, 0.72)',
+    burbujaHeroe: 'rgba(255, 255, 255, 0.05)',
   },
   oscuro: {
-    primario: '#2EC4B6',
-    primarioOscuro: '#5FE3D0',
-    primarioSuave: '#12473F',
-    sobrePrimario: '#03211D',      // texto oscuro: el blanco no contrasta con el verde claro
-    acento: '#F5B83D',
-    texto: '#F2F4F7',
-    textoSuave: '#A3ACB9',
-    borde: '#333E4E',
-    estrellaVacia: '#66707E',
-    fondo: '#0F1622',
-    superficie: '#1B2536',
-    logoPro: '#333E4E',
-    error: '#F28080',
-    errorSuave: '#450A0A',
-    errorBorde: '#7F1D1D',
-    errorTexto: '#FCA5A5',
-    verificado: '#34D399',
-    exitoFondo: '#052E16',
-    exitoBorde: '#166534',
-    exitoTexto: '#86EFAC',
-    exitoInsignia: '#14532D',
-    exitoSuave: '#064E3B',
-    avisoFondo: '#422006',
-    avisoBorde: '#92400E',
-    avisoTexto: '#F5CD6B',
-    avisoInsignia: '#451A03',
-    infoFondo: '#0C4A6E',
-    infoTexto: '#BAE6FD',
-    indigoFondo: '#312E81',
-    indigoTexto: '#C7D2FE',
-    neutroFondo: '#374151',
-    neutroTexto: '#E5E7EB',
-    fondoArriba: '#03211D',
-    degradadoFondo: 'linear-gradient(180deg, #03211D 0%, #0A2724 28%, #0F1622 62%, #1B2536 100%)',
-    degradadoHeroe: 'linear-gradient(135deg, #052A26 0%, #095E54 55%, #0E9C8A 100%)',
-    degradadoHeroePro: 'linear-gradient(135deg, #020617 0%, #1E293B 55%, #115E59 100%)',
-    degradadoBoton: 'linear-gradient(135deg, #12A594 0%, #5FE3D0 100%)',
-    sombra: '0px 8px 24px rgba(0, 0, 0, 0.35)',
-    sombraFuerte: '0px 12px 28px rgba(45, 212, 191, 0.22)',
-    bordeTarjeta: 'rgba(255, 255, 255, 0.07)',
-    campoFondo: '#0F1622',
+    primario: '#3E9C86',
+    primarioOscuro: '#8FCBBB',
+    primarioSuave: '#22302B',
+    sobrePrimario: '#0C1512',      // texto oscuro: el blanco no contrasta con el verde claro
+    acento: '#C69A3F',
+    texto: '#F5F2EF',
+    textoSuave: '#A8A29E',
+    borde: '#35312C',
+    estrellaVacia: '#57534E',
+    fondo: '#141210',
+    superficie: '#1E1B18',
+    logoPro: '#0C0B0A',
+    error: '#E08A80',
+    errorSuave: '#3A2320',
+    errorBorde: '#6E3A34',
+    errorTexto: '#F0B4AC',
+    verificado: '#3E9C86',
+    exitoFondo: '#1D2A22',
+    exitoBorde: '#38543F',
+    exitoTexto: '#A7CDB2',
+    exitoInsignia: '#24382B',
+    exitoSuave: '#1D2A22',
+    avisoFondo: '#2E2817',
+    avisoBorde: '#5C4E22',
+    avisoTexto: '#DEC887',
+    avisoInsignia: '#38311B',
+    infoFondo: '#22303A',
+    infoTexto: '#AEC6D8',
+    indigoFondo: '#2A2724',
+    indigoTexto: '#CFC9C2',
+    neutroFondo: '#2A2724',
+    neutroTexto: '#D6D0C8',
+    fondoArriba: '#141210',
+    degradadoFondo: 'linear-gradient(180deg, #141210 0%, #141210 100%)',
+    degradadoHeroe: 'linear-gradient(135deg, #1C6656 0%, #1C6656 100%)',
+    degradadoHeroePro: 'linear-gradient(135deg, #0C0B0A 0%, #0C0B0A 100%)',
+    degradadoBoton: 'linear-gradient(135deg, #2E7D6B 0%, #2E7D6B 100%)',
+    sombra: '0px 1px 2px rgba(0, 0, 0, 0.40)',
+    sombraFuerte: '0px 2px 8px rgba(0, 0, 0, 0.45)',
+    bordeTarjeta: '#35312C',
+    campoFondo: '#141210',
     sobreHeroe: '#FFFFFF',
-    sobreHeroeSuave: 'rgba(255, 255, 255, 0.80)',
-    burbujaHeroe: 'rgba(255, 255, 255, 0.08)',
+    sobreHeroeSuave: 'rgba(255, 255, 255, 0.72)',
+    burbujaHeroe: 'rgba(255, 255, 255, 0.05)',
   },
 };
 
@@ -125,7 +128,8 @@ export function crearEstilos(fabrica) {
   return new Proxy({}, { get: (_objeto, nombre) => actuales()[nombre] });
 }
 
-// Fondo degradado (CSS linear-gradient): React Native lo dibuja de forma nativa y la web con CSS
+// Fondo degradado (CSS linear-gradient): React Native lo dibuja de forma nativa y la web con CSS.
+// Hoy los degradados del tema son planos; la función se mantiene para las pantallas que la usan.
 export const degradado = (css) => (Platform.OS === 'web' ? { backgroundImage: css } : { experimental_backgroundImage: css });
 
 // Espaciados en escala de 4 pt: todas las pantallas respiran con el mismo ritmo
@@ -134,5 +138,5 @@ export const espacio = { xs: 4, s: 8, m: 16, l: 24, xl: 32, xxl: 40 };
 // Escala tipográfica: tamaños de letra consistentes para toda la app
 export const fuente = { xs: 12, s: 14, m: 16, l: 20, xl: 24, xxl: 32 };
 
-// Esquinas redondeadas: tarjetas suaves y botones tipo píldora
-export const radio = { s: 12, m: 20, l: 28, pildora: 999 };
+// Esquinas redondeadas: moderadas en tarjetas (12) y píldora solo en chips y botones
+export const radio = { s: 8, m: 12, l: 16, pildora: 999 };
