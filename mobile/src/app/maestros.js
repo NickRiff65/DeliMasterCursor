@@ -28,6 +28,7 @@ export default function Maestros() {
   const [categoria, setCategoria] = useState(null);
   const [comuna, setComuna] = useState(usuario?.comuna ?? null);
   const [soloEnHorario, setSoloEnHorario] = useState(false);
+  const [soloNuevos, setSoloNuevos] = useState(false);
   const [orden, setOrden] = useState('reputacion');
   const [prestadores, setPrestadores] = useState([]);
   const [paginacion, setPaginacion] = useState(null);
@@ -46,7 +47,8 @@ export default function Maestros() {
     setError(null);
     try {
       const res = await api.get(`/prestadores${consulta({
-        categoria, comuna, orden, disponible_ahora: soloEnHorario ? true : undefined, pagina, limite: POR_PAGINA,
+        categoria, comuna, orden, disponible_ahora: soloEnHorario ? true : undefined,
+        nuevos: soloNuevos ? true : undefined, pagina, limite: POR_PAGINA,
       })}`);
       setPrestadores((prev) => (pagina === 1 ? res.prestadores : [...prev, ...res.prestadores]));
       setPaginacion(res.paginacion);
@@ -55,7 +57,7 @@ export default function Maestros() {
     } finally {
       setCargando(false);
     }
-  }, [categoria, comuna, orden, soloEnHorario]);
+  }, [categoria, comuna, orden, soloEnHorario, soloNuevos]);
 
   // Cada cambio de filtro recarga desde la primera página
   useEffect(() => { cargar(1); }, [cargar]);
@@ -82,6 +84,7 @@ export default function Maestros() {
 
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={estilos.chips} contentContainerStyle={estilos.chipsContenido}>
               <Chip texto="🕒 Solo en horario ahora" activo={soloEnHorario} onPress={() => setSoloEnHorario((v) => !v)} />
+              <Chip texto="✨ Nuevos" activo={soloNuevos} onPress={() => setSoloNuevos((v) => !v)} />
             </ScrollView>
 
             <Text style={estilos.ordenEtiqueta}>Ordenar por</Text>

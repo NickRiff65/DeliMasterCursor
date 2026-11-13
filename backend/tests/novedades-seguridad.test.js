@@ -31,6 +31,13 @@ describe('Privacidad de la dirección, calificación bilateral y vencimientos SE
 
   // Solicitud asignada y aceptada con precio cerrado: queda en estado "confirmada" (aún sin pagar)
   async function solicitudConfirmada() {
+    // La regla de ayudantía (máx. 1 solicitud por día por cliente) contaría las anteriores
+    // de esta misma prueba: se corre un día atrás la creación de las que ya armó este cliente.
+    await pool.query(
+      `UPDATE solicitudes SET creado_en = creado_en - interval '1 day'
+        WHERE cliente_id = $1
+          AND (creado_en AT TIME ZONE 'America/Santiago')::date = (now() AT TIME ZONE 'America/Santiago')::date`,
+      [cliente.id]);
     const id = randomUUID();
     await como(cliente)(request(app).post('/api/solicitudes'))
       .send({ direccion: 'Av. Libertad 1234', referencia: 'Casa esquina', id, descripcion: 'Necesito podar un árbol alto' });
@@ -149,6 +156,9 @@ describe('Privacidad de la dirección, calificación bilateral y vencimientos SE
     const confirmada = await solicitudConfirmada();
     const antes = await accion(prestador, confirmada, 'resena-cliente', { estrellas: 4 });
     assert.equal(antes.status, 409);   // aún no cierra
+    // La confirmada ya cumplió su papel: se da por cancelada para que las reglas de
+    // ayudantía (1 al día, sin duplicada activa) no bloqueen la siguiente solicitud.
+    await pool.query("UPDATE solicitudes SET estado = 'cancelada' WHERE id = $1", [confirmada]);
 
     const id = await solicitudPagada();
     await accion(prestador, id, 'finalizar');

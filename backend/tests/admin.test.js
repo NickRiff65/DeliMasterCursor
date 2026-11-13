@@ -44,6 +44,14 @@ describe('Panel de administración (HU-13, HU-14, HU-16)', { skip: !hayBaseDeDat
 
   // Solicitud pagada de `p`, con el monto retenido en el ledger (como la deja Webpay)
   async function solicitudPagada(p = prestador, precio = 40000) {
+    // La regla de ayudantía (máx. 1 solicitud por día por cliente) contaría las anteriores
+    // de esta misma prueba: se corre un día atrás la fecha de creación de las que ya
+    // armó este cliente, sin tocar sus estados ni montos.
+    await pool.query(
+      `UPDATE solicitudes SET creado_en = creado_en - interval '1 day'
+        WHERE cliente_id = $1
+          AND (creado_en AT TIME ZONE 'America/Santiago')::date = (now() AT TIME ZONE 'America/Santiago')::date`,
+      [cliente.id]);
     const id = randomUUID();
     await como(cliente)(request(app).post('/api/solicitudes')).send({ direccion: 'Av. Libertad 1234', id, descripcion: 'Necesito podar un árbol alto' });
     await accion(cliente, id, 'asignar', { prestador_id: p.id });

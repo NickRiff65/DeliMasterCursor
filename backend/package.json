@@ -26,6 +26,7 @@
     "jsonwebtoken": "^9.0.3",
     "nodemailer": "^10.0.16",
     "pg": "^8.13.1",
+    "sharp": "^0.35.5",
     "socket.io": "^4.8.4",
     "tesseract.js": "^7.0.0",
     "transbank-sdk": "^6.1.1",

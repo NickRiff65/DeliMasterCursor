@@ -129,9 +129,9 @@ las apps o del panel, hay que volver a compilar la versión web (los dos primero
 
 | Proyecto | Comando | Qué cubre |
 |---|---|---|
-| `backend/` | `npm.cmd test` | API completa contra la base `delimaster_test`: reglas de negocio, pagos simulados (Webpay y tarjeta guardada), plazos, llegada con GPS, avisos push, seguridad (271 pruebas) |
-| `admin/` | `npm.cmd test` | Panel con la API simulada: sesión, verificaciones, disputas (también la devolución parcial), transferencias, moderación, contabilidad (40 pruebas) |
-| `mobile/` | `npm.cmd test` | Apps Lite y Pro con la API simulada: rutas protegidas, cuentas, cola sin conexión, pedir un servicio, fotos, chat, pagos, gastos, avisos (116 pruebas) |
+| `backend/` | `npm.cmd test` | API completa contra la base `delimaster_test`: reglas de negocio, pagos simulados (Webpay y tarjeta guardada), plazos, llegada con GPS, avisos push, seguridad (290 pruebas) |
+| `admin/` | `npm.cmd test` | Panel con la API simulada: sesión, verificaciones, disputas (también la devolución parcial), transferencias, moderación, contabilidad (42 pruebas) |
+| `mobile/` | `npm.cmd test` | Apps Lite y Pro con la API simulada: rutas protegidas, cuentas, cola sin conexión, pedir un servicio, fotos, chat, pagos, gastos, avisos (125 pruebas) |
 
 Las pruebas del panel y de las apps no necesitan el backend ni la base de datos.
 

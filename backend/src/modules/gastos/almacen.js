@@ -7,6 +7,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { config } from '../../config/env.js';
 import { AppError } from '../../utils/AppError.js';
+import { aWebp } from '../../utils/imagenes.js';
 
 const SUBIDAS = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', '..', '..', 'uploads');
 const MAX_BYTES = 6 * 1024 * 1024;
@@ -39,9 +40,14 @@ export function crearAlmacen({ carpeta, prefijo, ruta }) {
   const firmar = (id, vence) => createHmac('sha256', config.jwtSecret).update(`${prefijo}:${id}:${vence}`).digest('hex');
   return {
     async guardar({ buffer, ext }) {
+      // Toda imagen guardada queda en WebP (pesa menos y la app la muestra igual).
+      // Si la conversión falla —por ejemplo, un archivo con la firma válida pero dañado—
+      // se guarda el original, como siempre.
+      const webp = await aWebp(buffer);
+      const datos = webp ?? { buffer, ext };
       await mkdir(dir(), { recursive: true });
-      const archivo = `${randomUUID()}.${ext}`;
-      await writeFile(path.join(dir(), archivo), buffer);
+      const archivo = `${randomUUID()}.${datos.ext}`;
+      await writeFile(path.join(dir(), archivo), datos.buffer);
       return archivo;
     },
     leer: (archivo) => readFile(path.join(dir(), path.basename(archivo))),
@@ -65,6 +71,10 @@ export const boletas = crearAlmacen({
 });
 export const evidencias = crearAlmacen({
   carpeta: () => process.env.CARPETA_EVIDENCIAS ?? path.join(SUBIDAS, 'evidencias'), prefijo: 'evidencia', ruta: 'evidencias',
+});
+// Fotos del portafolio del maestro (su «catálogo tipo CV»): se sirven desde /api/prestadores/fotos
+export const portafolio = crearAlmacen({
+  carpeta: () => process.env.CARPETA_PORTAFOLIO ?? path.join(SUBIDAS, 'portafolio'), prefijo: 'portafolio', ruta: 'prestadores/fotos',
 });
 
 // Boletas (HU-09): se mantienen las funciones que ya usa el panel contable

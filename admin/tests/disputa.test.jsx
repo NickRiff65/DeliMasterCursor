@@ -130,3 +130,31 @@ describe('Disputa: evidencia y resolución (HU-16)', () => {
     });
   });
 });
+
+describe('Foto sospechosa en la evidencia', () => {
+  test('una foto con sospechosa=true muestra la insignia y la explicación, y la otra foto no', async () => {
+    const conSospechosa = {
+      ...enDisputa,
+      fotos: [
+        { ...enDisputa.fotos[0], sospechosa: true },
+        { ...enDisputa.fotos[1] },
+      ],
+    };
+    simularApi({ [`GET /admin/solicitudes/${ID}`]: { solicitud: conSospechosa } });
+    abrir();
+    expect(await screen.findByRole('heading', { name: /Gasfitería · \$50\.000/ })).toBeInTheDocument();
+    // Solo la foto marcada lleva la insignia (una sola aparición)
+    expect(screen.getAllByText(/Sospechosa/)).toHaveLength(1);
+    expect(screen.getByText(/⚠ Sospechosa/)).toBeInTheDocument();
+    expect(screen.getByText('Sin datos de cámara: podría ser una captura o una imagen descargada')).toBeInTheDocument();
+  });
+
+  test('sin fotos sospechosas no se muestra la marca ni la explicación', async () => {
+    simularApi({ [`GET /admin/solicitudes/${ID}`]: { solicitud: enDisputa } });
+    abrir();
+    expect(await screen.findByRole('heading', { name: /Gasfitería · \$50\.000/ })).toBeInTheDocument();
+    expect(screen.getByAltText('Foto subida por el prestador')).toBeInTheDocument();
+    expect(screen.queryByText(/Sospechosa/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Sin datos de cámara/)).not.toBeInTheDocument();
+  });
+});
