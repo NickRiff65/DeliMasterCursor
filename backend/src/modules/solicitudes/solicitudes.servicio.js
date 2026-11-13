@@ -11,6 +11,7 @@ import { expulsarDeSala } from '../../socket.js';
 import { rangoVisita, REGLAS_VISITA } from './visita.js';
 import { avisar } from '../../utils/avisos.js';
 import { notificarCambio, crearNotificacion } from '../notificaciones/notificaciones.servicio.js';
+import { guardarFoto } from '../evidencias/evidencias.servicio.js';
 
 // ------------------------------------------------------------------ máquina de estados
 // Transiciones permitidas. Dos modalidades de cobro, que el prestador elige al aceptar:
@@ -47,16 +48,85 @@ async function registrarEvento(db, solicitudId, anterior, nuevo, actorId, detall
   alConfirmar(db, () => avisar(solicitudId, nuevo, anterior));
 }
 
+// ------------------------------------------------------------------ plazo de respuesta: 1 día hábil
+// Valores fijos de la ayudantía (noviembre 2026): el maestro tiene 1 día hábil para
+// responder una asignación (antes eran minutos, config.plazoRespuestaMin, que solo se
+// mantiene como compatibilidad para asignaciones antiguas sin respuesta_vence_en).
+// «Día hábil» = lunes a viernes en hora de Chile (America/Santiago), saltando sábados
+// y domingos. Los feriados quedan fuera de alcance: no hay calendario oficial en el sistema.
+const ZONA_CHILE = 'America/Santiago';
+const formatoChile = new Intl.DateTimeFormat('en-US', {
+  timeZone: ZONA_CHILE, year: 'numeric', month: '2-digit', day: '2-digit',
+  hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23',
+});
+
+// Partes de un instante vistas en hora de Chile
+function partesEnChile(fecha) {
+  const partes = {};
+  for (const p of formatoChile.formatToParts(fecha)) partes[p.type] = p.value;
+  return {
+    anio: Number(partes.year), mes: Number(partes.month), dia: Number(partes.day),
+    hora: Number(partes.hour) % 24, minuto: Number(partes.minute), segundo: Number(partes.second),
+  };
+}
+
+// Diferencia entre la hora de Chile y UTC para un instante dado (considera horario de verano)
+function desplazamientoChileMs(fechaUtc) {
+  const p = partesEnChile(fechaUtc);
+  return Date.UTC(p.anio, p.mes - 1, p.dia, p.hora, p.minuto, p.segundo)
+    - Math.floor(fechaUtc.getTime() / 1000) * 1000;
+}
+
+// Instante UTC que corresponde a una hora de pared de Chile (se recalcula una vez por el DST)
+function instanteEnChile({ anio, mes, dia, hora, minuto, segundo }, milisegundos) {
+  const pared = Date.UTC(anio, mes - 1, dia, hora, minuto, segundo, milisegundos);
+  let utc = pared - desplazamientoChileMs(new Date(pared));
+  utc = pared - desplazamientoChileMs(new Date(utc));
+  return new Date(utc);
+}
+
+// +1 día hábil en hora de Chile desde `desde`, conservando la hora local:
+// viernes → lunes, sábado → lunes, día hábil → el día hábil siguiente.
+export function vencimientoRespuesta(desde = new Date()) {
+  const inicio = desde instanceof Date ? desde : new Date(desde);
+  const p = partesEnChile(inicio);
+  // Se avanza en el calendario (UTC sobre la fecha de pared) hasta el próximo día hábil
+  let fecha = Date.UTC(p.anio, p.mes - 1, p.dia);
+  do {
+    fecha += 24 * 60 * 60 * 1000;
+  } while ([0, 6].includes(new Date(fecha).getUTCDay()));   // 0 = domingo, 6 = sábado
+  const destino = new Date(fecha);
+  return instanteEnChile({
+    anio: destino.getUTCFullYear(), mes: destino.getUTCMonth() + 1, dia: destino.getUTCDate(),
+    hora: p.hora, minuto: p.minuto, segundo: p.segundo,
+  }, inicio.getUTCMilliseconds());
+}
+
 // HU-05: si el prestador no responde a tiempo, la solicitud vuelve a estar disponible
 // para que el cliente elija a otro. Se ejecuta antes de leer o modificar solicitudes.
+// Vencidas = asignadas con respuesta_vence_en pasado; las antiguas sin ese dato
+// (respuesta_vence_en NULL) siguen con la regla anterior de minutos desde asignada_en.
 export async function liberarVencidas(db = pool) {
   const { rows } = await db.query(
-    `UPDATE solicitudes SET estado = 'creada', prestador_id = NULL, asignada_en = NULL
-      WHERE estado = 'asignada' AND asignada_en < now() - make_interval(mins => $1)
-      RETURNING id`,
+    `UPDATE solicitudes
+        SET estado = 'creada', prestador_id = NULL, asignada_en = NULL, respuesta_vence_en = NULL,
+            veces_sin_respuesta = veces_sin_respuesta + 1
+      WHERE estado = 'asignada'
+        AND ((respuesta_vence_en IS NOT NULL AND respuesta_vence_en < now())
+             OR (respuesta_vence_en IS NULL AND asignada_en < now() - make_interval(mins => $1)))
+      RETURNING id, cliente_id`,
     [config.plazoRespuestaMin]);
-  for (const { id } of rows) {
+  for (const { id, cliente_id: clienteId } of rows) {
     await registrarEvento(db, id, 'asignada', 'creada', null, 'El maestro no respondió dentro del plazo');
+    // Aviso explícito al cliente (además del aviso genérico del cambio de estado):
+    // quedó sin respuesta en 1 día hábil y ya puede elegir a otro maestro.
+    if (clienteId) {
+      await crearNotificacion(db, clienteId, {
+        titulo: 'El maestro no respondió',
+        texto: 'El maestro no respondió en 1 día hábil. Tu solicitud vuelve a estar disponible: puedes elegir otro maestro.',
+        solicitudId: id,
+      });
+    }
     expulsarDeSala(id);   // el prestador anterior deja de recibir el chat
   }
 
@@ -99,8 +169,11 @@ const sqlSolicitud = (where, extra = '') => `
          s.precio_acordado, s.creado_en, s.creado_en_dispositivo, s.asignada_en, s.confirmada_en,
          s.direccion, s.referencia, s.latitud::float AS latitud, s.longitud::float AS longitud,
          s.direccion_compartida_en,
+         s.respuesta_vence_en, s.veces_sin_respuesta,
+         (s.veces_sin_respuesta > 0) AS sin_respuesta,
          CASE WHEN s.estado = 'asignada'
-              THEN s.asignada_en + make_interval(mins => ${Number(config.plazoRespuestaMin)}) END AS responder_antes_de,
+              THEN COALESCE(s.respuesta_vence_en,
+                            s.asignada_en + make_interval(mins => ${Number(config.plazoRespuestaMin)})) END AS responder_antes_de,
          s.finalizada_en, s.cerrado_en, s.motivo_disputa,
          CASE WHEN s.estado = 'finalizada'
               THEN s.finalizada_en + make_interval(hours => ${Number(config.plazoCierreHoras)}) END AS cierre_automatico_en,
@@ -279,6 +352,35 @@ export async function crear(usuario, datos) {
 
   const grupoId = datos.id;
   await enTransaccion(async (db) => {
+    // Límites al crear (valores fijos de la ayudantía, noviembre 2026), revisados dentro
+    // de la transacción para que dos pedidos simultáneos no se los salten:
+    // 1) duplicada de la misma categoría (el error más específico, se revisa primero):
+    //    no puede haber otra solicitud activa del mismo cliente en la misma categoría
+    //    («activa» = cualquier estado que no sea final: todos menos cerrada y cancelada).
+    const duplicada = await db.query(
+      `SELECT c.nombre FROM solicitudes s JOIN categorias c ON c.id = s.categoria_id
+        WHERE s.cliente_id = $1 AND s.categoria_id = ANY ($2::int[])
+          AND s.estado NOT IN ('cerrada', 'cancelada') LIMIT 1`,
+      [usuario.id, elegidas.map((c) => c.id)]);
+    if (duplicada.rowCount) {
+      throw new AppError(
+        `Ya tienes una solicitud activa de ${duplicada.rows[0].nombre}. Cuando se cierre o la canceles podrás pedir otra igual.`,
+        409, 'SOLICITUD_ACTIVA_MISMA_CATEGORIA');
+    }
+    // 2) máximo 1 solicitud por día por cliente (día calendario en hora de Chile).
+    //    Cuentan las creadas hoy en cualquier estado excepto 'cancelada': si la de hoy
+    //    se canceló, el cliente puede pedir de nuevo el mismo día.
+    const { rows: [{ n: hoy }] } = await db.query(
+      `SELECT count(*)::int AS n FROM solicitudes
+        WHERE cliente_id = $1 AND estado <> 'cancelada'
+          AND (creado_en AT TIME ZONE 'America/Santiago')::date
+              = (now() AT TIME ZONE 'America/Santiago')::date`,
+      [usuario.id]);
+    if (hoy >= 1) {
+      throw new AppError(
+        'Ya pediste un servicio hoy. Puedes pedir otro mañana, o cancelar el de hoy y pedir de nuevo.',
+        409, 'LIMITE_SOLICITUDES_DIA');
+    }
     for (const [i, cat] of elegidas.entries()) {
       const id = i === 0 ? datos.id : idDerivado(datos.id, cat.slug);
       await db.query(
@@ -290,6 +392,26 @@ export async function crear(usuario, datos) {
       await registrarEvento(db, id, null, 'creada', usuario.id);
     }
   });
+
+  // Fotos al solicitar (máx. 2, validadas en el esquema): quedan como evidencias de la
+  // primera solicitud del grupo. Decisión de atomicidad: guardarFoto (evidencias) usa su
+  // propio pool y no participa en la transacción de creación —de hecho, dentro de ella ni
+  // siquiera vería la solicitud aún no confirmada—, por lo que las fotos se guardan recién
+  // confirmada la creación. Si alguna falla, se compensa: se borra el grupo recién creado
+  // (si ya quedó una foto guardada, el borrado no es posible y el grupo se cancela) y el
+  // error se relanza, para que la solicitud no quede creada a medias.
+  if (datos.fotos?.length) {
+    try {
+      for (const foto of datos.fotos) {
+        await guardarFoto(usuario, datos.id, foto, 'Foto al solicitar');
+      }
+    } catch (err) {
+      await pool.query('DELETE FROM solicitudes WHERE grupo_id = $1', [grupoId])
+        .catch(() => pool.query(
+          "UPDATE solicitudes SET estado = 'cancelada' WHERE grupo_id = $1", [grupoId]).catch(() => {}));
+      throw err;
+    }
+  }
 
   const { rows } = await pool.query(sqlSolicitud('WHERE s.grupo_id = $1', 'ORDER BY s.creado_en'), [grupoId]);
   return { creada: true, grupo_id: grupoId, solicitudes: rows, no_disponibles: interpretacion.no_disponibles };
@@ -335,8 +457,8 @@ export async function asignar(usuario, id, { prestador_id }) {
     }
 
     await db.query(
-      `UPDATE solicitudes SET estado = 'asignada', prestador_id = $2, asignada_en = now() WHERE id = $1`,
-      [id, prestador_id]);
+      `UPDATE solicitudes SET estado = 'asignada', prestador_id = $2, asignada_en = now(), respuesta_vence_en = $3 WHERE id = $1`,
+      [id, prestador_id, vencimientoRespuesta(new Date())]);
     await registrarEvento(db, id, s.estado, 'asignada', usuario.id);
   });
   return obtener(usuario, id);
@@ -399,7 +521,7 @@ export async function responder(usuario, id, { aceptar, modalidad = 'precio_cerr
       await registrarEvento(db, id, 'asignada', 'confirmada', usuario.id, `Precio: ${pesos(precio)}`);
     } else {
       await db.query(
-        `UPDATE solicitudes SET estado = 'creada', prestador_id = NULL, asignada_en = NULL WHERE id = $1`, [id]);
+        `UPDATE solicitudes SET estado = 'creada', prestador_id = NULL, asignada_en = NULL, respuesta_vence_en = NULL WHERE id = $1`, [id]);
       await registrarEvento(db, id, 'asignada', 'creada', usuario.id, 'El maestro rechazó el trabajo');
     }
   });

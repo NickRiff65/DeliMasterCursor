@@ -9,6 +9,10 @@ const slug = z.string().trim().toLowerCase().regex(/^[a-z0-9-]+$/, 'Categoría n
 
 export const esquemaInterpretar = z.object({ descripcion });
 
+// Monto mínimo de un trabajo con precio cerrado (lo que el maestro cobra al aceptar).
+// Valores fijos de la ayudantía (noviembre 2026): subió de $1.000 a $5.000.
+export const PRECIO_MINIMO_CERRADO = 5000;
+
 export const esquemaCrear = z.object({
   // UUID generado en el celular: permite reenviar sin duplicar (HU-12)
   id: z.uuid('El identificador de la solicitud no es válido'),
@@ -24,6 +28,10 @@ export const esquemaCrear = z.object({
   latitud: z.number().min(-37.1, 'La ubicación está fuera de Chillán y Coihueco').max(-36.2, 'La ubicación está fuera de Chillán y Coihueco').optional(),
   longitud: z.number().min(-72.6, 'La ubicación está fuera de Chillán y Coihueco').max(-71.2, 'La ubicación está fuera de Chillán y Coihueco').optional(),
   creado_en_dispositivo: z.iso.datetime({ offset: true }).optional(),
+  // Fotos del problema al momento de pedir (máx. 2): quedan como evidencias de la solicitud
+  // para que el maestro cotice con más exactitud. Cada una es la imagen en base64.
+  fotos: z.array(z.string().min(1, 'La foto está vacía'))
+    .max(2, 'Puedes adjuntar hasta 2 fotos al solicitar').optional(),
 });
 
 export const esquemaAsignar = z.object({
@@ -37,7 +45,7 @@ export const esquemaResponder = z.object({
   // precio_cerrado: el cliente paga el total al contratar · visita: paga la visita y luego el saldo cotizado
   modalidad: z.enum(['precio_cerrado', 'visita'], { error: 'Modalidad no válida' }).default('precio_cerrado'),
   // Precio en pesos chilenos (enteros) que el prestador propone al aceptar con precio cerrado
-  precio: pesosEnteros('Indica el precio').min(1000, 'El precio mínimo es $1.000').max(10_000_000, 'El precio es demasiado alto').optional(),
+  precio: pesosEnteros('Indica el precio').min(PRECIO_MINIMO_CERRADO, 'El precio mínimo es $5.000').max(10_000_000, 'El precio es demasiado alto').optional(),
   // Visita de diagnóstico: tarifa (el rango de la comuna se valida en el servicio) y fecha y hora
   tarifa_visita: pesosEnteros('Indica la tarifa de visita').min(1000).max(200_000).optional(),
   visita_programada_en: z.iso.datetime({ offset: true, error: 'Indica la fecha y hora de la visita' }).optional(),

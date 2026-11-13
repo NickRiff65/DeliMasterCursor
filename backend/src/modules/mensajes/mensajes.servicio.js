@@ -3,6 +3,8 @@ import { AppError } from '../../utils/AppError.js';
 import { emitirMensaje } from '../../socket.js';
 import { analizarConContexto } from './filtro.js';
 import { guardarFoto, urlFoto } from '../evidencias/evidencias.servicio.js';
+import { crearNotificacion } from '../notificaciones/notificaciones.servicio.js';
+import { UMBRAL_MODERACION } from '../admin/admin.servicio.js';
 
 // Estados en los que se puede escribir (hay prestador asignado y la solicitud sigue viva)
 const ESTADOS_CON_CHAT = [
@@ -78,7 +80,30 @@ export async function enviar(usuario, solicitudId, contenido, urlApi) {
 
   // Un mensaje bloqueado no llega a la otra persona
   if (!mensaje.bloqueado) emitirMensaje(solicitudId, mensaje);
+  else await avisarPorBloqueos(usuario, solicitudId);
   return { mensaje: conFoto(urlApi)(mensaje), aviso: analisis.aviso };
+}
+
+// Aviso formal dentro de la app cuando los bloqueos se acumulan: al llegar al umbral de
+// moderación (el mismo con que el panel marca la cuenta para revisión) y, de nuevo, al
+// doblarlo como último aviso. Solo al llegar EXACTAMENTE a esas cantidades, para no
+// repetir el aviso en cada mensaje siguiente.
+async function avisarPorBloqueos(usuario, solicitudId) {
+  const { rows: [{ n }] } = await pool.query(
+    'SELECT count(*)::int AS n FROM mensajes WHERE emisor_id = $1 AND bloqueado', [usuario.id]);
+  if (n === UMBRAL_MODERACION) {
+    await crearNotificacion(pool, usuario.id, {
+      titulo: '⚠️ Aviso por mensajes bloqueados',
+      texto: 'Varios de tus mensajes fueron bloqueados por intentar acordar pagos o contactos por fuera de DeliMaster, lo que infringe las normas de la plataforma. Si continúas, tu cuenta será bloqueada.',
+      solicitudId,
+    });
+  } else if (n === UMBRAL_MODERACION * 2) {
+    await crearNotificacion(pool, usuario.id, {
+      titulo: '⛔ Último aviso: tu cuenta puede ser bloqueada',
+      texto: 'Siguen bloqueándose tus mensajes por intentar acordar pagos o contactos por fuera de DeliMaster. Este es el último aviso: si continúas infringiendo las normas, tu cuenta será bloqueada.',
+      solicitudId,
+    });
+  }
 }
 
 // Enviar una foto por el chat (por ejemplo, del árbol o de la falla) para cotizar con más exactitud.

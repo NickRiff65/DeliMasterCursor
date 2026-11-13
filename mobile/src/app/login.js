@@ -101,7 +101,7 @@ const estilos = crearEstilos((colores) => ({
     alignItems: 'center', justifyContent: 'center', marginBottom: espacio.m,
     boxShadow: '0px 12px 32px rgba(0, 0, 0, 0.25), 0px 0px 0px 6px rgba(255, 255, 255, 0.15)',
   },
-  logoTexto: { color: '#0F766E', fontSize: 38, fontWeight: '900' },
+  logoTexto: { color: '#0B7568', fontSize: 38, fontWeight: '900' },
   logoPunto: { position: 'absolute', bottom: 12, width: 9, height: 9, borderRadius: 5, backgroundColor: colores.acento },
   titulo: { fontSize: 30, fontWeight: '900', color: colores.sobreHeroe, letterSpacing: -0.5 },
   subtitulo: { fontSize: 15, color: colores.sobreHeroeSuave, marginTop: espacio.xs, textAlign: 'center', lineHeight: 21 },

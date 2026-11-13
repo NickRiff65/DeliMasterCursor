@@ -43,6 +43,28 @@ const REGLAS = [
     probar: (t) => /\b((sin|fuera\s+de|por\s+fuera\s+de)\s+(la\s+|esta\s+)?(app|aplicacion|plataforma|delimaster)|pag\w*\s+(en\s+|al\s+)?(efectivo|contado|mano)|en\s+efectivo|ahorr\w*\s+(la\s+)?comision|sin\s+(la\s+)?comision)\b/.test(t),
   },
   {
+    // Pago «en persona» o «presencial»: juntar el encuentro con un verbo de pago es la forma
+    // típica de proponer cerrar el trato fuera de la app («en persona me paga los 24.500»)
+    motivo: 'pago_externo',
+    probar: (t) => /\b(en\s+persona|presencial(?:mente)?)\b/.test(t)
+      && /\b(pag\w+|cobr\w+|cancel\w+|cuesta)\b/.test(t),
+  },
+  {
+    // Monto partido: una parte «por la plataforma» y el resto por fuera. Hablar de pagar por la
+    // plataforma a secas está bien; lo sospechoso es el segundo monto, «el resto»/«la diferencia»
+    // o un segundo pago dirigido a la otra persona («me pagas», «te pago», «me cancelas»).
+    motivo: 'pago_externo',
+    probar: (t) => {
+      if (!/\b(por|en)\s+la\s+(plataforma|app|aplicacion)\b/.test(t) && !/\bpor\s+delimaster\b/.test(t)) return false;
+      if (/\b(el\s+resto|la\s+diferencia|lo\s+demas|la\s+otra\s+parte)\b/.test(t)) return true;
+      if (/\b(me|te)\s+(pag\w+|cancel\w+)/.test(t)) return true;
+      // Una lista de precios («45000, 20000») no es un monto partido: es la exclusión de siempre
+      if (secuenciasDeDigitos(t).some((s) => s.pareceListaDeMontos)) return false;
+      const montos = t.match(/\d{1,3}(?:[.,]\d{3})+|\d{3,}/g) ?? [];
+      return montos.length >= 2;
+    },
+  },
+  {
     motivo: 'enlace',
     probar: (t) => /(https?:\/\/|www\.|\b[a-z0-9-]+\.(?:com|cl|net|org|me|ly)\b)/.test(t),
   },
@@ -90,7 +112,7 @@ export function analizarMensaje(texto, { trasPago = false } = {}) {
   // Los montos con signo $ son parte normal de la conversación ("$45.000"): no cuentan como número.
   const base = palabrasADigitos(normalizar(texto)).replace(/\$\s*[\d.,]+/g, ' ');
   const reglas = trasPago ? REGLAS.filter((r) => MOTIVOS_TRAS_PAGO.includes(r.motivo)) : REGLAS;
-  const motivos = reglas.filter((r) => r.probar(base)).map((r) => r.motivo);
+  const motivos = [...new Set(reglas.filter((r) => r.probar(base)).map((r) => r.motivo))];
   let aviso = null;
   if (motivos.length) {
     aviso = trasPago

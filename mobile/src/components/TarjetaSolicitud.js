@@ -19,6 +19,16 @@ export function TarjetaSolicitud({ solicitud: s }) {
         {s.prestador ? ` · 👷 ${s.prestador.nombre}` : ''}
         {s.precio_acordado ? ` · ${pesos(s.precio_acordado)}` : ''}
       </Text>
+      {/* Sin respuesta en 1 día hábil: el cliente puede elegir a otro maestro en el detalle */}
+      {s.estado === 'creada' && s.sin_respuesta ? (
+        <View style={estilos.sinRespuesta}>
+          <Text style={estilos.sinRespuestaTexto}>⏰ El maestro no respondió en 1 día hábil</Text>
+          <Pressable onPress={() => router.push(`/solicitud/${s.id}`)} accessibilityRole="button"
+            accessibilityLabel="Elegir otro maestro" hitSlop={6}>
+            <Text style={estilos.elegirOtro}>Elegir otro maestro →</Text>
+          </Pressable>
+        </View>
+      ) : null}
     </Pressable>
   );
 }
@@ -32,4 +42,10 @@ const estilos = crearEstilos((colores) => ({
   categoria: { fontSize: 16, fontWeight: '700', color: colores.texto, flex: 1 },
   descripcion: { fontSize: 15, color: colores.texto, marginVertical: espacio.xs },
   suave: { fontSize: 13, color: colores.textoSuave, textAlign: 'left' },
+  sinRespuesta: {
+    backgroundColor: colores.avisoFondo, borderWidth: 1, borderColor: colores.avisoBorde, borderRadius: radio.s,
+    padding: espacio.s, marginTop: espacio.s, gap: espacio.xs,
+  },
+  sinRespuestaTexto: { fontSize: 14, fontWeight: '700', color: colores.avisoTexto },
+  elegirOtro: { fontSize: 14, fontWeight: '700', color: colores.primario },
 }));

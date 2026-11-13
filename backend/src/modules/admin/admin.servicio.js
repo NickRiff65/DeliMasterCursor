@@ -263,7 +263,7 @@ export async function detalleSolicitud(admin, id, urlApi) {
                           FROM ledger_eventos le LEFT JOIN usuarios u ON u.id = le.actor_id
                          WHERE le.movimiento_id = lm.id), '[]') AS eventos
          FROM ledger_movimientos lm WHERE lm.solicitud_id = $1`, [id]),
-    pool.query('SELECT id, rol, descripcion, creado_en FROM evidencias WHERE solicitud_id = $1 ORDER BY creado_en, id', [id]),
+    pool.query('SELECT id, rol, descripcion, creado_en, sospechosa FROM evidencias WHERE solicitud_id = $1 ORDER BY creado_en, id', [id]),
     // Gastos en materiales del maestro: el equipo ve cuáles tienen boleta (los sin boleta se pueden devolver)
     pool.query(
       `SELECT id, monto, descripcion, boleta_id, creado_en, rechazado_en IS NOT NULL AS rechazado

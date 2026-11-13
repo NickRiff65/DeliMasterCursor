@@ -189,7 +189,7 @@ describe('HU-05 / HU-08 / HU-12 · Solicitudes de servicio', { skip: !hayBaseDeD
 
   test('otro prestador no puede responder una solicitud ajena', async () => {
     const id = await solicitudConfirmable();
-    const res = await como(electricista)(request(app).post(`/api/solicitudes/${id}/responder`)).send({ aceptar: true, precio: 1000 });
+    const res = await como(electricista)(request(app).post(`/api/solicitudes/${id}/responder`)).send({ aceptar: true, precio: 5000 });
     assert.equal(res.status, 409);
   });
 
@@ -205,7 +205,8 @@ describe('HU-05 / HU-08 / HU-12 · Solicitudes de servicio', { skip: !hayBaseDeD
 
   test('si el prestador no responde a tiempo, la solicitud se libera', async () => {
     const id = await solicitudConfirmable();
-    await pool.query("UPDATE solicitudes SET asignada_en = now() - interval '31 minutes' WHERE id = $1", [id]);
+    // Plazo nuevo (1 día hábil): se fija el vencimiento en el pasado, como quedaría al vencer
+    await pool.query("UPDATE solicitudes SET asignada_en = now() - interval '2 days', respuesta_vence_en = now() - interval '1 hour' WHERE id = $1", [id]);
     const tarde = await como(podador)(request(app).post(`/api/solicitudes/${id}/responder`)).send({ aceptar: true, precio: 5000 });
     assert.equal(tarde.status, 409);
     assert.equal(tarde.body.error.codigo, 'NO_ASIGNADA');
@@ -228,6 +229,9 @@ describe('HU-05 / HU-08 / HU-12 · Solicitudes de servicio', { skip: !hayBaseDeD
 
   test('cada uno ve solo sus solicitudes', async () => {
     await solicitudConfirmable();
+    // Con el límite de 1 solicitud por día, la segunda se pide «al día siguiente»:
+    // se mueve la primera a ayer en los datos, sin debilitar la regla
+    await pool.query("UPDATE solicitudes SET creado_en = now() - interval '1 day'");
     await crear(cliente, { descripcion: 'Se quemó un enchufe' });
     assert.equal((await como(cliente)(request(app).get('/api/solicitudes'))).body.solicitudes.length, 2);
     assert.equal((await como(podador)(request(app).get('/api/solicitudes'))).body.solicitudes.length, 1);

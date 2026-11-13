@@ -27,6 +27,13 @@ describe('Cierre del trabajo y reseñas (HU-06, HU-07)', { skip: !hayBaseDeDatos
 
   // Crea una solicitud pagada de `p`, con el dinero retenido en el ledger (como deja el pago con Webpay)
   async function solicitudPagada(p = prestador, precio = 45000) {
+    // La regla de ayudantía (máx. 1 solicitud por día por cliente) contaría las anteriores
+    // de esta misma prueba: se corre un día atrás la creación de las que ya armó este cliente.
+    await pool.query(
+      `UPDATE solicitudes SET creado_en = creado_en - interval '1 day'
+        WHERE cliente_id = $1
+          AND (creado_en AT TIME ZONE 'America/Santiago')::date = (now() AT TIME ZONE 'America/Santiago')::date`,
+      [cliente.id]);
     const id = randomUUID();
     await como(cliente)(request(app).post('/api/solicitudes')).send({ direccion: 'Av. Libertad 1234', id, descripcion: 'Necesito podar un árbol alto' });
     await accion(cliente, id, 'asignar', { prestador_id: p.id });
@@ -115,6 +122,9 @@ describe('Cierre del trabajo y reseñas (HU-06, HU-07)', { skip: !hayBaseDeDatos
   test('solo se puede calificar un trabajo cerrado, una vez', async () => {
     const pagada = await solicitudPagada();
     assert.equal((await accion(cliente, pagada, 'resena', { estrellas: 5 })).status, 409);
+    // La pagada ya cumplió su papel: se da por cancelada para que las reglas de ayudantía
+    // (1 solicitud al día y sin duplicada activa de la misma categoría) no bloqueen la siguiente.
+    await pool.query("UPDATE solicitudes SET estado = 'cancelada' WHERE id = $1", [pagada]);
     const id = await solicitudCerrada();
     const res = await accion(cliente, id, 'resena', { estrellas: 5, comentario: 'Excelente, muy prolijo' });
     assert.equal(res.status, 201);

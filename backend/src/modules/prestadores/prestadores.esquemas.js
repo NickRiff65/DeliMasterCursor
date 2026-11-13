@@ -15,6 +15,14 @@ export const esquemaCatalogo = z.object({
   orden: z.enum(['reputacion', 'trabajos', 'resenas']).default('reputacion'),
   // Solo maestros atendiendo ahora según su horario (CU-05: «verificados y en horario»)
   disponible_ahora: z.enum(['true', 'false']).default('false').transform((v) => v === 'true'),
+  // Solo maestros nuevos: registrados hace 30 días o menos
+  nuevos: z.enum(['true', 'false']).default('false').transform((v) => v === 'true'),
+});
+
+// Foto del portafolio del maestro (su «catálogo tipo CV» de trabajos anteriores)
+export const esquemaFotoPortafolio = z.object({
+  imagen_base64: z.string().min(100, 'Falta la foto'),
+  descripcion: z.string().trim().max(200, 'La descripción no puede superar 200 caracteres').optional(),
 });
 
 // Ficha que edita el propio prestador
