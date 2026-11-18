@@ -211,6 +211,33 @@ input[aria-invalid='true'], textarea[aria-invalid='true'] { border-color: var(--
 .login-tarjeta { width: 100%; max-width: 380px; display: flex; flex-direction: column; gap: 0.9rem; padding: 1.6rem; }
 .login-tarjeta .marca { padding: 0 0 0.4rem; }
 
+/* ---------------------------------------------------------------- revisión de verificaciones */
+.barra-modos { display: flex; align-items: center; flex-wrap: wrap; gap: 0.6rem 1rem; margin-bottom: 1rem; }
+.segmentado { display: inline-flex; border: 1px solid var(--borde); border-radius: 8px; overflow: hidden; background: var(--superficie); }
+.segmentado button {
+  font: inherit; font-size: 0.9rem; font-weight: 600; background: none; border: none; padding: 0.5rem 0.9rem;
+  cursor: pointer; color: var(--texto-suave);
+}
+.segmentado button + button { border-left: 1px solid var(--borde); }
+.segmentado button[aria-pressed='true'] { background: var(--primario-suave); color: var(--primario-oscuro); }
+.progreso { font-weight: 700; margin: 0 0 0.6rem; }
+.atajos { margin: 0.9rem 0 0; }
+kbd {
+  font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace; font-size: 0.8rem; background: var(--fondo);
+  border: 1px solid var(--borde); border-bottom-width: 2px; border-radius: 5px; padding: 0 0.35rem;
+}
+button.chip { font: inherit; font-size: 0.82rem; cursor: pointer; color: var(--texto); }
+button.chip:hover { border-color: var(--primario); }
+.lote-barra {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 0.8rem 1.2rem;
+  background: var(--superficie); border: 1px solid var(--borde); border-radius: var(--radio); padding: 0.9rem 1rem; margin-bottom: 0.6rem;
+}
+.lote-resumen { flex: 1 1 240px; }
+.lote-atestacion { flex: 1 1 320px; flex-direction: row; align-items: flex-start; gap: 0.5rem; font-weight: 400; font-size: 0.9rem; color: var(--texto); }
+.lote-atestacion input { margin-top: 0.25rem; }
+.lote-acciones { margin: 0 0 0.4rem; }
+.vencimiento-lote { min-width: 150px; }
+
 /* ---------------------------------------------------------------- pantallas pequeñas */
 @media (max-width: 900px) {
   /* Celular: barra superior compacta (marca + cerrar sesión) y secciones en una fila deslizable */
