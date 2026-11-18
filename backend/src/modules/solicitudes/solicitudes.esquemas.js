@@ -18,7 +18,9 @@ export const esquemaCrear = z.object({
   id: z.uuid('El identificador de la solicitud no es válido'),
   descripcion,
   // Si el cliente corrigió lo que entendió el sistema, manda las categorías elegidas
-  categorias: z.array(slug).min(1).max(5).transform((cs) => [...new Set(cs)]).optional(),
+  // Una solicitud es un solo servicio: así un clic de más en la app no crea solicitudes de más
+  categorias: z.array(slug).min(1).max(1, 'Pide un servicio por solicitud. Si necesitas otro, pídelo aparte.')
+    .transform((cs) => [...new Set(cs)]).optional(),
   comuna: esquemaComuna.optional(),
   // Dónde es el trabajo: el maestro la ve recién cuando el pago está asegurado
   direccion: z.string({ error: 'Indica la dirección exacta' }).trim()

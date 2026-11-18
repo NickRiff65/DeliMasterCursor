@@ -21,27 +21,27 @@ async function abrirCuenta() {
 beforeEach(() => useColorScheme.mockReturnValue('light'));
 
 describe('Modo claro y oscuro', () => {
-  test('por defecto sigue al teléfono: claro si el teléfono está en claro', async () => {
+  test('por defecto la app se ve oscura, aunque el teléfono esté en claro', async () => {
     const titulo = await abrirCuenta();
-    expect(colorDe(titulo)).toBe(paletas.claro.texto);
-    expect(screen.getByRole('radio', { name: 'Modo automático' })).toBeChecked();
+    expect(colorDe(titulo)).toBe(paletas.oscuro.texto);
+    expect(screen.getByRole('radio', { name: 'Modo oscuro' })).toBeChecked();
+  });
+
+  test('en automático, con el teléfono en claro la app se ve clara', async () => {
+    await abrirCuenta();
+    await userEvent.setup().press(screen.getByRole('radio', { name: 'Modo automático' }));
+    expect(colorDe(screen.getByText('Apariencia'))).toBe(paletas.claro.texto);
     expect(screen.getByText('Cambia sola según el modo claro u oscuro de tu teléfono.')).toBeOnTheScreen();
   });
 
-  test('en automático, con el teléfono en oscuro la app se ve oscura', async () => {
-    useColorScheme.mockReturnValue('dark');
-    const titulo = await abrirCuenta();
-    expect(colorDe(titulo)).toBe(paletas.oscuro.texto);
-  });
-
-  test('elegir "Oscuro" cambia los colores de inmediato y queda guardado en el dispositivo', async () => {
+  test('elegir "Claro" cambia los colores de inmediato y queda guardado en el dispositivo', async () => {
     await abrirCuenta();
-    await userEvent.setup().press(screen.getByRole('radio', { name: 'Modo oscuro' }));
+    await userEvent.setup().press(screen.getByRole('radio', { name: 'Modo claro' }));
 
-    expect(screen.getByRole('radio', { name: 'Modo oscuro' })).toBeChecked();
-    expect(colorDe(screen.getByText('Apariencia'))).toBe(paletas.oscuro.texto);
-    expect(colorDe(screen.getByText('Mis datos'))).toBe(paletas.oscuro.texto);
-    expect(SecureStore.__datos.get(CLAVE)).toBe('oscuro');
+    expect(screen.getByRole('radio', { name: 'Modo claro' })).toBeChecked();
+    expect(colorDe(screen.getByText('Apariencia'))).toBe(paletas.claro.texto);
+    expect(colorDe(screen.getByText('Mis datos'))).toBe(paletas.claro.texto);
+    expect(SecureStore.__datos.get(CLAVE)).toBe('claro');
   });
 
   test('la preferencia guardada se respeta al volver a abrir la app, aunque el teléfono esté en oscuro', async () => {

@@ -4,6 +4,7 @@ import NuevaSolicitud from '../src/app/nueva-solicitud';
 import Maestros from '../src/app/maestros';
 import Portafolio from '../src/app/portafolio';
 import Panel from '../src/app/panel';
+import Perfil from '../src/app/perfil';
 import Inicio from '../src/app/index';
 import DetalleSolicitud from '../src/app/solicitud/[id]';
 import { abrirApp, simularApi, errorApi, sesionGuardada, usarVariante, cliente, prestador } from './ayudas';
@@ -164,7 +165,7 @@ describe('Mi portafolio (Pro)', () => {
     expect(screen.getByText('0/12')).toBeOnTheScreen();
   });
 
-  test('desde el panel, la tarjeta «Mi portafolio» abre la pantalla', async () => {
+  test('desde Perfil, «Mi portafolio» abre la pantalla', async () => {
     usarVariante('pro');
     simularApi({
       'GET /auth/yo': { usuario: prestador },
@@ -177,8 +178,8 @@ describe('Mi portafolio (Pro)', () => {
       'GET /prestadores/yo/datos-pago': { datos_pago: { completos: true } },
       'GET /prestadores/yo/dinero': { retenido: 0, por_transferir: 0, transferido: 0, transferencias: [] },
     });
-    const app = await abrirApp({ ruta: '/panel', pantallas: { panel: Panel } });
-    await userEvent.setup().press(await screen.findByText('🖼️ Mi portafolio'));
+    const app = await abrirApp({ ruta: '/perfil', pantallas: { perfil: Perfil } });
+    await userEvent.setup().press(await screen.findByRole('button', { name: 'Mi portafolio' }));
     expect(await screen.findByText('Pantalla portafolio')).toBeOnTheScreen();
     expect(app.ruta()).toBe('/portafolio');
   });

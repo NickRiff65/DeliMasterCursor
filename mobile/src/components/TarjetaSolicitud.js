@@ -2,10 +2,12 @@ import { Pressable, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { fechaCorta, pesos } from '../lib/formato';
 import { EstadoSolicitud } from './EstadoSolicitud';
+import { ProgresoSolicitud } from './ProgresoSolicitud';
 import { colores, crearEstilos, espacio, radio } from '../theme';
 
 // Lite: una solicitud del cliente en la lista de inicio
 export function TarjetaSolicitud({ solicitud: s }) {
+  const enCurso = !['cerrada', 'cancelada'].includes(s.estado);
   return (
     <Pressable onPress={() => router.push(`/solicitud/${s.id}`)} accessibilityRole="button"
       style={({ pressed }) => [estilos.tarjeta, pressed && { transform: [{ scale: 0.98 }] }]}>
@@ -14,11 +16,14 @@ export function TarjetaSolicitud({ solicitud: s }) {
         <EstadoSolicitud estado={s.estado} />
       </View>
       <Text style={estilos.descripcion} numberOfLines={2}>{s.descripcion}</Text>
-      <Text style={estilos.suave}>
-        📍 {s.comuna} · {fechaCorta(s.creado_en)}
-        {s.prestador ? ` · 👷 ${s.prestador.nombre}` : ''}
-        {s.precio_acordado ? ` · ${pesos(s.precio_acordado)}` : ''}
-      </Text>
+      <Text style={estilos.suave}>📍 {s.comuna} · {fechaCorta(s.creado_en)}</Text>
+      {s.prestador || s.precio_acordado ? (
+        <View style={[estilos.fila, { marginTop: espacio.xs }]}>
+          <Text style={[estilos.suave, { flex: 1 }]} numberOfLines={1}>{s.prestador ? `👷 ${s.prestador.nombre}` : ' '}</Text>
+          {s.precio_acordado ? <Text style={estilos.precio}>{pesos(s.precio_acordado)}</Text> : null}
+        </View>
+      ) : null}
+      {enCurso ? <ProgresoSolicitud estado={s.estado} /> : null}
       {/* Sin respuesta en 1 día hábil: el cliente puede elegir a otro maestro en el detalle */}
       {s.estado === 'creada' && s.sin_respuesta ? (
         <View style={estilos.sinRespuesta}>
@@ -42,6 +47,7 @@ const estilos = crearEstilos((colores) => ({
   categoria: { fontSize: 16, fontWeight: '700', color: colores.texto, flex: 1 },
   descripcion: { fontSize: 15, color: colores.texto, marginVertical: espacio.xs },
   suave: { fontSize: 13, color: colores.textoSuave, textAlign: 'left' },
+  precio: { fontSize: 16, fontWeight: '800', color: colores.primarioOscuro },
   sinRespuesta: {
     backgroundColor: colores.avisoFondo, borderWidth: 1, borderColor: colores.avisoBorde, borderRadius: radio.s,
     padding: espacio.s, marginTop: espacio.s, gap: espacio.xs,

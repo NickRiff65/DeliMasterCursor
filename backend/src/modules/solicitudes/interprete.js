@@ -34,8 +34,12 @@ function contieneFrase(tokens, partes) {
   return false;
 }
 
+// Palabras que sirven a más de un servicio ("árbol" sirve a la poda y a la tala): cuentan la mitad,
+// para que el servicio que sí nombra el trabajo ("talar") gane el empate.
+const GENERICAS = new Set(['arbol', 'arboles']);
+
 // Puntaje de una categoría para un texto: cuántas de sus palabras clave aparecen
-// (las frases pesan el doble porque son más específicas).
+// (las frases pesan el doble porque son más específicas; las genéricas, la mitad).
 export function puntaje(texto, palabrasClave) {
   const tokens = palabras(texto);
   let total = 0;
@@ -44,7 +48,7 @@ export function puntaje(texto, palabrasClave) {
     if (partes.length > 1) {
       if (contieneFrase(tokens, partes)) total += 2;
     } else if (tokens.some((t) => coincide(t, partes[0]))) {
-      total += 1;
+      total += GENERICAS.has(partes[0]) ? 0.5 : 1;
     }
   }
   return total;

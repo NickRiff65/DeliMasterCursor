@@ -55,6 +55,12 @@ export default function Finanzas() {
           </View>
 
           <Aviso mensaje={error} />
+          {/* Los datos bancarios se configuran una vez: aquí, junto al dinero, se pueden revisar */}
+          <Pressable onPress={() => router.push('/datos-pago')} accessibilityRole="button"
+            style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: espacio.s, backgroundColor: colores.superficie, borderRadius: radio.m, borderWidth: 1, borderColor: colores.bordeTarjeta, padding: espacio.m, marginBottom: espacio.m }}>
+            <Text style={{ flex: 1, fontSize: 16, fontWeight: '800', color: colores.texto }}>💳 Datos para recibir pagos</Text>
+            <Text style={{ color: colores.primario, fontWeight: '700', fontSize: 15 }}>Ver →</Text>
+          </Pressable>
           {!datos && !error ? <ActivityIndicator color={colores.primario} style={{ margin: espacio.l }} /> : null}
 
           {t ? (

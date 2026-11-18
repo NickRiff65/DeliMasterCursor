@@ -50,6 +50,11 @@ rutasSolicitudes.post('/:id/responder', autorizar('prestador'), validar(esquemaR
   res.json({ solicitud: await servicio.responder(req.usuario, idValido(req), req.body) });
 });
 
+// El cliente cambia de maestro antes de que responda: la misma solicitud, sin crear otra
+rutasSolicitudes.post('/:id/cambiar-maestro', autorizar('cliente'), async (req, res) => {
+  res.json({ solicitud: await servicio.cambiarMaestro(req.usuario, idValido(req)) });
+});
+
 rutasSolicitudes.post('/:id/cancelar', autorizar('cliente'), validar(esquemaCancelar), async (req, res) => {
   res.json({ solicitud: await servicio.cancelar(req.usuario, idValido(req), req.body) });
 });

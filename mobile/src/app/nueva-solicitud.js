@@ -78,9 +78,8 @@ export default function NuevaSolicitud() {
     try {
       const r = await api.post('/solicitudes/interpretar', { descripcion: texto.trim() });
       const validas = new Set(opciones.map((o) => o.slug));
-      let detectadas = r.categorias.map((c) => c.slug).filter((s) => validas.has(s));
-      // Con un prestador elegido se contrata un solo servicio
-      if (prestador) detectadas = detectadas.slice(0, 1);
+      // Una solicitud es un solo servicio: se marca el que mejor describe el trabajo (llega primero)
+      let detectadas = r.categorias.map((c) => c.slug).filter((s) => validas.has(s)).slice(0, 1);
       if (prestador && !detectadas.length && opciones.length === 1) detectadas = [opciones[0].slug];
       setElegidas(detectadas);
       setNoDisponibles(r.no_disponibles);
@@ -178,9 +177,13 @@ export default function NuevaSolicitud() {
     router.dismissTo('/?guardada=1');
   }
 
+  // Resumen para la hoja inferior: lo que se va a pedir, dónde y el botón de publicar
+  const servicios = opciones.filter((o) => elegidas.includes(o.slug)).map((o) => o.nombre);
+  const etiquetaBoton = prestador ? `Enviar a ${prestador.nombre.split(' ')[0]}` : 'Publicar solicitud';
+
+  // Un solo servicio por solicitud: marcar otro reemplaza al anterior, y no se puede quedar sin ninguno
   const alternar = (seleccion) => {
-    // Con prestador: selección única (se queda con la última marcada)
-    setElegidas(prestador ? seleccion.slice(-1) : seleccion);
+    if (seleccion.length) setElegidas(seleccion.slice(-1));
   };
 
   return (
@@ -238,7 +241,8 @@ export default function NuevaSolicitud() {
           )}
         </View>
 
-        <Aviso mensaje={error} />
+        {/* Al revisar, el error se muestra en la hoja inferior: ahí está el botón que lo provocó */}
+        {paso === 'escribir' ? <Aviso mensaje={error} /> : null}
 
         {sinConexion && paso === 'escribir' ? (
           <View style={estilos.sinSenal}>
@@ -279,8 +283,8 @@ export default function NuevaSolicitud() {
                 Aún no ofrecemos {noDisponibles.map((c) => c.nombre.toLowerCase()).join(' ni ')}. ¡Pronto!
               </Text>
             ) : null}
-            {!prestador && elegidas.length > 1 ? (
-              <Text style={estilos.ayuda}>Crearemos una solicitud por cada servicio.</Text>
+            {!prestador && elegidas.length ? (
+              <Text style={estilos.ayuda}>Un servicio por solicitud. Si necesitas otro, lo pides después.</Text>
             ) : null}
 
             <Text style={estilos.subtitulo}>¿Dónde es el trabajo?</Text>
@@ -309,13 +313,22 @@ export default function NuevaSolicitud() {
               </Text>
             </View>
 
-            <View style={{ marginTop: espacio.l }}>
-              <Boton titulo={prestador ? `Enviar a ${prestador.nombre.split(' ')[0]}` : 'Publicar solicitud'}
-                onPress={publicar} cargando={cargando} />
-            </View>
           </View>
         )}
       </ScrollView>
+      {paso === 'revisar' ? (
+        <View style={estilos.hoja} accessibilityLabel="Resumen de tu solicitud">
+          <View style={estilos.agarradera} />
+          <Text style={estilos.resumenServicio} numberOfLines={1}>
+            {servicios.length ? servicios.join(' · ') : 'Servicio por elegir'} · {comuna ?? 'Comuna por elegir'}
+          </Text>
+          <Text style={[estilos.resumenDireccion, !direccion.trim() && estilos.resumenAviso]} numberOfLines={1}>
+            📍 {direccion.trim() || 'Falta la dirección exacta'}
+          </Text>
+          <Aviso mensaje={error} />
+          <Boton titulo={etiquetaBoton} onPress={publicar} cargando={cargando} />
+        </View>
+      ) : null}
     </KeyboardAvoidingView>
   );
 }
@@ -358,4 +371,15 @@ const estilos = crearEstilos((colores) => ({
   gpsQuitar: { color: colores.primario, fontWeight: '700', textDecorationLine: 'underline' },
   gpsAyuda: { fontSize: 13, color: colores.textoSuave, lineHeight: 18 },
   contratandoTexto: { color: colores.primarioOscuro, fontSize: 15 },
+  // Hoja inferior: fija abajo mientras se revisa la solicitud, con el resumen y el botón de publicar
+  hoja: {
+    backgroundColor: colores.superficie, borderTopLeftRadius: radio.l, borderTopRightRadius: radio.l,
+    borderTopWidth: 1, borderColor: colores.bordeTarjeta, boxShadow: colores.sombraHoja,
+    paddingHorizontal: espacio.m, paddingTop: espacio.s, paddingBottom: espacio.l, gap: espacio.xs,
+    maxWidth: 720, width: '100%', alignSelf: 'center',
+  },
+  agarradera: { alignSelf: 'center', width: 40, height: 4, borderRadius: 2, backgroundColor: colores.borde, marginBottom: espacio.xs },
+  resumenServicio: { fontSize: 15, fontWeight: '800', color: colores.texto },
+  resumenDireccion: { fontSize: 14, color: colores.textoSuave, marginBottom: espacio.xs },
+  resumenAviso: { color: colores.avisoTexto, fontWeight: '700' },
 }));

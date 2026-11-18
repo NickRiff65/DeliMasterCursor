@@ -17,6 +17,7 @@ import { config } from '../config/env.js';
 import { calcularComision } from '../modules/pagos/pagos.servicio.js';
 import { digitoVerificador } from '../utils/rut.js';
 import { VERSION_TERMINOS } from '../modules/auth/auth.servicio.js';
+import { cifrarCuenta } from '../utils/cuentaBancaria.js';
 
 const CLAVE_DEMO = 'demo1234';
 const DIA = 86_400_000;
@@ -265,7 +266,7 @@ async function cuentas(db, hash) {
       const [banco, tipo, cuerpo] = p.banco;
       await db.query(
         'UPDATE prestadores SET rut = $2, banco = $3, tipo_cuenta = $4, numero_cuenta = $5 WHERE usuario_id = $1 AND rut IS NULL',
-        [id, rut(cuerpo), banco, tipo, tipo === 'CuentaRUT' ? String(cuerpo) : `00${cuerpo}`]);
+        [id, rut(cuerpo), banco, tipo, cifrarCuenta(tipo === 'CuentaRUT' ? String(cuerpo) : `00${cuerpo}`)]);
     }
     if (p.verificado) {
       // Certificado SEC vigente (si ya tiene uno aprobado y vigente, no se agrega otro)

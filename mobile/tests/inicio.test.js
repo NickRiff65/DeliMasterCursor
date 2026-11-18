@@ -34,7 +34,8 @@ describe('Inicio del cliente', () => {
     expect(screen.getByText('Solicitud s2')).toBeOnTheScreen();
     expect(screen.getByText('Tus solicitudes')).toBeOnTheScreen();
     expect(screen.getByText('1 en curso')).toBeOnTheScreen();
-    expect(screen.getByText(/👷 Juan Soto · \$45\.000/)).toBeOnTheScreen();
+    expect(screen.getByText('👷 Juan Soto')).toBeOnTheScreen();
+    expect(screen.getByText('$45.000')).toBeOnTheScreen();   // el monto va en su propia línea
     expect(await screen.findByText(/7 maestros en Chillán/)).toBeOnTheScreen();
     expect(screen.queryByText(/prestador/i)).not.toBeOnTheScreen();
 

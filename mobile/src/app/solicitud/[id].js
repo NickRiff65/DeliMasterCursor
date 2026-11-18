@@ -51,6 +51,7 @@ export default function DetalleSolicitud() {
   const [todasLasComunas, setTodasLasComunas] = useState(false);
   const [accion, setAccion] = useState(null);       // id del botón en curso
   const [confirmarCancelar, setConfirmarCancelar] = useState(false);
+  const [confirmarCambio, setConfirmarCambio] = useState(false);   // cambiar de maestro (mientras no responde)
   const [reportando, setReportando] = useState(false);
   const [motivo, setMotivo] = useState('');
   const [estrellas, setEstrellas] = useState(0);
@@ -104,6 +105,12 @@ export default function DetalleSolicitud() {
       setAccion(null);
       setConfirmarCancelar(false);
     }
+  }
+
+  // Vuelve a «creada»: la lista de maestros aparece de nuevo para elegir a otro
+  async function cambiarDeMaestro() {
+    setConfirmarCambio(false);
+    await ejecutar('cambiar', () => api.post(`/solicitudes/${s.id}/cambiar-maestro`, {}));
   }
 
   if (!s) {
@@ -201,6 +208,13 @@ export default function DetalleSolicitud() {
               <Pressable style={{ flex: 1 }} onPress={() => router.push(`/prestador/${p.id}`)} accessibilityRole="button">
                 <Text style={estilos.nombre}>{p.nombre}</Text>
                 <Estrellas promedio={p.calificacion_promedio} total={p.total_resenas} />
+                {/* Lo que más le importa al cliente, sin la descripción completa */}
+                {p.puntos_clave?.length ? (
+                  <View style={estilos.puntos}>
+                    {p.puntos_clave.map((t) => <Text key={t} style={estilos.punto}>{t}</Text>)}
+                  </View>
+                ) : null}
+                {p.descripcion_breve ? <Text style={estilos.breve} numberOfLines={2}>{p.descripcion_breve}</Text> : null}
                 <Text style={estilos.suave} numberOfLines={1}>{p.comunas_atendidas.join(', ')}</Text>
               </Pressable>
               <View style={{ width: 96 }}>
@@ -231,6 +245,26 @@ export default function DetalleSolicitud() {
             <CuentaRegresiva hasta={s.responder_antes_de} alVencer={cargar} />
           </Text>
           <Text style={estilos.suave}>Si no responde a tiempo, podrás elegir a otro prestador.</Text>
+          {/* Cambiar de maestro sin crear otra solicitud: solo mientras el que eligió no ha respondido */}
+          {!confirmarCambio ? (
+            <Text style={estilos.enlace} accessibilityRole="button" onPress={() => setConfirmarCambio(true)}>
+              Cambiar de maestro
+            </Text>
+          ) : (
+            <View style={[estilos.tarjeta, estilos.esperando, { marginTop: espacio.s }]}>
+              <Text style={estilos.nombre}>¿Cambiar de maestro?</Text>
+              <Text style={estilos.texto}>
+                {s.prestador.nombre} dejará de ver tu solicitud. Vas a elegir a otro maestro y ese tendrá su propio plazo de 1 día hábil para responder. No se crea una solicitud nueva.
+              </Text>
+              <View style={{ marginTop: espacio.s }}>
+                <Boton titulo="Sí, cambiar de maestro" cargando={accion === 'cambiar'} deshabilitado={Boolean(accion)}
+                  onPress={cambiarDeMaestro} />
+              </View>
+              <View style={{ marginTop: espacio.xs }}>
+                <Boton titulo="Seguir esperando" variante="secundario" onPress={() => setConfirmarCambio(false)} />
+              </View>
+            </View>
+          )}
         </View>
       ) : null}
 
@@ -523,4 +557,10 @@ const estilos = crearEstilos((colores) => ({
   evento: { paddingVertical: espacio.s, borderBottomWidth: 1, borderBottomColor: colores.fondo },
   corregida: { backgroundColor: colores.avisoFondo, borderWidth: 1, borderColor: colores.avisoBorde, borderRadius: radio.s, padding: espacio.s },
   corregidaTexto: { color: colores.avisoTexto, fontSize: 14, fontWeight: '600' },
+  puntos: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: espacio.xs },
+  punto: {
+    fontSize: 12, fontWeight: '700', color: colores.primarioOscuro, backgroundColor: colores.primarioSuave,
+    borderRadius: 999, paddingHorizontal: 8, paddingVertical: 3, overflow: 'hidden',
+  },
+  breve: { fontSize: 14, color: colores.texto, marginTop: 4, lineHeight: 20 },
 }));

@@ -74,7 +74,7 @@ export default function Maestros() {
           <View>
             <Text style={estilos.intro}>Revisa sus perfiles, reseñas y horarios. Elige uno y contrátalo con pago protegido.</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={estilos.chips} contentContainerStyle={estilos.chipsContenido}>
-              <Chip texto="Todas" activo={!categoria} onPress={() => setCategoria(null)} />
+              <Chip texto="Todos los oficios" activo={!categoria} onPress={() => setCategoria(null)} />
               {categorias.map((c) => (
                 <Chip key={c.slug} texto={c.nombre} activo={categoria === c.slug} onPress={() => setCategoria(c.slug)} />
               ))}
@@ -103,7 +103,8 @@ export default function Maestros() {
           </View>
         }
         renderItem={({ item }) => (
-          <TarjetaPrestador prestador={item} onPress={() => router.push(`/prestador/${item.id}`)} />
+          <TarjetaPrestador prestador={item} onPress={() => router.push(`/prestador/${item.id}`)}
+            onContratar={() => router.push(`/nueva-solicitud?prestador=${item.id}`)} />
         )}
         ListEmptyComponent={
           !cargando && !error ? (

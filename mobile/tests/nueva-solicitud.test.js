@@ -55,6 +55,40 @@ describe('Pedir un servicio', () => {
     expect(app.ruta()).toBe(`/solicitud/${publicada.id}`);
   });
 
+  test('con varios servicios detectados marca solo el que mejor describe el trabajo', async () => {
+    simularApi({
+      ...base,
+      'POST /solicitudes/interpretar': { categorias: [{ slug: 'poda-altura' }, { slug: 'electricidad' }], no_disponibles: [], comuna: null },
+    });
+    await abrirApp({ ruta: '/nueva-solicitud', pantallas: { 'nueva-solicitud': NuevaSolicitud } });
+    await escribir('Hay que podar el árbol y revisar el tablero');
+
+    expect(await screen.findByRole('checkbox', { name: /Poda en altura/ })).toBeChecked();
+    expect(screen.getByRole('checkbox', { name: /Electricidad/ })).not.toBeChecked();
+  });
+
+  test('marcar otro servicio reemplaza al anterior, y no se puede quedar sin ninguno', async () => {
+    const llamadas = simularApi({
+      ...base,
+      'POST /solicitudes/interpretar': { categorias: [{ slug: 'electricidad' }], no_disponibles: [], comuna: null },
+      'POST /solicitudes': (cuerpo) => ({ solicitudes: [{ id: cuerpo.id, estado: 'creada' }] }),
+    });
+    await abrirApp({ ruta: '/nueva-solicitud', pantallas: { 'nueva-solicitud': NuevaSolicitud } });
+    const user = await escribir();
+
+    await user.press(await screen.findByRole('checkbox', { name: /Poda en altura/ }));
+    expect(screen.getByRole('checkbox', { name: /Poda en altura/ })).toBeChecked();
+    expect(screen.getByRole('checkbox', { name: /Electricidad/ })).not.toBeChecked();
+
+    await user.press(screen.getByRole('checkbox', { name: /Poda en altura/ }));   // desmarcar el único: no se permite
+    expect(screen.getByRole('checkbox', { name: /Poda en altura/ })).toBeChecked();
+
+    await completarDireccion(user);
+    await user.press(screen.getByRole('button', { name: 'Publicar solicitud' }));
+    expect(await screen.findByText('Pantalla solicitud/[id]')).toBeOnTheScreen();
+    expect(llamadas.find((l) => l.ruta === '/solicitudes').cuerpo.categorias).toEqual(['poda-altura']);
+  });
+
   test('si menciona una comuna donde aún no operamos, lo avisa y pide elegir Chillán o Coihueco', async () => {
     const llamadas = simularApi({
       ...base,

@@ -35,7 +35,8 @@ export default function Login() {
   }
 
   return (
-    <SafeAreaView style={[{ flex: 1, backgroundColor: colores.primario }, degradado(ES_PRO ? colores.degradadoHeroePro : colores.degradadoHeroe)]}>
+    // overflow: las burbujas decorativas se salen de la pantalla; sin recortarlas, la versión web gana scroll horizontal
+    <SafeAreaView style={[{ flex: 1, overflow: 'hidden', backgroundColor: colores.primario }, degradado(ES_PRO ? colores.degradadoHeroePro : colores.degradadoHeroe)]}>
       {/* Burbujas decorativas del fondo */}
       <View style={[estilos.burbuja, { width: 260, height: 260, top: -80, right: -90 }]} />
       <View style={[estilos.burbuja, { width: 180, height: 180, bottom: 60, left: -70 }]} />
@@ -44,7 +45,7 @@ export default function Login() {
         <ScrollView contentContainerStyle={estilos.contenido} keyboardShouldPersistTaps="handled">
           <View style={estilos.marca}>
             <View style={estilos.logo}>
-              <Text style={[estilos.logoTexto, ES_PRO && { color: colores.logoPro }]}>D</Text>
+              <Text style={[estilos.logoTexto, ES_PRO && { color: colores.logoLetraPro }]}>D</Text>
               <View style={estilos.logoPunto} />
             </View>
             <Text style={estilos.titulo}>{NOMBRE_APP}</Text>
@@ -97,11 +98,11 @@ const estilos = crearEstilos((colores) => ({
   burbuja: { position: 'absolute', borderRadius: 999, backgroundColor: colores.burbujaHeroe },
   marca: { alignItems: 'center', marginBottom: espacio.l },
   logo: {
-    width: 76, height: 76, borderRadius: 24, backgroundColor: '#FFFFFF',
+    width: 76, height: 76, borderRadius: 24, backgroundColor: colores.logoFondo,
     alignItems: 'center', justifyContent: 'center', marginBottom: espacio.m,
     boxShadow: '0px 12px 32px rgba(0, 0, 0, 0.25), 0px 0px 0px 6px rgba(255, 255, 255, 0.15)',
   },
-  logoTexto: { color: '#0B7568', fontSize: 38, fontWeight: '900' },
+  logoTexto: { color: colores.logoTexto, fontSize: 38, fontWeight: '900' },
   logoPunto: { position: 'absolute', bottom: 12, width: 9, height: 9, borderRadius: 5, backgroundColor: colores.acento },
   titulo: { fontSize: 30, fontWeight: '900', color: colores.sobreHeroe, letterSpacing: -0.5 },
   subtitulo: { fontSize: 15, color: colores.sobreHeroeSuave, marginTop: espacio.xs, textAlign: 'center', lineHeight: 21 },

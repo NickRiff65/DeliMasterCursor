@@ -27,7 +27,8 @@ export default function PerfilPrestador() {
   if (!p) return <ActivityIndicator color={colores.primario} style={{ marginTop: espacio.xl }} />;
 
   return (
-    <ScrollView contentContainerStyle={estilos.contenido}>
+    <View style={{ flex: 1 }}>
+    <ScrollView contentContainerStyle={[estilos.contenido, { paddingBottom: 130 }]}>
       <View style={estilos.cabecera}>
         <View style={estilos.avatar}><Avatar nombre={p.nombre} tamano={92} /></View>
         <Text style={estilos.nombre}>{p.nombre}</Text>
@@ -77,14 +78,21 @@ export default function PerfilPrestador() {
         )) : <Text style={estilos.textoSuave}>Aún no tiene reseñas en DeliMaster.</Text>}
       </Seccion>
 
-      <View style={{ marginTop: espacio.l }}>
-        <Boton titulo={`Contratar a ${p.nombre.split(' ')[0]}`} deshabilitado={!p.disponible}
-          onPress={() => router.push(`/nueva-solicitud?prestador=${p.id}`)} />
-        <Text style={estilos.nota}>
-          {p.disponible ? 'Tu pago quedará protegido hasta que el trabajo se cierre.' : 'Este maestro no está disponible ahora.'}
+    </ScrollView>
+    {/* La acción principal queda siempre a la vista, sin importar cuánto se desplace el perfil */}
+    <View style={estilos.barra}>
+      <View style={{ flex: 1 }}>
+        <Text style={estilos.barraNombre} numberOfLines={1}>{p.nombre.split(' ')[0]}</Text>
+        <Text style={estilos.nota} numberOfLines={2}>
+          {p.disponible ? 'Pago protegido hasta el cierre.' : 'No está disponible ahora.'}
         </Text>
       </View>
-    </ScrollView>
+      <View style={{ minWidth: 170 }}>
+        <Boton titulo="Contratar" deshabilitado={!p.disponible}
+          onPress={() => router.push(`/nueva-solicitud?prestador=${p.id}`)} />
+      </View>
+    </View>
+    </View>
   );
 }
 
@@ -114,5 +122,11 @@ const estilos = crearEstilos((colores) => ({
   textoSuave: { fontSize: 15, color: colores.textoSuave },
   resena: { paddingVertical: espacio.s, borderTopWidth: 1, borderTopColor: colores.fondo },
   resenaCabecera: { fontSize: 14, fontWeight: '600', color: colores.texto, marginBottom: 2 },
-  nota: { textAlign: 'center', color: colores.textoSuave, fontSize: 13, marginTop: espacio.s },
+  nota: { color: colores.textoSuave, fontSize: 13, marginTop: 2 },
+  barra: {
+    position: 'absolute', left: 0, right: 0, bottom: 0, flexDirection: 'row', alignItems: 'center', gap: espacio.m,
+    padding: espacio.m, paddingBottom: espacio.l, backgroundColor: colores.superficie,
+    borderTopWidth: 1, borderTopColor: colores.borde, boxShadow: colores.sombraFuerte,
+  },
+  barraNombre: { fontSize: 17, fontWeight: '800', color: colores.texto },
 }));

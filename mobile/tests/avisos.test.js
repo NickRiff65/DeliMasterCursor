@@ -70,10 +70,9 @@ describe('DeliMaster Pro', () => {
       'GET /prestadores/yo/dinero': { retenido: 44000, por_transferir: 35200, transferido: 120500, transferencias: [] },
     });
     await abrirApp({ ruta: '/panel', pantallas: { panel: Panel } });
+    // La portada muestra el resumen; lo ya recibido está en la sección Dinero
     expect(await screen.findByText('💰 Mi dinero')).toBeOnTheScreen();
-    expect(screen.getByText('$44.000')).toBeOnTheScreen();
-    expect(screen.getByText('$35.200')).toBeOnTheScreen();
-    expect(screen.getByText('$120.500')).toBeOnTheScreen();
+    expect(screen.getByText('Por transferir $35.200 · Retenido $44.000')).toBeOnTheScreen();
   });
 
   const ID = '11111111-2222-4333-8444-555555555555';

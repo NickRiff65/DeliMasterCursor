@@ -34,7 +34,16 @@ export default function Recibidas() {
   }, [cargar]);
 
   const porResponder = (lista ?? []).filter((s) => s.estado === 'asignada');
-  const resto = (lista ?? []).filter((s) => s.estado !== 'asignada');
+  const cerradas = ['cerrada', 'cancelada'];
+  const enCurso = (lista ?? []).filter((s) => s.estado !== 'asignada' && !cerradas.includes(s.estado));
+  const historial = (lista ?? []).filter((s) => cerradas.includes(s.estado));
+  // Lo que sigue en marcha va primero; el historial queda debajo con su propio encabezado
+  const filas = [
+    ...(enCurso.length ? [{ clave: 'titulo-curso', titulo: `En curso (${enCurso.length})` }] : []),
+    ...enCurso.map((s) => ({ clave: s.id, solicitud: s })),
+    ...(historial.length ? [{ clave: 'titulo-historial', titulo: `Historial (${historial.length})` }] : []),
+    ...historial.map((s) => ({ clave: s.id, solicitud: s })),
+  ];
 
   const tarjeta = (s) => (
     <Pressable key={s.id} style={[estilos.tarjeta, s.estado === 'asignada' && estilos.urgente]}
@@ -44,10 +53,12 @@ export default function Recibidas() {
         <EstadoSolicitud estado={s.estado} vista="prestador" />
       </View>
       <Text style={estilos.descripcion} numberOfLines={2}>“{s.descripcion}”</Text>
-      <Text style={estilos.suave}>
-        {s.cliente.nombre} · 📍 {s.comuna} · {fechaCorta(s.creado_en)}
-        {s.precio_acordado ? ` · ${pesos(s.precio_acordado)}` : ''}
-      </Text>
+      <View style={[estilos.fila, { marginTop: espacio.xs }]}>
+        <Text style={[estilos.suave, { flex: 1 }]} numberOfLines={1}>
+          {s.cliente.nombre} · 📍 {s.comuna} · {fechaCorta(s.creado_en)}
+        </Text>
+        {s.precio_acordado ? <Text style={estilos.precio}>{pesos(s.precio_acordado)}</Text> : null}
+      </View>
       {s.estado === 'asignada' ? (
         <Text style={estilos.plazo}>Responde en <CuentaRegresiva hasta={s.responder_antes_de} alVencer={cargar} /></Text>
       ) : null}
@@ -56,22 +67,30 @@ export default function Recibidas() {
 
   return (
     <FlatList
-      data={resto}
-      keyExtractor={(s) => s.id}
+      data={filas}
+      keyExtractor={(f) => f.clave}
       contentContainerStyle={estilos.contenido}
       refreshing={recargando}
       onRefresh={async () => { setRecargando(true); await cargar(); setRecargando(false); }}
       ListHeaderComponent={
         <View>
           <Aviso mensaje={error} />
+          {/* La agenda de visitas se movió aquí desde el inicio */}
+          <Pressable onPress={() => router.push('/agenda')} accessibilityRole="button"
+            style={[estilos.tarjeta, { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: espacio.s }]}>
+            <View style={{ flex: 1 }}>
+              <Text style={estilos.subtitulo}>📅 Mi agenda</Text>
+              <Text style={estilos.suave}>Tus próximas visitas programadas, en orden de fecha.</Text>
+            </View>
+            <Text style={{ color: colores.primario, fontWeight: '700', fontSize: 15 }}>Ver →</Text>
+          </Pressable>
           <Text style={estilos.subtitulo}>Por responder ({porResponder.length})</Text>
           {porResponder.length ? porResponder.map(tarjeta) : (
             <Text style={[estilos.suave, { marginBottom: espacio.m }]}>No tienes solicitudes pendientes.</Text>
           )}
-          {resto.length ? <Text style={estilos.subtitulo}>Mis trabajos</Text> : null}
         </View>
       }
-      renderItem={({ item }) => tarjeta(item)}
+      renderItem={({ item }) => (item.titulo ? <Text style={estilos.subtitulo}>{item.titulo}</Text> : tarjeta(item.solicitud))}
     />
   );
 }
@@ -88,5 +107,6 @@ const estilos = crearEstilos((colores) => ({
   categoria: { fontSize: 16, fontWeight: '700', color: colores.texto, flex: 1 },
   descripcion: { fontSize: 15, color: colores.texto, marginVertical: espacio.xs, fontStyle: 'italic' },
   suave: { fontSize: 13, color: colores.textoSuave },
+  precio: { fontSize: 16, fontWeight: '800', color: colores.primarioOscuro },
   plazo: { fontSize: 14, color: colores.texto, marginTop: espacio.s },
 }));

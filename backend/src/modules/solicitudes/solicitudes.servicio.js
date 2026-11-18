@@ -301,16 +301,20 @@ function idDerivado(idBase, slug) {
   return `${h.slice(0, 8)}-${h.slice(8, 12)}-5${h.slice(13, 16)}-${((parseInt(h[16], 16) & 0x3) | 0x8).toString(16)}${h.slice(17, 20)}-${h.slice(20, 32)}`;
 }
 
-export async function crear(usuario, datos) {
-  // Reenvío de una solicitud ya recibida (cola sin conexión): se devuelve lo existente
-  const existente = await pool.query('SELECT cliente_id, grupo_id FROM solicitudes WHERE id = $1', [datos.id]);
-  if (existente.rowCount) {
-    if (existente.rows[0].cliente_id !== usuario.id) {
-      throw new AppError('Identificador de solicitud ya usado', 409, 'ID_EN_USO');
-    }
-    const grupo = await pool.query(sqlSolicitud('WHERE s.grupo_id = $1', 'ORDER BY s.creado_en'), [existente.rows[0].grupo_id]);
-    return { creada: false, grupo_id: existente.rows[0].grupo_id, solicitudes: grupo.rows };
+// Reenvío de una solicitud ya recibida (cola sin conexión): devuelve lo existente, o null si es nueva
+async function yaRecibida(usuario, id) {
+  const existente = await pool.query('SELECT cliente_id, grupo_id FROM solicitudes WHERE id = $1', [id]);
+  if (!existente.rowCount) return null;
+  if (existente.rows[0].cliente_id !== usuario.id) {
+    throw new AppError('Identificador de solicitud ya usado', 409, 'ID_EN_USO');
   }
+  const grupo = await pool.query(sqlSolicitud('WHERE s.grupo_id = $1', 'ORDER BY s.creado_en'), [existente.rows[0].grupo_id]);
+  return { creada: false, grupo_id: existente.rows[0].grupo_id, solicitudes: grupo.rows };
+}
+
+export async function crear(usuario, datos) {
+  const previa = await yaRecibida(usuario, datos.id);
+  if (previa) return previa;
 
   const todas = await categoriasParaInterpretar();
   const interpretacion = interpretar(datos.descripcion, todas);
@@ -323,7 +327,9 @@ export async function crear(usuario, datos) {
       throw err;
     }
   } else {
-    elegidas = todas.filter((c) => interpretacion.categorias.some((d) => d.slug === c.slug));
+    // Sin servicio elegido: se toma el que mejor describe el trabajo (la lista llega ordenada por puntaje)
+    const principal = interpretacion.categorias[0]?.slug;
+    elegidas = todas.filter((c) => c.slug === principal);
   }
 
   if (!elegidas.length) {
@@ -351,7 +357,8 @@ export async function crear(usuario, datos) {
   }
 
   const grupoId = datos.id;
-  await enTransaccion(async (db) => {
+  try {
+   await enTransaccion(async (db) => {
     // Límites al crear (valores fijos de la ayudantía, noviembre 2026), revisados dentro
     // de la transacción para que dos pedidos simultáneos no se los salten:
     // 1) duplicada de la misma categoría (el error más específico, se revisa primero):
@@ -391,7 +398,16 @@ export async function crear(usuario, datos) {
           datos.latitud ?? null, datos.longitud ?? null, datos.creado_en_dispositivo ?? null]);
       await registrarEvento(db, id, null, 'creada', usuario.id);
     }
-  });
+   });
+  } catch (err) {
+    // Dos envíos simultáneos de la misma solicitud (doble toque, o un reintento de la cola que se cruza
+    // con el envío anterior): el segundo choca con el primero, ya sea en la clave primaria o en los
+    // límites que el primero acaba de ocupar. Se responde como un reenvío, no como un error.
+    const esChoque = err.code === '23505' || ['SOLICITUD_ACTIVA_MISMA_CATEGORIA', 'LIMITE_SOLICITUDES_DIA'].includes(err.codigo);
+    const gemela = esChoque ? await yaRecibida(usuario, datos.id) : null;
+    if (gemela) return gemela;
+    throw err;
+  }
 
   // Fotos al solicitar (máx. 2, validadas en el esquema): quedan como evidencias de la
   // primera solicitud del grupo. Decisión de atomicidad: guardarFoto (evidencias) usa su
@@ -531,6 +547,31 @@ export async function responder(usuario, id, { aceptar, modalidad = 'precio_cerr
 
 // El cliente cancela antes de pagar el trabajo (después del pago se usa el flujo de disputa).
 // Con la visita pagada: si cancela con anticipación se le devuelve; si no, la recibe el prestador.
+// El cliente cambia de maestro mientras el que eligió todavía no responde: es la misma solicitud, que vuelve
+// a estar disponible para elegir a otro (no se crea una nueva). El maestro anterior deja de verla.
+export async function cambiarMaestro(usuario, id) {
+  let anterior = null;
+  await enTransaccion(async (db) => {
+    const s = await bloquear(db, id);
+    if (s.cliente_id !== usuario.id) throw new AppError('Solicitud no encontrada', 404, 'SOLICITUD_NO_ENCONTRADA');
+    exigirTransicion(s, 'creada', 'Solo puedes cambiar de maestro mientras el que elegiste aún no responde');
+    anterior = s.prestador_id;
+    await db.query(
+      `UPDATE solicitudes SET estado = 'creada', prestador_id = NULL, asignada_en = NULL, respuesta_vence_en = NULL
+        WHERE id = $1`, [id]);
+    await registrarEvento(db, id, s.estado, 'creada', usuario.id, 'El cliente cambió de maestro');
+    if (anterior) {
+      await crearNotificacion(db, anterior, {
+        titulo: 'El cliente cambió de maestro',
+        texto: 'Ya no te llegará esta solicitud: el cliente eligió a otro maestro.',
+        solicitudId: id,
+      });
+    }
+  });
+  if (anterior) expulsarDeSala(id);   // el maestro anterior deja de recibir el chat en tiempo real
+  return obtener(usuario, id);
+}
+
 export async function cancelar(usuario, id, { motivo }) {
   await enTransaccion(async (db) => {
     const s = await bloquear(db, id);

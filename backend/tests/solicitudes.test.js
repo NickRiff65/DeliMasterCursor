@@ -81,23 +81,34 @@ describe('HU-05 / HU-08 / HU-12 · Solicitudes de servicio', { skip: !hayBaseDeD
     assert.equal(res.body.solicitudes[0].comuna, 'Chillán');
   });
 
-  test('varios servicios en un mensaje crean una solicitud por servicio, agrupadas', async () => {
-    const res = await crear(cliente, { descripcion: 'Hay que podar el árbol y revisar el tablero eléctrico' });
+  test('un mensaje crea una sola solicitud, con el servicio que mejor describe el trabajo', async () => {
+    const res = await crear(cliente, { descripcion: 'Hay que podar el árbol del patio' });
     assert.equal(res.status, 201);
-    assert.equal(res.body.solicitudes.length, 2);
-    assert.deepEqual(res.body.solicitudes.map((s) => s.categoria).sort(), ['electricidad', 'poda-altura']);
-    assert.ok(res.body.solicitudes.every((s) => s.grupo_id === res.body.grupo_id));
+    assert.equal(res.body.solicitudes.length, 1);
+    assert.equal(res.body.solicitudes[0].categoria, 'poda-altura');
   });
 
-  test('HU-12: reenviar la misma solicitud no la duplica (tampoco las derivadas)', async () => {
-    const cuerpo = { id: randomUUID(), direccion: 'Av. Libertad 1234', descripcion: 'Hay que podar el árbol y revisar el tablero eléctrico' };
+  test('«talar un árbol» es tala, no poda: «árbol» solo no decide el servicio', async () => {
+    const res = await crear(cliente, { descripcion: 'Necesito talar un árbol grande' });
+    assert.equal(res.status, 201);
+    assert.deepEqual(res.body.solicitudes.map((s) => s.categoria), ['tala']);
+  });
+
+  test('una solicitud con varios servicios elegidos se rechaza: un servicio por solicitud', async () => {
+    const res = await crear(cliente, { categorias: ['poda-altura', 'electricidad'], descripcion: 'Podar el árbol y revisar el tablero' });
+    assert.equal(res.status, 422);
+    assert.equal((await pool.query('SELECT 1 FROM solicitudes')).rowCount, 0);
+  });
+
+  test('HU-12: reenviar la misma solicitud no la duplica', async () => {
+    const cuerpo = { id: randomUUID(), direccion: 'Av. Libertad 1234', descripcion: 'Hay que podar el árbol del patio' };
     const primera = await como(cliente)(request(app).post('/api/solicitudes')).send(cuerpo);
     const segunda = await como(cliente)(request(app).post('/api/solicitudes')).send(cuerpo);
     assert.equal(primera.status, 201);
     assert.equal(segunda.status, 200);
     assert.equal(segunda.body.creada, false);
     assert.deepEqual(segunda.body.solicitudes.map((s) => s.id).sort(), primera.body.solicitudes.map((s) => s.id).sort());
-    assert.equal((await pool.query('SELECT 1 FROM solicitudes')).rowCount, 2);
+    assert.equal((await pool.query('SELECT 1 FROM solicitudes')).rowCount, 1);
   });
 
   test('otro cliente no puede reutilizar un id ajeno', async () => {

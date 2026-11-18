@@ -45,6 +45,10 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const { pool } = await import('./pool.js');
   try {
     await migrar(pool);
+    // Cuentas bancarias que quedaron en texto plano antes de la migración 025
+    const { cifrarCuentasEnClaro } = await import('../utils/cuentaBancaria.js');
+    const cifradas = await cifrarCuentasEnClaro(pool);
+    if (cifradas) console.log(`✔ ${cifradas} cuenta(s) bancaria(s) cifrada(s).`);
   } catch (err) {
     console.error(`✘ ${err.message}`);
     process.exitCode = 1;

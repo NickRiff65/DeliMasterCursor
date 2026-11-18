@@ -4,16 +4,17 @@ import * as SecureStore from 'expo-secure-store';
 import { paletas, usarPaleta } from '../theme';
 
 // Modo claro u oscuro (Mi cuenta → Apariencia). La preferencia queda en el dispositivo:
-//   sistema → sigue la configuración del teléfono · claro · oscuro
+//   oscuro (por defecto) · claro · sistema (sigue la configuración del teléfono)
 const CLAVE = 'delimaster.tema';
 export const PREFERENCIAS = ['sistema', 'claro', 'oscuro'];
+const POR_DEFECTO = 'oscuro';
 
 function leerPreferencia() {
   try {
     const valor = Platform.OS === 'web' ? localStorage.getItem(CLAVE) : SecureStore.getItem(CLAVE);
-    return PREFERENCIAS.includes(valor) ? valor : 'sistema';
+    return PREFERENCIAS.includes(valor) ? valor : POR_DEFECTO;
   } catch {
-    return 'sistema';
+    return POR_DEFECTO;
   }
 }
 

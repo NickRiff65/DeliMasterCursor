@@ -6,6 +6,7 @@ import { ColaProvider } from '../context/cola';
 import { TemaProvider, useTema } from '../context/tema';
 import { InstalarEnIphone } from '../components/InstalarEnIphone';
 import { FondoPantalla } from '../components/FondoPantalla';
+import { ConBarraPro } from '../components/BarraPro';
 import { BotonInicio } from '../components/BotonInicio';
 import { AvisoFlotante } from '../components/AvisoFlotante';
 import { AvisosProvider } from '../context/avisos';
@@ -47,7 +48,7 @@ function Navegacion() {
       <StatusBar style={esOscuro ? 'light' : 'dark'} />
       <Stack
         // Cada pantalla se dibuja sobre el fondo degradado; el encabezado toma su color de arriba
-        screenLayout={({ children }) => <FondoPantalla>{children}</FondoPantalla>}
+        screenLayout={({ children }) => <FondoPantalla><ConBarraPro>{children}</ConBarraPro></FondoPantalla>}
         screenOptions={{
           headerTintColor: colores.primarioOscuro,
           headerStyle: { backgroundColor: colores.fondoArriba },
@@ -60,32 +61,33 @@ function Navegacion() {
         <Stack.Protected guard={!conSesion}>
           <Stack.Screen name="login" options={{ headerShown: false }} />
           <Stack.Screen name="registro" options={{ title: 'Crear cuenta' }} />
-          <Stack.Screen name="recuperar" options={{ title: 'Recuperar contraseña' }} />
+          <Stack.Screen name="recuperar" options={{ title: 'Recuperar' }} />
         </Stack.Protected>
 
         {/* Términos de uso y privacidad pendientes (versión nueva o cuenta anterior a ellos) */}
         <Stack.Protected guard={Boolean(pendientes)}>
-          <Stack.Screen name="aceptar-terminos" options={{ title: 'Términos actualizados', headerBackVisible: false }} />
+          <Stack.Screen name="aceptar-terminos" options={{ title: 'Términos nuevos', headerBackVisible: false }} />
         </Stack.Protected>
 
         {/* DeliMaster Pro (prestador): panel, ficha y verificaciones */}
         <Stack.Protected guard={habilitado && ES_PRO}>
           <Stack.Screen name="panel" options={{ title: NOMBRE_APP }} />
+          <Stack.Screen name="perfil" options={{ title: 'Perfil' }} />
           <Stack.Screen name="ficha" options={conInicio({ title: 'Editar mi ficha' })} />
           <Stack.Screen name="verificaciones" options={conInicio({ title: 'Verificaciones' })} />
-          <Stack.Screen name="recibidas" options={conInicio({ title: 'Solicitudes recibidas' })} />
+          <Stack.Screen name="recibidas" options={conInicio({ title: 'Solicitudes' })} />
           <Stack.Screen name="agenda" options={conInicio({ title: 'Mi agenda' })} />
           <Stack.Screen name="portafolio" options={conInicio({ title: 'Mi portafolio' })} />
-          <Stack.Screen name="trabajo/[id]" options={conInicio({ title: 'Detalle del trabajo' })} />
+          <Stack.Screen name="trabajo/[id]" options={conInicio({ title: 'Mi trabajo' })} />
           <Stack.Screen name="finanzas" options={conInicio({ title: 'Mis finanzas' })} />
-          <Stack.Screen name="datos-pago" options={conInicio({ title: 'Datos para recibir pagos' })} />
+          <Stack.Screen name="datos-pago" options={conInicio({ title: 'Datos de pago' })} />
         </Stack.Protected>
 
         {/* DeliMaster Lite (cliente): inicio con sus solicitudes, maestros disponibles (HU-01) y su perfil (HU-02) */}
         <Stack.Protected guard={habilitado && !ES_PRO}>
           <Stack.Screen name="index" options={{ title: 'DeliMaster' }} />
-          <Stack.Screen name="maestros" options={conInicio({ title: 'Maestros disponibles' })} />
-          <Stack.Screen name="prestador/[id]" options={conInicio({ title: 'Perfil del maestro' })} />
+          <Stack.Screen name="maestros" options={conInicio({ title: 'Maestros' })} />
+          <Stack.Screen name="prestador/[id]" options={conInicio({ title: 'Perfil' })} />
           <Stack.Screen name="nueva-solicitud" options={conInicio({ title: 'Pedir un servicio' })} />
           <Stack.Screen name="solicitud/[id]" options={conInicio({ title: 'Mi solicitud' })} />
         </Stack.Protected>
@@ -99,7 +101,7 @@ function Navegacion() {
 
         {/* Documentos legales: se pueden leer siempre, con o sin sesión */}
         <Stack.Screen name="terminos" options={{ title: 'Términos de uso' }} />
-        <Stack.Screen name="privacidad" options={{ title: 'Política de privacidad' }} />
+        <Stack.Screen name="privacidad" options={{ title: 'Privacidad' }} />
       </Stack>
     </ThemeProvider>
   );

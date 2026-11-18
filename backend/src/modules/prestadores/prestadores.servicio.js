@@ -1,8 +1,10 @@
 import { pool, enTransaccion } from '../../db/pool.js';
 import { sqlHorario } from './horario.js';
+import { descripcionBreve, puntosClave } from '../../utils/resumenPerfil.js';
 import { AppError } from '../../utils/AppError.js';
 import { sqlVigente } from '../verificaciones/verificaciones.servicio.js';
 import { decodificarImagen, portafolio as almacenPortafolio, MIME_POR_EXTENSION } from '../gastos/almacen.js';
+import { cifrarCuenta, leerCuenta } from '../../utils/cuentaBancaria.js';
 
 // ------------------------------------------------------------------ reputación (HU-07)
 // Promedio bayesiano: cada prestador parte con PESO_PREVIO reseñas "virtuales" de
@@ -78,7 +80,10 @@ export async function listarCatalogo({ categoria, comuna, pagina, limite, orden 
   );
   const total = rows.length ? Number(rows[0].total) : 0;
   return {
-    prestadores: rows.map(({ total: _t, ...p }) => p),
+    // El resumen para elegir: lo importante del perfil, sin la descripción completa
+    prestadores: rows.map(({ total: _t, ...p }) => ({
+      ...p, puntos_clave: puntosClave(p), descripcion_breve: descripcionBreve(p.descripcion),
+    })),
     paginacion: { pagina, limite, total, paginas: Math.ceil(total / limite) },
   };
 }
@@ -267,8 +272,10 @@ export async function obtenerDatosPago(id) {
   const { rows } = await pool.query(
     'SELECT rut, banco, tipo_cuenta, numero_cuenta FROM prestadores WHERE usuario_id = $1', [id]);
   if (!rows[0]) throw new AppError('No tienes una ficha de prestador', 404, 'FICHA_NO_ENCONTRADA');
-  const completos = Boolean(rows[0].rut && rows[0].banco && rows[0].tipo_cuenta && rows[0].numero_cuenta);
-  return { ...rows[0], completos };
+  // La cuenta está cifrada en la base: se descifra solo para mostrársela a su dueño
+  const datos = { ...rows[0], numero_cuenta: leerCuenta(rows[0].numero_cuenta) };
+  const completos = Boolean(datos.rut && datos.banco && datos.tipo_cuenta && datos.numero_cuenta);
+  return { ...datos, completos };
 }
 
 export async function guardarDatosPago(id, { rut, banco, tipo_cuenta, numero_cuenta }) {
@@ -281,6 +288,6 @@ export async function guardarDatosPago(id, { rut, banco, tipo_cuenta, numero_cue
   }
   await pool.query(
     'UPDATE prestadores SET rut = $2, banco = $3, tipo_cuenta = $4, numero_cuenta = $5 WHERE usuario_id = $1',
-    [id, rut, banco, tipo_cuenta, numero_cuenta]);
+    [id, rut, banco, tipo_cuenta, cifrarCuenta(numero_cuenta)]);
   return obtenerDatosPago(id);
 }

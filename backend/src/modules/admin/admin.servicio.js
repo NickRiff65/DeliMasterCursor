@@ -5,6 +5,7 @@ import { obtener as obtenerSolicitud } from '../solicitudes/solicitudes.servicio
 import { DIAS_AVISO_RENOVACION } from '../verificaciones/verificaciones.servicio.js';
 import { evidencias as almacenEvidencias, boletas as almacenBoletas } from '../gastos/almacen.js';
 import { crearNotificacion } from '../notificaciones/notificaciones.servicio.js';
+import { leerCuenta } from '../../utils/cuentaBancaria.js';
 
 // Un usuario con esta cantidad de mensajes bloqueados queda marcado para revisión
 export const UMBRAL_MODERACION = 3;
@@ -312,6 +313,11 @@ export async function liquidaciones() {
      WHERE lm.estado = 'transferido'
      GROUP BY lm.comprobante, u.id
      ORDER BY max(lm.transferido_en) DESC LIMIT 30`);
+  // La cuenta bancaria está cifrada en la base: el equipo la ve descifrada para poder transferir
+  for (const p of pendientes) {
+    p.numero_cuenta = leerCuenta(p.numero_cuenta);
+    p.datos_completos = p.datos_completos && Boolean(p.numero_cuenta);
+  }
   return { pendientes, historial, sla_horas: HORAS_SLA_TRANSFERENCIA };
 }
 
@@ -321,7 +327,7 @@ export async function registrarTransferencia(admin, prestadorId, { movimientos, 
     const { rows: [p] } = await db.query(
       'SELECT rut, banco, tipo_cuenta, numero_cuenta FROM prestadores WHERE usuario_id = $1', [prestadorId]);
     if (!p) throw new AppError('Prestador no encontrado', 404, 'PRESTADOR_NO_ENCONTRADO');
-    if (!p.rut || !p.banco || !p.tipo_cuenta || !p.numero_cuenta) {
+    if (!p.rut || !p.banco || !p.tipo_cuenta || !leerCuenta(p.numero_cuenta)) {
       throw new AppError('El prestador aún no registra sus datos bancarios completos', 422, 'DATOS_BANCARIOS_INCOMPLETOS');
     }
 
