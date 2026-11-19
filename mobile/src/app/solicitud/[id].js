@@ -9,6 +9,8 @@ import { Boton } from '../../components/Boton';
 import { Estrellas } from '../../components/Estrellas';
 import { EstadoSolicitud } from '../../components/EstadoSolicitud';
 import { CuentaRegresiva } from '../../components/CuentaRegresiva';
+import { ConUbicacion } from '../../components/ConUbicacion';
+import { ConIcono } from '../../components/ConIcono';
 import { SelectorEstrellas } from '../../components/SelectorEstrellas';
 import { FotosEvidencia } from '../../components/FotosEvidencia';
 import { OpcionesDePago } from '../../components/OpcionesDePago';
@@ -148,7 +150,7 @@ export default function DetalleSolicitud() {
           <EstadoSolicitud estado={s.estado} />
         </View>
         <Text style={estilos.descripcion}>“{s.descripcion}”</Text>
-        <Text style={estilos.suave}>📍 {s.direccion ? `${s.direccion}, ` : ''}{s.comuna} · {fechaCorta(s.creado_en)}</Text>
+        <ConUbicacion estilo={estilos.suave}>{s.direccion ? `${s.direccion}, ` : ''}{s.comuna} · {fechaCorta(s.creado_en)}</ConUbicacion>
         {s.referencia ? <Text style={estilos.suave}>Referencia: {s.referencia}</Text> : null}
       </View>
 
@@ -169,7 +171,8 @@ export default function DetalleSolicitud() {
               </Text>
               {s.puede_compartir_direccion ? (
                 <View style={{ marginTop: espacio.s }}>
-                  <Boton titulo="📍 Compartir mi dirección ahora" variante="secundario"
+                  <Boton titulo="Compartir mi dirección ahora" icono={require('../../../assets/iconos/app/ubicacion.png')}
+                    variante="secundario"
                     cargando={accion === 'compartir-direccion'} deshabilitado={Boolean(accion)}
                     onPress={() => ejecutar('compartir-direccion', () => api.post(`/solicitudes/${s.id}/compartir-direccion`))} />
                 </View>
@@ -191,7 +194,9 @@ export default function DetalleSolicitud() {
               con la misma asignación de siempre (POST /solicitudes/:id/asignar) */}
           {s.sin_respuesta ? (
             <View style={[estilos.tarjeta, estilos.esperando]}>
-              <Text style={estilos.nombre}>⏰ El maestro no respondió en 1 día hábil</Text>
+              <ConIcono icono={require('../../../assets/iconos/app/reloj.png')} estilo={estilos.nombre}>
+                El maestro no respondió en 1 día hábil
+              </ConIcono>
               <Text style={estilos.texto}>
                 Su plazo para responder ya venció{s.respuesta_vence_en ? ` (${fechaCorta(s.respuesta_vence_en)})` : ''}.
                 Puedes elegir a otro maestro para esta misma solicitud, sin crear una nueva.
@@ -205,7 +210,8 @@ export default function DetalleSolicitud() {
           <Text style={estilos.subtitulo}>Elige quién lo hará</Text>
           {!candidatos ? <ActivityIndicator color={colores.primario} /> : candidatos.length ? candidatos.map((p) => (
             <View key={p.id} style={[estilos.tarjeta, estilos.fila]}>
-              <Pressable style={{ flex: 1 }} onPress={() => router.push(`/prestador/${p.id}`)} accessibilityRole="button">
+              {/* El perfil sabe de qué solicitud viene: «Contratar» elige a este maestro para ella */}
+              <Pressable style={{ flex: 1 }} onPress={() => router.push(`/prestador/${p.id}?solicitud=${s.id}`)} accessibilityRole="button">
                 <Text style={estilos.nombre}>{p.nombre}</Text>
                 <Estrellas promedio={p.calificacion_promedio} total={p.total_resenas} />
                 {/* Lo que más le importa al cliente, sin la descripción completa */}
@@ -489,8 +495,8 @@ export default function DetalleSolicitud() {
       {/* HU-04: chat con el maestro asignado */}
       {s.prestador ? (
         <View style={{ marginBottom: espacio.m }}>
-          <Boton titulo={`💬 Chat con ${s.prestador.nombre.split(' ')[0]}`} variante="secundario"
-            onPress={() => router.push(`/chat/${s.id}`)} />
+          <Boton titulo={`Chat con ${s.prestador.nombre.split(' ')[0]}`} icono={require('../../../assets/iconos/app/chat.png')}
+            variante="secundario" onPress={() => router.push(`/chat/${s.id}`)} />
         </View>
       ) : null}
 

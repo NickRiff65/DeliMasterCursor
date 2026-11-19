@@ -5,6 +5,7 @@ import { pesos } from '../lib/formato';
 import { Aviso } from './Aviso';
 import { Boton } from './Boton';
 import { Campo } from './Campo';
+import { ConIcono } from './ConIcono';
 import { colores, crearEstilos, espacio, radio } from '../theme';
 
 // Lite: gastos en materiales que el maestro registró en el trabajo y si tienen boleta. Los que no la
@@ -48,7 +49,7 @@ export function MaterialesDelTrabajo({ solicitudId, maestro, onApelada }) {
 
   return (
     <View style={estilos.tarjeta}>
-      <Text style={estilos.titulo}>🧾 Gastos en materiales</Text>
+      <ConIcono icono={require('../../assets/iconos/app/gastos.png')} estilo={estilos.titulo}>Gastos en materiales</ConIcono>
       <Text style={estilos.ayuda}>{maestro} registró estos gastos del trabajo. Cada uno debe tener su boleta.</Text>
       <Aviso mensaje={error} />
 

@@ -8,6 +8,8 @@ import { Boton } from '../../components/Boton';
 import { Campo } from '../../components/Campo';
 import { EstadoSolicitud } from '../../components/EstadoSolicitud';
 import { CuentaRegresiva } from '../../components/CuentaRegresiva';
+import { ConUbicacion } from '../../components/ConUbicacion';
+import { ConIcono } from '../../components/ConIcono';
 import { SelectorEstrellas } from '../../components/SelectorEstrellas';
 import { Estrellas } from '../../components/Estrellas';
 import { GastosDelTrabajo } from '../../components/GastosDelTrabajo';
@@ -143,7 +145,8 @@ export default function DetalleTrabajo() {
           <EstadoSolicitud estado={s.estado} vista="prestador" />
         </View>
         <Text style={estilos.descripcion}>“{s.descripcion}”</Text>
-        <Text style={estilos.suave}>Cliente: {s.cliente.nombre} · 📍 {s.comuna}</Text>
+        <Text style={estilos.suave}>Cliente: {s.cliente.nombre}</Text>
+        <ConUbicacion estilo={estilos.suave}>{s.comuna}</ConUbicacion>
         {s.cliente.total_resenas
           ? <Estrellas promedio={s.cliente.calificacion_promedio} total={s.cliente.total_resenas} />
           : <Text style={estilos.suave}>Cliente sin calificaciones todavía</Text>}
@@ -153,13 +156,16 @@ export default function DetalleTrabajo() {
       {/* Dónde es el trabajo: la dirección exacta se muestra cuando el pago está asegurado */}
       {!['cerrada', 'cancelada'].includes(s.estado) ? (
         <View style={estilos.tarjeta}>
-          <Text style={estilos.titulo}>📍 Dónde es el trabajo</Text>
+          <ConIcono icono={require('../../../assets/iconos/app/ubicacion.png')} estilo={estilos.titulo}>
+            Dónde es el trabajo
+          </ConIcono>
           {s.direccion_visible && s.direccion ? (
             <>
               <Text style={estilos.texto}>{s.direccion}, {s.comuna}</Text>
               {s.referencia ? <Text style={estilos.suave}>Referencia: {s.referencia}</Text> : null}
               <View style={{ marginTop: espacio.s }}>
-                <Boton titulo="🗺️ Abrir en el mapa" variante="secundario" onPress={() => abrirEnMapa(s)} />
+                <Boton titulo="Abrir en el mapa" icono={require('../../../assets/iconos/app/mapa.png')} variante="secundario"
+                  onPress={() => abrirEnMapa(s)} />
               </View>
             </>
           ) : s.direccion_visible ? (
@@ -176,7 +182,8 @@ export default function DetalleTrabajo() {
 
       {/* HU-04: chat con el cliente (por ejemplo, para aclarar el trabajo antes de dar un precio) */}
       <View style={{ marginBottom: espacio.m }}>
-        <Boton titulo={`💬 Chat con ${s.cliente.nombre}`} variante="secundario" onPress={() => router.push(`/chat/${s.id}`)} />
+        <Boton titulo={`Chat con ${s.cliente.nombre}`} icono={require('../../../assets/iconos/app/chat.png')}
+          variante="secundario" onPress={() => router.push(`/chat/${s.id}`)} />
       </View>
 
       {s.estado === 'asignada' ? (

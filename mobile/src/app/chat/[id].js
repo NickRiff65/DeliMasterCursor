@@ -9,7 +9,10 @@ import { hora } from '../../lib/formato';
 import { CAMARA_DIRECTA, elegirFoto } from '../../lib/fotos';
 import { useSesion } from '../../context/sesion';
 import { Aviso } from '../../components/Aviso';
-import { colores, crearEstilos, degradado, espacio, radio } from '../../theme';
+import { ConIcono } from '../../components/ConIcono';
+import { colores, crearEstilos, degradado, espacio, letra, radio } from '../../theme';
+
+const CAMARA = require('../../../assets/iconos/app/camara.png');
 import { useTema } from '../../context/tema';
 
 const MOTIVOS = {
@@ -167,10 +170,12 @@ export default function Chat() {
         {puedeEscribir && menuFoto ? (
           <View style={estilos.menuFoto}>
             <Pressable onPress={() => enviarFoto(true)} style={estilos.opcionFoto} accessibilityRole="button">
-              <Text style={estilos.opcionFotoTexto}>📷 Cámara</Text>
+              <ConIcono icono={CAMARA} estilo={estilos.opcionFotoTexto}>Cámara</ConIcono>
             </Pressable>
             <Pressable onPress={() => enviarFoto(false)} style={estilos.opcionFoto} accessibilityRole="button">
-              <Text style={estilos.opcionFotoTexto}>🖼️ Galería</Text>
+              <ConIcono icono={require('../../../assets/iconos/app/subir-foto.png')} estilo={estilos.opcionFotoTexto}>
+                Galería
+              </ConIcono>
             </Pressable>
             <Pressable onPress={() => setMenuFoto(false)} style={estilos.opcionFoto} accessibilityRole="button">
               <Text style={[estilos.opcionFotoTexto, { color: colores.textoSuave }]}>Cancelar</Text>
@@ -182,7 +187,10 @@ export default function Chat() {
             {/* En la web se abre directo el selector de archivos (en el iPhone ofrece la cámara) */}
             <Pressable onPress={() => (CAMARA_DIRECTA ? setMenuFoto((v) => !v) : enviarFoto(false))} disabled={subiendoFoto}
               accessibilityRole="button" accessibilityLabel="Enviar una foto" style={estilos.botonFoto}>
-              {subiendoFoto ? <ActivityIndicator color={colores.primario} /> : <Text style={{ fontSize: 20 }}>📷</Text>}
+              {subiendoFoto ? <ActivityIndicator color={colores.primario} /> : (
+                <Image source={CAMARA} tintColor={colores.primarioOscuro} accessibilityIgnoresInvertColors
+                  style={{ width: letra(22), height: letra(22) }} />
+              )}
             </Pressable>
             <TextInput
               value={texto}
@@ -241,14 +249,14 @@ const estilos = crearEstilos((colores) => ({
     paddingHorizontal: espacio.m, paddingVertical: 10, fontSize: 15, color: colores.texto, backgroundColor: colores.fondo,
   },
   enviar: {
-    width: 46, height: 46, borderRadius: 23, backgroundColor: colores.primario, alignItems: 'center', justifyContent: 'center',
+    width: letra(46), height: letra(46), borderRadius: 999, backgroundColor: colores.primario, alignItems: 'center', justifyContent: 'center',
     boxShadow: colores.sombraFuerte, ...degradado(colores.degradadoBoton),
   },
   enviarTexto: { color: colores.sobrePrimario, fontSize: 18 },
   cerrado: { textAlign: 'center', color: colores.textoSuave, padding: espacio.s },
   foto: { width: 200, height: 200, borderRadius: 14, backgroundColor: colores.fondo, marginTop: 2 },
   botonFoto: {
-    width: 46, height: 46, borderRadius: 23, alignItems: 'center', justifyContent: 'center',
+    width: letra(46), height: letra(46), borderRadius: 999, alignItems: 'center', justifyContent: 'center',
     backgroundColor: colores.fondo, borderWidth: 1.5, borderColor: colores.borde,
   },
   menuFoto: { flexDirection: 'row', gap: espacio.s, marginBottom: espacio.s, maxWidth: 720, width: '100%', alignSelf: 'center', flexWrap: 'wrap' },

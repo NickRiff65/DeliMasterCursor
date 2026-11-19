@@ -6,25 +6,49 @@ import { Estrellas } from '../../components/Estrellas';
 import { Aviso } from '../../components/Aviso';
 import { Boton } from '../../components/Boton';
 import { Avatar } from '../../components/Avatar';
+import { ConIcono } from '../../components/ConIcono';
 import { colores, crearEstilos, espacio, radio } from '../../theme';
 import { textoHorario } from '../../lib/horario';
 import { useTema } from '../../context/tema';
 
 const fecha = (iso) => new Date(iso).toLocaleDateString('es-CL', { month: 'long', year: 'numeric' });
 
-// HU-02: perfil del maestro (sin teléfono ni correo: el contacto ocurre dentro de la app)
+// HU-02: perfil del maestro (sin teléfono ni correo: el contacto ocurre dentro de la app).
+// Si se abre desde una solicitud ya publicada (?solicitud=id), «Contratar» le asigna esa misma
+// solicitud: no se vuelve a pedir el servicio ni choca con el límite de una solicitud activa.
 export default function PerfilPrestador() {
   useTema();   // vuelve a dibujarse al cambiar entre modo claro y oscuro
-  const { id } = useLocalSearchParams();
+  const { id, solicitud } = useLocalSearchParams();
   const [p, setP] = useState(null);
   const [error, setError] = useState(null);
+  const [asignando, setAsignando] = useState(false);
 
   useEffect(() => {
     api.get(`/prestadores/${id}`).then((r) => setP(r.prestador)).catch((e) => setError(e.message));
   }, [id]);
 
-  if (error) return <View style={estilos.contenido}><Aviso mensaje={error} /></View>;
-  if (!p) return <ActivityIndicator color={colores.primario} style={{ marginTop: espacio.xl }} />;
+  async function contratar() {
+    if (!solicitud) {
+      router.push(`/nueva-solicitud?prestador=${p.id}`);
+      return;
+    }
+    setError(null);
+    setAsignando(true);
+    try {
+      await api.post(`/solicitudes/${solicitud}/asignar`, { prestador_id: p.id });
+      // De vuelta a la solicitud, que se recarga sola y muestra al maestro elegido
+      if (router.canGoBack()) router.back();
+      else router.replace(`/solicitud/${solicitud}`);
+    } catch (e) {
+      setError(e.message);
+      setAsignando(false);
+    }
+  }
+
+  if (!p) {
+    return error ? <View style={estilos.contenido}><Aviso mensaje={error} /></View>
+      : <ActivityIndicator color={colores.primario} style={{ marginTop: espacio.xl }} />;
+  }
 
   return (
     <View style={{ flex: 1 }}>
@@ -62,7 +86,9 @@ export default function PerfilPrestador() {
 
       {p.horario ? (
         <Seccion titulo="Horario de atención">
-          <Text style={estilos.texto}>🕒 {textoHorario(p.horario)}</Text>
+          <ConIcono icono={require('../../../assets/iconos/app/reloj.png')} estilo={estilos.texto}>
+            {textoHorario(p.horario)}
+          </ConIcono>
           <Text style={estilos.textoSuave}>Las visitas se agendan dentro de este horario.</Text>
         </Seccion>
       ) : null}
@@ -81,15 +107,18 @@ export default function PerfilPrestador() {
     </ScrollView>
     {/* La acción principal queda siempre a la vista, sin importar cuánto se desplace el perfil */}
     <View style={estilos.barra}>
-      <View style={{ flex: 1 }}>
-        <Text style={estilos.barraNombre} numberOfLines={1}>{p.nombre.split(' ')[0]}</Text>
-        <Text style={estilos.nota} numberOfLines={2}>
-          {p.disponible ? 'Pago protegido hasta el cierre.' : 'No está disponible ahora.'}
-        </Text>
-      </View>
-      <View style={{ minWidth: 170 }}>
-        <Boton titulo="Contratar" deshabilitado={!p.disponible}
-          onPress={() => router.push(`/nueva-solicitud?prestador=${p.id}`)} />
+      {error ? <Aviso mensaje={error} /> : null}
+      <View style={estilos.barraFila}>
+        <View style={{ flex: 1 }}>
+          <Text style={estilos.barraNombre} numberOfLines={1}>{p.nombre.split(' ')[0]}</Text>
+          <Text style={estilos.nota} numberOfLines={2}>
+            {!p.disponible ? 'No está disponible ahora.'
+              : solicitud ? 'Se lo pediremos en tu solicitud.' : 'Pago protegido hasta el cierre.'}
+          </Text>
+        </View>
+        <View style={{ minWidth: 170 }}>
+          <Boton titulo="Contratar" deshabilitado={!p.disponible} cargando={asignando} onPress={contratar} />
+        </View>
       </View>
     </View>
     </View>
@@ -124,9 +153,10 @@ const estilos = crearEstilos((colores) => ({
   resenaCabecera: { fontSize: 14, fontWeight: '600', color: colores.texto, marginBottom: 2 },
   nota: { color: colores.textoSuave, fontSize: 13, marginTop: 2 },
   barra: {
-    position: 'absolute', left: 0, right: 0, bottom: 0, flexDirection: 'row', alignItems: 'center', gap: espacio.m,
+    position: 'absolute', left: 0, right: 0, bottom: 0,
     padding: espacio.m, paddingBottom: espacio.l, backgroundColor: colores.superficie,
     borderTopWidth: 1, borderTopColor: colores.borde, boxShadow: colores.sombraFuerte,
   },
+  barraFila: { flexDirection: 'row', alignItems: 'center', gap: espacio.m },
   barraNombre: { fontSize: 17, fontWeight: '800', color: colores.texto },
 }));

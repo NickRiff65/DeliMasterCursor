@@ -21,18 +21,18 @@ describe('Gastos del trabajo (maestro)', () => {
     await render(<GastosDelTrabajo solicitudId={ID} />);
     const user = userEvent.setup();
 
-    await user.press(await screen.findByRole('button', { name: '✍️ Ingresar gasto a mano' }));
-    expect(screen.queryByRole('button', { name: '📷 Fotografiar' })).toBeOnTheScreen();
-    expect(screen.getByRole('button', { name: '🖼️ Galería' })).toBeOnTheScreen();
+    await user.press(await screen.findByRole('button', { name: 'Ingresar gasto a mano' }));
+    expect(screen.queryByRole('button', { name: 'Fotografiar' })).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Galería' })).toBeOnTheScreen();
     expect(screen.getByText(/Sin boleta, el gasto no es válido para el cliente y él puede apelarlo ante la administración/)).toBeOnTheScreen();
   });
 
   test('antes de abrir el formulario no muestra los botones de la boleta', async () => {
     simularApi({ [`GET /solicitudes/${ID}/gastos`]: { resumen, gastos: [] } });
     await render(<GastosDelTrabajo solicitudId={ID} />);
-    expect(await screen.findByRole('button', { name: '✍️ Ingresar gasto a mano' })).toBeOnTheScreen();
-    expect(screen.queryByRole('button', { name: '📷 Fotografiar' })).not.toBeOnTheScreen();
-    expect(screen.queryByRole('button', { name: '🖼️ Galería' })).not.toBeOnTheScreen();
+    expect(await screen.findByRole('button', { name: 'Ingresar gasto a mano' })).toBeOnTheScreen();
+    expect(screen.queryByRole('button', { name: 'Fotografiar' })).not.toBeOnTheScreen();
+    expect(screen.queryByRole('button', { name: 'Galería' })).not.toBeOnTheScreen();
   });
 
   test('con la boleta adjunta propone el total leído y guarda el gasto con ella', async () => {
@@ -44,8 +44,8 @@ describe('Gastos del trabajo (maestro)', () => {
     ImagePicker.launchImageLibraryAsync.mockResolvedValue({ canceled: false, assets: [{ base64: 'FOTOBOLETA', uri: 'file://b.jpg' }] });
     await render(<GastosDelTrabajo solicitudId={ID} />);
     const user = userEvent.setup();
-    await user.press(await screen.findByRole('button', { name: '✍️ Ingresar gasto a mano' }));
-    await user.press(screen.getByRole('button', { name: '🖼️ Galería' }));
+    await user.press(await screen.findByRole('button', { name: 'Ingresar gasto a mano' }));
+    await user.press(screen.getByRole('button', { name: 'Galería' }));
 
     expect(await screen.findByText('✓ Leímos un total de $14.780.')).toBeOnTheScreen();
     expect(screen.getByLabelText('Monto (CLP)')).toHaveDisplayValue('14780');
@@ -68,7 +68,7 @@ describe('Gastos del trabajo (maestro)', () => {
 
     expect(await screen.findByText('⚠️ Sin boleta: no es válido para el cliente')).toBeOnTheScreen();
     await user.press(screen.getByRole('button', { name: '🧾 Adjuntar boleta' }));
-    await user.press(screen.getByRole('button', { name: '📷 Cámara' }));
+    await user.press(screen.getByRole('button', { name: 'Cámara' }));
     expect(await screen.findByText('✓ Con boleta')).toBeOnTheScreen();
     expect(llamadas.find((l) => l.metodo === 'PATCH').cuerpo).toEqual({ boleta_id: 'b1' });
   });
@@ -79,7 +79,7 @@ describe('Gastos del trabajo terminado (maestro)', () => {
     simularApi({ [`GET /solicitudes/${ID}/gastos`]: { resumen, gastos: [gasto('g1', 8000, false)], editable: false } });
     await render(<GastosDelTrabajo solicitudId={ID} />);
     expect(await screen.findByText(/los gastos quedaron registrados y ya no se pueden modificar/)).toBeOnTheScreen();
-    expect(screen.queryByRole('button', { name: '✍️ Ingresar gasto a mano' })).not.toBeOnTheScreen();
+    expect(screen.queryByRole('button', { name: 'Ingresar gasto a mano' })).not.toBeOnTheScreen();
     expect(screen.queryByRole('button', { name: 'Eliminar gasto' })).not.toBeOnTheScreen();
     expect(screen.queryByRole('button', { name: '🧾 Adjuntar boleta' })).not.toBeOnTheScreen();
   });

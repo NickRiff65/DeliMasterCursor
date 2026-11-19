@@ -4,6 +4,7 @@ import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAvisos } from '../context/avisos';
 import { ES_PRO } from '../lib/variante';
+import { ConIcono } from './ConIcono';
 import { colores, crearEstilos, espacio, radio } from '../theme';
 
 // Aviso que aparece arriba unos segundos cuando llega uno nuevo con la app abierta
@@ -27,7 +28,7 @@ export function AvisoFlotante() {
   return (
     <Pressable onPress={abrir} accessibilityRole="alert" accessibilityLabel={`${nuevo.titulo}. ${nuevo.texto}`}
       style={[estilos.caja, { top: margen.top + espacio.s }]}>
-      <Text style={estilos.titulo}>🔔 {nuevo.titulo}</Text>
+      <ConIcono icono={require('../../assets/iconos/app/campana.png')} estilo={estilos.titulo}>{nuevo.titulo}</ConIcono>
       <Text style={estilos.texto} numberOfLines={2}>{nuevo.texto}</Text>
     </Pressable>
   );

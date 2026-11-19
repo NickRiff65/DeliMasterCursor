@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, Text, View } from 'react-native';
+import { Image, KeyboardAvoidingView, Platform, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Link } from 'expo-router';
 import { useSesion } from '../context/sesion';
@@ -7,7 +7,7 @@ import { Boton } from '../components/Boton';
 import { Campo } from '../components/Campo';
 import { Aviso } from '../components/Aviso';
 import { ES_PRO, NOMBRE_APP } from '../lib/variante';
-import { colores, crearEstilos, degradado, espacio, radio } from '../theme';
+import { colores, crearEstilos, degradado, espacio, letra, radio } from '../theme';
 import { useTema } from '../context/tema';
 
 export default function Login() {
@@ -35,12 +35,8 @@ export default function Login() {
   }
 
   return (
-    // overflow: las burbujas decorativas se salen de la pantalla; sin recortarlas, la versión web gana scroll horizontal
-    <SafeAreaView style={[{ flex: 1, overflow: 'hidden', backgroundColor: colores.primario }, degradado(ES_PRO ? colores.degradadoHeroePro : colores.degradadoHeroe)]}>
-      {/* Burbujas decorativas del fondo */}
-      <View style={[estilos.burbuja, { width: 260, height: 260, top: -80, right: -90 }]} />
-      <View style={[estilos.burbuja, { width: 180, height: 180, bottom: 60, left: -70 }]} />
-      <View style={[estilos.burbuja, { width: 90, height: 90, top: 140, left: 30 }]} />
+    // Fondo limpio, sin círculos decorativos
+    <SafeAreaView style={[{ flex: 1, backgroundColor: colores.primario }, degradado(ES_PRO ? colores.degradadoHeroePro : colores.degradadoHeroe)]}>
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView contentContainerStyle={estilos.contenido} keyboardShouldPersistTaps="handled">
           <View style={estilos.marca}>
@@ -57,7 +53,12 @@ export default function Login() {
           </View>
 
           <View style={estilos.tarjeta}>
-            <Text style={estilos.bienvenida}>Te damos la bienvenida 👋</Text>
+            {/* La misma mano del saludo del inicio */}
+            <View style={estilos.bienvenidaFila}>
+              <Text style={estilos.bienvenida}>Te damos la bienvenida</Text>
+              <Image source={require('../../assets/iconos/app/mano.png')} tintColor={colores.texto}
+                accessibilityIgnoresInvertColors style={estilos.mano} />
+            </View>
             <Aviso mensaje={error} />
             <Campo
               etiqueta="Correo"
@@ -95,7 +96,6 @@ export default function Login() {
 
 const estilos = crearEstilos((colores) => ({
   contenido: { flexGrow: 1, justifyContent: 'center', padding: espacio.l, maxWidth: 480, width: '100%', alignSelf: 'center' },
-  burbuja: { position: 'absolute', borderRadius: 999, backgroundColor: colores.burbujaHeroe },
   marca: { alignItems: 'center', marginBottom: espacio.l },
   logo: {
     width: 76, height: 76, borderRadius: 24, backgroundColor: colores.logoFondo,
@@ -110,7 +110,9 @@ const estilos = crearEstilos((colores) => ({
     backgroundColor: colores.superficie, borderRadius: radio.l, padding: espacio.l,
     boxShadow: '0px 20px 50px rgba(0, 0, 0, 0.25)',
   },
-  bienvenida: { fontSize: 20, fontWeight: '800', color: colores.texto, marginBottom: espacio.m },
+  bienvenidaFila: { flexDirection: 'row', alignItems: 'center', gap: espacio.s, marginBottom: espacio.m },
+  bienvenida: { fontSize: 20, fontWeight: '800', color: colores.texto, flexShrink: 1 },
+  mano: { width: letra(42), height: letra(42) },
   pie: { flexDirection: 'row', justifyContent: 'center', marginTop: espacio.l },
   pieTexto: { color: colores.sobreHeroeSuave, fontSize: 15 },
   pieEnlace: { color: colores.sobreHeroe, fontSize: 15, fontWeight: '800', textDecorationLine: 'underline' },

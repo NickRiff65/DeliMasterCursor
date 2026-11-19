@@ -1,7 +1,9 @@
 import { Pressable, Text, View } from 'react-native';
-import { crearEstilos, espacio, radio } from '../theme';
+import { colores, crearEstilos, espacio, letra, radio } from '../theme';
 import { textoHorario } from '../lib/horario';
 import { Avatar } from './Avatar';
+import { ConIcono } from './ConIcono';
+import { ConUbicacion } from './ConUbicacion';
 import { Estrellas } from './Estrellas';
 
 export { iniciales } from './Avatar';
@@ -46,8 +48,13 @@ export function TarjetaPrestador({ prestador, onPress, onContratar }) {
           {prestador.descripcion ? (
             <Text style={estilos.descripcion} numberOfLines={2}>{prestador.descripcion}</Text>
           ) : null}
-          <Text style={estilos.comunas} numberOfLines={1}>📍 {prestador.comunas_atendidas.join(', ')}</Text>
-          {prestador.horario ? <Text style={estilos.comunas} numberOfLines={1}>🕒 {textoHorario(prestador.horario)}</Text> : null}
+          <ConUbicacion estilo={estilos.comunas} numberOfLines={1}>{prestador.comunas_atendidas.join(', ')}</ConUbicacion>
+          {prestador.horario ? (
+            <ConIcono icono={require('../../assets/iconos/app/reloj.png')} estilo={estilos.comunas} numberOfLines={1}
+              tamano={letra(14)} tinte={colores.textoSuave}>
+              {textoHorario(prestador.horario)}
+            </ConIcono>
+          ) : null}
         </View>
       </Pressable>
       {contratable ? (

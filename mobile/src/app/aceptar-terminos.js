@@ -40,7 +40,6 @@ export default function AceptarTerminos() {
         {[
           'Tu pago queda retenido hasta que el trabajo se cierra.',
           'Si el maestro cobra visita, se descuenta del total al contratar y te la devolvemos si no llega.',
-          'Puedes guardar tu tarjeta en Transbank para pagar con un toque; DeliMaster solo ve los últimos 4 dígitos.',
           'Antes del pago, el chat no deja compartir teléfonos, correos ni pagos por fuera.',
           'Solo se califican trabajos cerrados en DeliMaster.',
           'Tu teléfono y tus datos bancarios nunca se muestran a la otra parte.',

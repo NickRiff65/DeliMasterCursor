@@ -101,7 +101,7 @@ describe('Pedir un servicio', () => {
     await completarDireccion(user);
     await user.press(screen.getByRole('button', { name: 'Publicar solicitud' }));
     expect(screen.getByRole('alert')).toHaveTextContent('Elige la comuna donde necesitas el servicio.');
-    await user.press(screen.getByRole('button', { name: '📍 Coihueco' }));
+    await user.press(screen.getByRole('button', { name: 'Coihueco' }));
     await user.press(screen.getByRole('button', { name: 'Publicar solicitud' }));
     expect(await screen.findByText('Pantalla solicitud/[id]')).toBeOnTheScreen();
     expect(llamadas.find((l) => l.ruta === '/solicitudes').cuerpo.comuna).toBe('Coihueco');
@@ -117,7 +117,7 @@ describe('Pedir un servicio', () => {
 
     expect(await screen.findByText('No identificamos el servicio. Elígelo:')).toBeOnTheScreen();
     expect(screen.getByText('Aún no ofrecemos carpintería. ¡Pronto!')).toBeOnTheScreen();
-    expect(screen.getByText('📍 Coihueco')).toBeOnTheScreen();          // la comuna detectada en el texto
+    expect(screen.getByRole('button', { name: 'Coihueco' })).toBeSelected();   // la comuna detectada en el texto
     await user.press(screen.getByRole('button', { name: 'Publicar solicitud' }));
     expect(screen.getByRole('alert')).toHaveTextContent('Elige qué servicio necesitas.');
     expect(llamadas.some((l) => l.ruta === '/solicitudes')).toBe(false);
@@ -169,14 +169,14 @@ describe('Pedir un servicio', () => {
     const user = userEvent.setup();
     await user.type(await screen.findByLabelText('Describe lo que necesitas'), 'Necesito podar un árbol alto');
     expect(screen.getByText('0/2')).toBeOnTheScreen();
-    for (let i = 0; i < 2; i++) await user.press(screen.getByRole('button', { name: '🖼️ Galería' }));
+    for (let i = 0; i < 2; i++) await user.press(screen.getByRole('button', { name: 'Galería' }));
     expect(await screen.findByLabelText('Foto 2')).toBeOnTheScreen();
     expect(screen.getByText('2/2')).toBeOnTheScreen();
     // Con el máximo adjunto ya no se ofrece agregar más
-    expect(screen.queryByRole('button', { name: '🖼️ Galería' })).not.toBeOnTheScreen();
+    expect(screen.queryByRole('button', { name: 'Galería' })).not.toBeOnTheScreen();
     await user.press(screen.getByRole('button', { name: 'Quitar foto 2' }));
     expect(screen.getByText('1/2')).toBeOnTheScreen();
-    await user.press(screen.getByRole('button', { name: '🖼️ Galería' }));
+    await user.press(screen.getByRole('button', { name: 'Galería' }));
     expect(await screen.findByLabelText('Foto 2')).toBeOnTheScreen();
 
     await user.press(screen.getByRole('button', { name: 'Continuar' }));
@@ -201,7 +201,7 @@ describe('Pedir un servicio', () => {
     await abrirApp({ ruta: '/nueva-solicitud', pantallas: { 'nueva-solicitud': NuevaSolicitud } });
     const user = userEvent.setup();
     await user.type(await screen.findByLabelText('Describe lo que necesitas'), 'Necesito podar un árbol alto');
-    await user.press(screen.getByRole('button', { name: '📷 Cámara' }));
+    await user.press(screen.getByRole('button', { name: 'Cámara' }));
     await screen.findByLabelText('Foto 1');
     await user.press(screen.getByRole('button', { name: 'Continuar' }));
     await completarDireccion(user);
@@ -228,7 +228,7 @@ describe('Pedir un servicio', () => {
 
     await completarDireccion(user);
     await user.type(screen.getByLabelText('Referencia (opcional)'), 'Portón verde');
-    await user.press(screen.getByRole('button', { name: '📍 Usar mi ubicación actual' }));
+    await user.press(screen.getByRole('button', { name: 'Usar mi ubicación actual' }));
     expect(await screen.findByText(/Ubicación guardada \(±12 m\)/)).toBeOnTheScreen();
     expect(screen.getByText(/El maestro verá la dirección recién cuando pagues/)).toBeOnTheScreen();
     await user.press(screen.getByRole('button', { name: 'Publicar solicitud' }));

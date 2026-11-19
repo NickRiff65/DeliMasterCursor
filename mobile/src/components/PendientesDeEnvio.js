@@ -1,6 +1,7 @@
 import { Pressable, Text, View } from 'react-native';
 import { useCola } from '../context/cola';
 import { fechaCorta } from '../lib/formato';
+import { ConUbicacion } from './ConUbicacion';
 import { colores, crearEstilos, espacio, radio } from '../theme';
 
 // HU-12: solicitudes guardadas en el celular que aún no llegan al servidor
@@ -18,9 +19,9 @@ export function PendientesDeEnvio({ recienGuardada = false }) {
       {items.map((item) => (
         <View key={item.id} style={[estilos.tarjeta, item.estado === 'revisar' && estilos.revisar]}>
           <Text style={estilos.descripcion} numberOfLines={2}>“{item.datos.descripcion}”</Text>
-          <Text style={estilos.suave}>
-            Guardada {fechaCorta(item.creado_en)}{item.datos.comuna ? ` · 📍 ${item.datos.comuna}` : ''}
-          </Text>
+          {item.datos.comuna ? (
+            <ConUbicacion estilo={estilos.suave}>{item.datos.comuna} · Guardada {fechaCorta(item.creado_en)}</ConUbicacion>
+          ) : <Text style={estilos.suave}>Guardada {fechaCorta(item.creado_en)}</Text>}
           {item.estado === 'revisar' ? (
             <Text style={estilos.error}>No se pudo enviar: {item.error}</Text>
           ) : (

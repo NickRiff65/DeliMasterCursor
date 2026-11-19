@@ -13,7 +13,10 @@ import { ubicacionActual } from '../lib/ubicacion';
 import { Campo } from '../components/Campo';
 import { SeleccionMultiple } from '../components/SeleccionMultiple';
 import { SelectorComuna } from '../components/SelectorComuna';
+import { ConIcono } from '../components/ConIcono';
 import { colores, crearEstilos, espacio, radio } from '../theme';
+
+const UBICACION = require('../../assets/iconos/app/ubicacion.png');
 import { useTema } from '../context/tema';
 
 const EJEMPLOS = [
@@ -219,7 +222,11 @@ export default function NuevaSolicitud() {
         {/* Fotos opcionales: el árbol, la falla o el lugar */}
         <View style={estilos.fotos}>
           <View style={estilos.fotosFila}>
-            <Text style={estilos.fotosTitulo}>📷 Fotos del problema <Text style={estilos.opcional}>(opcional)</Text></Text>
+            <View style={{ flex: 1 }}>
+              <ConIcono icono={require('../../assets/iconos/app/camara.png')} estilo={estilos.fotosTitulo}>
+                Fotos del problema <Text style={estilos.opcional}>(opcional)</Text>
+              </ConIcono>
+            </View>
             <Text style={estilos.fotosContador}>{fotos.length}/{MAX_FOTOS}</Text>
           </View>
           <Text style={estilos.fotosAyuda}>Adjunta hasta {MAX_FOTOS} fotos del problema: la falla, el árbol o el lugar ayuda al maestro a cotizar con más exactitud.</Text>
@@ -301,12 +308,13 @@ export default function NuevaSolicitud() {
               placeholder="Ej.: portón verde, frente a la plaza" maxLength={200} />
             <View style={estilos.gps}>
               {gps ? (
-                <Text style={estilos.gpsTexto}>
-                  📍 Ubicación guardada{gps.precision ? ` (±${Math.round(gps.precision)} m)` : ''}.{' '}
+                <ConIcono icono={UBICACION} estilo={estilos.gpsTexto}>
+                  Ubicación guardada{gps.precision ? ` (±${Math.round(gps.precision)} m)` : ''}.{' '}
                   <Text style={estilos.gpsQuitar} onPress={() => setGps(null)}>Quitar</Text>
-                </Text>
+                </ConIcono>
               ) : (
-                <Boton titulo="📍 Usar mi ubicación actual" variante="secundario" onPress={usarMiUbicacion} cargando={buscandoGps} />
+                <Boton titulo="Usar mi ubicación actual" icono={UBICACION} variante="secundario" onPress={usarMiUbicacion}
+                  cargando={buscandoGps} />
               )}
               <Text style={estilos.gpsAyuda}>
                 El maestro verá la dirección recién cuando pagues: así tus datos quedan protegidos.
@@ -322,9 +330,10 @@ export default function NuevaSolicitud() {
           <Text style={estilos.resumenServicio} numberOfLines={1}>
             {servicios.length ? servicios.join(' · ') : 'Servicio por elegir'} · {comuna ?? 'Comuna por elegir'}
           </Text>
-          <Text style={[estilos.resumenDireccion, !direccion.trim() && estilos.resumenAviso]} numberOfLines={1}>
-            📍 {direccion.trim() || 'Falta la dirección exacta'}
-          </Text>
+          <ConIcono icono={UBICACION} estilo={[estilos.resumenDireccion, !direccion.trim() && estilos.resumenAviso]}
+            numberOfLines={1}>
+            {direccion.trim() || 'Falta la dirección exacta'}
+          </ConIcono>
           <Aviso mensaje={error} />
           <Boton titulo={etiquetaBoton} onPress={publicar} cargando={cargando} />
         </View>
@@ -354,7 +363,7 @@ const estilos = crearEstilos((colores) => ({
     backgroundColor: colores.superficie, borderRadius: radio.m, borderWidth: 1, borderColor: colores.bordeTarjeta,
     padding: espacio.m, marginBottom: espacio.m, boxShadow: colores.sombra,
   },
-  fotosTitulo: { fontSize: 16, fontWeight: '700', color: colores.texto, flex: 1 },
+  fotosTitulo: { fontSize: 16, fontWeight: '700', color: colores.texto },
   fotosFila: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: espacio.s },
   fotosContador: { fontSize: 14, fontWeight: '800', color: colores.primarioOscuro },
   opcional: { fontSize: 13, fontWeight: '500', color: colores.textoSuave },

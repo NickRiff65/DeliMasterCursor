@@ -31,7 +31,7 @@ const estilos = crearEstilos((colores) => ({
   contenedor: { flexDirection: 'row', flexWrap: 'wrap', gap: espacio.s },
   opcion: {
     paddingHorizontal: 14,
-    height: 40,
+    minHeight: 40,
     justifyContent: 'center',
     borderRadius: radio.pildora,
     borderWidth: 1.5,

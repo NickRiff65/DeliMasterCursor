@@ -1,7 +1,7 @@
-import { Pressable, Text } from 'react-native';
+import { Image, Pressable, Text } from 'react-native';
 import { router } from 'expo-router';
 import { ES_PRO } from '../lib/variante';
-import { colores, crearEstilos, radio } from '../theme';
+import { colores, crearEstilos, letra, radio } from '../theme';
 
 // Volver al inicio desde cualquier pantalla. Útil sobre todo después de pagar: en la versión web
 // "atrás" lleva de vuelta a las páginas de Webpay. Si el inicio está más atrás en la pila, se vuelve
@@ -11,15 +11,20 @@ export function BotonInicio() {
     <Pressable onPress={() => router.dismissTo(ES_PRO ? '/panel' : '/')} accessibilityRole="button"
       accessibilityLabel="Ir al inicio" hitSlop={8}
       style={({ pressed }) => [estilos.boton, pressed && { opacity: 0.7 }]}>
-      <Text style={estilos.texto}>🏠 Inicio</Text>
+      {/* El mismo ícono de la casa que usa la barra inferior de la app de maestros */}
+      <Image source={require('../../assets/iconos/barra/inicio.png')} tintColor={colores.primarioOscuro}
+        accessibilityIgnoresInvertColors style={estilos.icono} />
+      <Text style={estilos.texto}>Inicio</Text>
     </Pressable>
   );
 }
 
 const estilos = crearEstilos((colores) => ({
   boton: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
     paddingHorizontal: 12, paddingVertical: 6, borderRadius: radio.pildora, backgroundColor: colores.primarioSuave,
     marginRight: 4,
   },
+  icono: { width: letra(18), height: letra(18) },
   texto: { color: colores.primarioOscuro, fontWeight: '700', fontSize: 14 },
 }));

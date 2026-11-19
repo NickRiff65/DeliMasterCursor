@@ -56,6 +56,8 @@ export const config = {
   // URL pública de la API (producción). Sin ella se deduce de cada petición (sirve en cualquier red local)
   urlPublicaApi: process.env.URL_PUBLICA_API?.replace(/\/$/, '') || null,
   comisionPorcentaje: Number(process.env.COMISION_PORCENTAJE ?? 12),
+  // Tope de la comisión por trabajo (decisión del equipo, noviembre 2026): en trabajos grandes no se cobra de más
+  comisionTope: Number(process.env.COMISION_TOPE ?? 25000),
   // HU-05: minutos que tiene el prestador para aceptar o rechazar una asignación
   plazoRespuestaMin: Number(process.env.PLAZO_RESPUESTA_MIN ?? 30),
   // Horas que tiene el cliente para confirmar el cierre; después se cierra solo (protege al prestador)
@@ -64,6 +66,10 @@ export const config = {
 
 if (config.comisionPorcentaje < 10 || config.comisionPorcentaje > 15) {
   throw new Error('COMISION_PORCENTAJE debe estar entre 10 y 15, según el modelo de negocio');
+}
+
+if (!Number.isInteger(config.comisionTope) || config.comisionTope < 0) {
+  throw new Error('COMISION_TOPE debe ser un monto en pesos, entero y no negativo');
 }
 
 if (config.esProduccion && !config.corsOrigenes.length) {

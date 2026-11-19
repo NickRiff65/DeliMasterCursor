@@ -1,11 +1,13 @@
-import { ActivityIndicator, Pressable, Text } from 'react-native';
-import { colores, crearEstilos, degradado, espacio, radio } from '../theme';
+import { ActivityIndicator, Image, Pressable, Text, View } from 'react-native';
+import { colores, crearEstilos, degradado, espacio, letra, radio } from '../theme';
 
-// Botón tipo píldora: el principal con degradado y sombra; al tocarlo se hunde levemente
-export function Boton({ titulo, onPress, cargando = false, variante = 'primario', deshabilitado = false }) {
+// Botón tipo píldora: el principal con degradado y sombra; al tocarlo se hunde levemente.
+// `icono` (opcional): ícono de línea (PNG transparente) que va delante del texto, del mismo color.
+export function Boton({ titulo, icono, onPress, cargando = false, variante = 'primario', deshabilitado = false }) {
   const inactivo = cargando || deshabilitado;
   const secundario = variante === 'secundario';
   const peligro = variante === 'peligro';   // acciones que no se pueden deshacer
+  const colorTexto = secundario ? colores.primarioOscuro : colores.sobrePrimario;
   return (
     <Pressable
       accessibilityRole="button"
@@ -21,6 +23,11 @@ export function Boton({ titulo, onPress, cargando = false, variante = 'primario'
     >
       {cargando ? (
         <ActivityIndicator color={secundario ? colores.primario : colores.sobrePrimario} />
+      ) : icono ? (
+        <View style={estilos.contenido}>
+          <Image source={icono} tintColor={colorTexto} accessibilityIgnoresInvertColors style={estilos.icono} />
+          <Text style={[estilos.texto, estilos.textoConIcono, { color: colorTexto }]}>{titulo}</Text>
+        </View>
       ) : (
         <Text style={[estilos.texto, secundario && { color: colores.primarioOscuro }]}>{titulo}</Text>
       )}
@@ -40,4 +47,7 @@ const estilos = crearEstilos((colores) => ({
   secundario: { backgroundColor: colores.primarioSuave, borderWidth: 1.5, borderColor: colores.primario },
   peligro: { backgroundColor: colores.error },
   texto: { color: colores.sobrePrimario, fontSize: 16, fontWeight: '700', letterSpacing: 0.2 },
+  contenido: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: espacio.s },
+  icono: { width: letra(20), height: letra(20) },
+  textoConIcono: { flexShrink: 1, textAlign: 'center' },
 }));

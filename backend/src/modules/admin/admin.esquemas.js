@@ -21,13 +21,15 @@ export const esquemaFiltroDisputas = z.object({
   estado: z.enum(['abiertas', 'resueltas']).default('abiertas'),
 });
 
-// HU-13: registro de una transferencia a un prestador (una transferencia puede pagar varios trabajos)
+// HU-13: registro de una transferencia a un prestador (una transferencia puede pagar varios trabajos).
+// El comprobante lo genera DeliMaster (DM-AAAAMMDD-NNN); solo se acepta uno escrito a mano por compatibilidad.
 export const esquemaTransferencia = z.object({
   movimientos: z.array(uuid).min(1, 'Elige al menos un pago').max(100)
     .transform((ids) => [...new Set(ids)]),
   comprobante: z.string().trim()
-    .min(4, 'Ingresa el número de comprobante de la transferencia')
-    .max(60, 'El comprobante es demasiado largo'),
+    .min(4, 'El comprobante debe tener al menos 4 caracteres')
+    .max(60, 'El comprobante es demasiado largo')
+    .optional(),
 });
 
 // Moderación: activar o desactivar una cuenta

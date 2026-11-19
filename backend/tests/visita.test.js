@@ -342,4 +342,37 @@ describe('Visita de diagnóstico y cotización en la app', { skip: !hayBaseDeDat
     assert.deepEqual([pago.concepto, pago.monto], ['total', 45_000]);
     assert.equal((await ver()).estado, 'pagada');
   });
+
+  // Tope de la comisión (decisión del equipo): 12 % de cada pago, pero nunca más de $25.000 por trabajo
+  test('precio cerrado grande: la comisión no pasa de $25.000', async () => {
+    const acepta = await post(prestador, '/responder', { aceptar: true, precio: 300_000 });
+    assert.equal(acepta.status, 200, JSON.stringify(acepta.body));
+    await pagar();
+    const [mov] = await ledger();
+    assert.deepEqual([mov.monto_bruto, mov.comision, mov.monto_neto], [300_000, 25_000, 275_000]);   // 12 % serían $36.000
+  });
+
+  test('visita y saldo de un trabajo grande: entre los dos cobros la comisión suma como máximo $25.000', async () => {
+    await hastaDiagnostico();   // visita de $25.000: comisión de $3.000
+    const q = await post(prestador, '/cotizacion', { mano_obra: 350_000, materiales: 50_000, detalle: 'Poda completa de tres árboles altos' });
+    assert.equal(q.status, 201, JSON.stringify(q.body));
+    await post(cliente, '/cotizacion/respuesta', { aceptar: true });
+
+    // Antes de pagar el saldo, el maestro ya ve la comisión con el tope aplicado
+    const estimacion = (await como(prestador)(request(app).get(`/api/solicitudes/${solicitudId}/gastos`))).body.resumen;
+    assert.equal(estimacion.comision, 25_000);
+    assert.equal(estimacion.ingreso_neto, 400_000 - 25_000);
+
+    await pagar();   // saldo de $375.000: el 12 % serían $45.000, pero solo quedan $22.000 hasta el tope
+    const movs = await ledger();
+    assert.deepEqual(movs.map((m) => [m.concepto, m.comision]), [['visita', 3_000], ['saldo', 22_000]]);
+    assert.equal(movs.reduce((t, m) => t + m.comision, 0), 25_000);
+  });
+
+  test('un trabajo chico sigue pagando el 12 % completo', async () => {
+    await post(prestador, '/responder', { aceptar: true, precio: 100_000 });
+    await pagar();
+    const [mov] = await ledger();
+    assert.equal(mov.comision, 12_000);
+  });
 });

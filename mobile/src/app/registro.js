@@ -10,6 +10,7 @@ import { SelectorComuna } from '../components/SelectorComuna';
 import { HorarioAtencion } from '../components/HorarioAtencion';
 import { HORARIO_INICIAL } from '../lib/horario';
 import { ES_PRO, ROL_APP } from '../lib/variante';
+import { ConIcono } from '../components/ConIcono';
 import { colores, crearEstilos, espacio, radio } from '../theme';
 import { useTema } from '../context/tema';
 
@@ -75,7 +76,9 @@ export default function Registro() {
           ayuda="Mínimo 8 caracteres, con letras y números." />
         {ES_PRO ? (
           <View style={estilos.horario}>
-            <Text style={estilos.horarioTitulo}>🗓️ ¿Cuándo trabajas?</Text>
+            <ConIcono icono={require('../../assets/iconos/app/agenda.png')} estilo={estilos.horarioTitulo}>
+              ¿Cuándo trabajas?
+            </ConIcono>
             <Text style={estilos.horarioAyuda}>
               Los clientes verán tu horario y las visitas se agendarán dentro de él. Puedes cambiarlo después en tu ficha.
             </Text>

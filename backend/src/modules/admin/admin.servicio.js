@@ -134,7 +134,7 @@ export async function contabilidad({ desde, hasta } = {}) {
   const iso = (d) => d.toISOString().slice(0, 10);
   const desdeTxt = desde ?? iso(new Date(hoy.getTime() - 30 * 24 * 60 * 60 * 1000));
   const hastaTxt = hasta ?? iso(hoy);
-  const [movimientos, totales, gastos] = await Promise.all([
+  const [movimientos, totales, gastos, porDia, porCategoria, gastosTotal] = await Promise.all([
     pool.query(
       `SELECT lm.id, lm.creado_en, lm.liberado_en, lm.transferido_en, lm.estado,
               lm.monto_bruto, lm.comision, lm.monto_neto, lm.comprobante, lm.solicitud_id,
@@ -173,12 +173,45 @@ export async function contabilidad({ desde, hasta } = {}) {
         LIMIT 200`,
       [desdeTxt, hastaTxt],
     ),
+    // Para los gráficos: sumas de todo el período (la lista de movimientos se corta en 200)
+    pool.query(
+      `SELECT to_char((creado_en AT TIME ZONE 'America/Santiago')::date, 'YYYY-MM-DD') AS dia,
+              count(*)::int AS cantidad,
+              coalesce(sum(monto_bruto), 0)::int AS bruto,
+              coalesce(sum(comision), 0)::int AS comision
+         FROM ledger_movimientos
+        WHERE creado_en >= $1::date AND creado_en < ($2::date + 1)
+        GROUP BY 1
+        ORDER BY 1`,
+      [desdeTxt, hastaTxt],
+    ),
+    pool.query(
+      `SELECT coalesce(cat.nombre, 'Sin servicio') AS categoria,
+              count(*)::int AS cantidad,
+              coalesce(sum(lm.monto_bruto), 0)::int AS bruto,
+              coalesce(sum(lm.comision), 0)::int AS comision
+         FROM ledger_movimientos lm
+         JOIN solicitudes s ON s.id = lm.solicitud_id
+         LEFT JOIN categorias cat ON cat.id = s.categoria_id
+        WHERE lm.creado_en >= $1::date AND lm.creado_en < ($2::date + 1)
+        GROUP BY 1
+        ORDER BY comision DESC, bruto DESC`,
+      [desdeTxt, hastaTxt],
+    ),
+    pool.query(
+      `SELECT coalesce(sum(monto), 0)::int AS total, count(*)::int AS cantidad
+         FROM gastos WHERE creado_en >= $1::date AND creado_en < ($2::date + 1)`,
+      [desdeTxt, hastaTxt],
+    ),
   ]);
   return {
     rango: { desde: desdeTxt, hasta: hastaTxt },
     totales: totales.rows,
     movimientos: movimientos.rows,
     gastos: gastos.rows,
+    por_dia: porDia.rows,
+    por_categoria: porCategoria.rows,
+    gastos_total: gastosTotal.rows[0],
   };
 }
 
@@ -321,8 +354,21 @@ export async function liquidaciones() {
   return { pendientes, historial, sla_horas: HORAS_SLA_TRANSFERENCIA };
 }
 
-// Registra que el equipo transfirió al prestador: los pagos elegidos pasan de "liberado" a "transferido"
-export async function registrarTransferencia(admin, prestadorId, { movimientos, comprobante }) {
+// N.º de comprobante interno de una transferencia, generado por DeliMaster para no escribirlo a mano:
+// DM-AAAAMMDD-NNN, correlativo del día (hora de Chile). El candado de la transacción evita que dos
+// registros simultáneos tomen el mismo número: el segundo espera a que el primero termine.
+export async function siguienteComprobante(db) {
+  await db.query("SELECT pg_advisory_xact_lock(hashtext('delimaster:comprobante-transferencia'))");
+  const { rows: [{ prefijo }] } = await db.query(
+    "SELECT 'DM-' || to_char(now() AT TIME ZONE 'America/Santiago', 'YYYYMMDD') || '-' AS prefijo");
+  const { rows: [{ n }] } = await db.query(
+    "SELECT count(DISTINCT comprobante)::int AS n FROM ledger_movimientos WHERE comprobante LIKE $1 || '%'", [prefijo]);
+  return `${prefijo}${String(n + 1).padStart(3, '0')}`;
+}
+
+// Registra que el equipo transfirió al prestador: los pagos elegidos pasan de "liberado" a "transferido".
+// Sin comprobante escrito, se genera uno (siguienteComprobante).
+export async function registrarTransferencia(admin, prestadorId, { movimientos, comprobante: escrito }) {
   return enTransaccion(async (db) => {
     const { rows: [p] } = await db.query(
       'SELECT rut, banco, tipo_cuenta, numero_cuenta FROM prestadores WHERE usuario_id = $1', [prestadorId]);
@@ -331,6 +377,7 @@ export async function registrarTransferencia(admin, prestadorId, { movimientos, 
       throw new AppError('El prestador aún no registra sus datos bancarios completos', 422, 'DATOS_BANCARIOS_INCOMPLETOS');
     }
 
+    const comprobante = escrito ?? await siguienteComprobante(db);
     const { rows } = await db.query(
       `UPDATE ledger_movimientos
           SET estado = 'transferido', transferido_en = now(), comprobante = $3

@@ -71,7 +71,7 @@ describe('DeliMaster Pro', () => {
     });
     await abrirApp({ ruta: '/panel', pantallas: { panel: Panel } });
     // La portada muestra el resumen; lo ya recibido está en la sección Dinero
-    expect(await screen.findByText('💰 Mi dinero')).toBeOnTheScreen();
+    expect(await screen.findByText('Mi dinero')).toBeOnTheScreen();
     expect(screen.getByText('Por transferir $35.200 · Retenido $44.000')).toBeOnTheScreen();
   });
 
@@ -94,7 +94,7 @@ describe('DeliMaster Pro', () => {
   test('antes del pago el maestro solo ve la comuna; después, la dirección exacta y el mapa', async () => {
     await abrirTrabajo(trabajo({ estado: 'confirmada', precio_acordado: 50000, direccion: null, direccion_visible: false }));
     expect(await screen.findByText(/Chillán\. Por seguridad del cliente, verás su dirección exacta cuando pague el trabajo/)).toBeOnTheScreen();
-    expect(screen.queryByRole('button', { name: '🗺️ Abrir en el mapa' })).not.toBeOnTheScreen();
+    expect(screen.queryByRole('button', { name: 'Abrir en el mapa' })).not.toBeOnTheScreen();
   });
 
   test('al cerrar el trabajo, el maestro califica al cliente (calificación bilateral)', async () => {
@@ -134,7 +134,7 @@ describe('DeliMaster Pro', () => {
     }));
     expect(await screen.findByText('Av. Libertad 1234, Chillán')).toBeOnTheScreen();
     expect(screen.getByText('Referencia: Portón verde')).toBeOnTheScreen();
-    await userEvent.setup().press(screen.getByRole('button', { name: '🗺️ Abrir en el mapa' }));
+    await userEvent.setup().press(screen.getByRole('button', { name: 'Abrir en el mapa' }));
     expect(abrir).toHaveBeenCalledWith('https://www.google.com/maps/search/?api=1&query=-36.6066%2C-72.1034');
   });
 });

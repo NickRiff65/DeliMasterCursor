@@ -1,6 +1,7 @@
 import { useRef } from 'react';
 import { ScrollView, Text, View } from 'react-native';
 import { Chip } from './Chip';
+import { ConIcono } from './ConIcono';
 import { DIAS_SEMANA, HORAS_JORNADA, textoHorario } from '../lib/horario';
 import { colores, crearEstilos, espacio } from '../theme';
 
@@ -34,7 +35,7 @@ export function HorarioAtencion({ valor, onCambio, error }) {
       {error ? <Text style={estilos.error}>{error}</Text>
         : !valor.dias.length ? <Text style={estilos.error}>Elige al menos un día.</Text>
           : valor.hasta <= valor.desde ? <Text style={estilos.error}>La hora de término debe ser después de la de inicio.</Text>
-            : <Text style={estilos.resumen}>🕒 {resumen}</Text>}
+            : <ConIcono icono={require('../../assets/iconos/app/reloj.png')} estilo={estilos.resumen}>{resumen}</ConIcono>}
     </View>
   );
 }

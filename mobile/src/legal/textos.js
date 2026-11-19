@@ -1,11 +1,8 @@
 // Términos de uso y Política de privacidad de DeliMaster.
 // VERSION_TERMINOS debe coincidir con la del backend (auth.servicio.js): si se publica una versión
 // nueva, la app vuelve a pedir la aceptación a cada persona.
-export const VERSION_TERMINOS = '1.4';
-export const FECHA_TERMINOS = 'octubre de 2026';
-
-export const AVISO_PROYECTO = 'DeliMaster es un proyecto en desarrollo (Proyecto de Título, INACAP Chillán). '
-  + 'Antes de operar comercialmente, estos documentos serán revisados por un abogado.';
+export const VERSION_TERMINOS = '1.6';   // 1.5: tope de $25.000 en la comisión; 1.6: sin el detalle de la tarjeta guardada
+export const FECHA_TERMINOS = 'noviembre de 2026';
 
 export const TERMINOS = [
   ['Qué es DeliMaster', [
@@ -24,7 +21,7 @@ export const TERMINOS = [
     'El trabajo cotizado se paga en la aplicación. Si el cliente y el prestador lo acuerdan por fuera, pierden la garantía de pago, la revisión de reclamos y la reseña.',
   ]],
   ['Pago protegido', [
-    'El cliente paga con Webpay (Transbank). DeliMaster nunca ve ni guarda el número de la tarjeta. Si el cliente decide guardarla para no volver a ingresarla (Webpay Oneclick), Transbank la guarda y DeliMaster solo conserva un identificador cifrado, el tipo y los últimos 4 dígitos. Con ella solo se cobra cuando el cliente confirma un pago en la aplicación, y puede cambiarla o quitarla cuando quiera en Mi cuenta.',
+    'El cliente paga con Webpay (Transbank). DeliMaster nunca ve ni guarda el número de la tarjeta.',
     'El dinero queda retenido por DeliMaster: la visita, hasta que el prestador confirma su llegada; el pago del trabajo, hasta el cierre, cuando el cliente confirma que quedó bien o, si no responde, 72 horas después de que el prestador lo marca como terminado. Luego se transfiere al prestador dentro de 48 horas hábiles, descontada la comisión.',
   ]],
   ['Cancelaciones y devoluciones', [
@@ -34,7 +31,7 @@ export const TERMINOS = [
     'Las devoluciones se hacen por Webpay a la misma tarjeta; el banco puede tardar algunos días en reflejarlas.',
   ]],
   ['Comisión', [
-    'DeliMaster cobra una comisión de 12% sobre cada pago del trabajo (la visita y el saldo, o el precio cerrado), que se descuenta del monto que recibe el prestador. Registrarse y usar la aplicación no tiene costo. Si la comisión cambia, se avisará con anticipación.',
+    'DeliMaster cobra una comisión de 12% sobre cada pago del trabajo (la visita y el saldo, o el precio cerrado), con un máximo de $25.000 por trabajo, que se descuenta del monto que recibe el prestador. Registrarse y usar la aplicación no tiene costo. Si la comisión cambia, se avisará con anticipación.',
   ]],
   ['Reclamos y disputas', [
     'Antes del cierre, el cliente puede reportar un problema. El dinero sigue retenido y el equipo revisa la evidencia (chat, fotos, cotización e historial) para decidir si libera el pago del trabajo al prestador, lo reembolsa al cliente o le devuelve solo una parte (por ejemplo, gastos en materiales que el prestador no justificó con su boleta), a través de Webpay. La visita no se reembolsa en una disputa sobre el trabajo, porque corresponde al diagnóstico ya realizado. La decisión y su fundamento quedan registrados.',
@@ -62,7 +59,7 @@ export const TERMINOS = [
 
 export const PRIVACIDAD = [
   ['Responsable', [
-    'El equipo de DeliMaster (Proyecto de Título TIHI84, INACAP sede Chillán) es responsable del tratamiento de tus datos, conforme a las leyes N.º 19.628 y N.º 21.719.',
+    'El equipo de DeliMaster es responsable del tratamiento de tus datos, conforme a las leyes N.º 19.628 y N.º 21.719.',
   ]],
   ['Qué datos usamos', [
     'Cuenta: nombre, correo, celular (opcional), comuna y tu contraseña, que se guarda cifrada y nadie puede leer.',

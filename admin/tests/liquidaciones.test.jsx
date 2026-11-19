@@ -16,32 +16,49 @@ const luis = {
 };
 
 describe('Transferencias a prestadores (HU-13)', () => {
-  test('el total se ajusta a los pagos elegidos y se registra el comprobante', async () => {
+  test('pide confirmar a quién y cuánto, y el comprobante se genera solo', async () => {
     let registrada = false;
     const llamadas = simularApi({
       'GET /admin/liquidaciones': () => ({
         sla_horas: 48,
         pendientes: registrada ? [] : [luis],
-        historial: registrada ? [{ transferido_en: '2026-10-08T12:00:00Z', prestador: 'Luis Fuentes', comprobante: '0012345678', cantidad: 1, total: 44000 }] : [],
+        historial: registrada ? [{ transferido_en: '2026-10-08T12:00:00Z', prestador: 'Luis Fuentes', comprobante: 'DM-20261008-001', cantidad: 1, total: 44000 }] : [],
       }),
       'POST /admin/liquidaciones/p1': () => {
         registrada = true;
-        return { transferencia: { comprobante: '0012345678', cantidad: 1, total: 44000 } };
+        return { transferencia: { comprobante: 'DM-20261008-001', cantidad: 1, total: 44000 } };
       },
     });
     mostrar(<Liquidaciones />);
-    const registrar = await screen.findByRole('button', { name: 'Registrar transferencia de $88.000' });
-    expect(registrar).toBeDisabled();                                   // falta el comprobante
+    await screen.findByRole('button', { name: 'Registrar transferencia de $88.000' });
+    expect(screen.queryByLabelText(/comprobante/)).not.toBeInTheDocument();   // ya no se escribe a mano
 
     await userEvent.click(screen.getByLabelText('Incluir Gasfitería'));
-    expect(screen.getByRole('button', { name: 'Registrar transferencia de $44.000' })).toBeInTheDocument();
-    await userEvent.type(screen.getByLabelText(/comprobante/), '0012345678');
     await userEvent.click(screen.getByRole('button', { name: 'Registrar transferencia de $44.000' }));
 
-    expect(await screen.findByText('Transferencia 0012345678 registrada: 1 pago(s) por $44.000.')).toBeInTheDocument();
+    // Confirmación: todavía no se envía nada
+    const confirmacion = screen.getByRole('alertdialog', { name: 'Confirmar transferencia a Luis Fuentes' });
+    expect(within(confirmacion).getByText('¿Estás seguro de transferir $44.000 a Luis Fuentes?')).toBeInTheDocument();
+    expect(confirmacion).toHaveTextContent('1 pago, a su Cuenta RUT de BancoEstado 12345678');
+    expect(llamadas.some((l) => l.metodo === 'POST')).toBe(false);
+
+    await userEvent.click(screen.getByRole('button', { name: 'Sí, registrar la transferencia' }));
+
+    expect(await screen.findByText('Transferencia DM-20261008-001 registrada: 1 pago(s) por $44.000.')).toBeInTheDocument();
     expect(screen.getByText('No hay pagos por transferir')).toBeInTheDocument();
-    expect(within(screen.getByRole('table')).getByText('0012345678')).toBeInTheDocument();
-    expect(llamadas.find((l) => l.metodo === 'POST').cuerpo).toEqual({ movimientos: ['m1'], comprobante: '0012345678' });
+    expect(within(screen.getByRole('table')).getByText('DM-20261008-001')).toBeInTheDocument();
+    expect(llamadas.find((l) => l.metodo === 'POST').cuerpo).toEqual({ movimientos: ['m1'] });
+  });
+
+  test('cancelar la confirmación no registra nada', async () => {
+    const llamadas = simularApi({ 'GET /admin/liquidaciones': { sla_horas: 48, historial: [], pendientes: [luis] } });
+    mostrar(<Liquidaciones />);
+    await userEvent.click(await screen.findByRole('button', { name: 'Registrar transferencia de $88.000' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Cancelar' }));
+
+    expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Registrar transferencia de $88.000' })).toBeInTheDocument();
+    expect(llamadas.some((l) => l.metodo === 'POST')).toBe(false);
   });
 
   test('sin datos bancarios no se puede registrar y se indica a quién escribir', async () => {
@@ -54,7 +71,6 @@ describe('Transferencias a prestadores (HU-13)', () => {
     mostrar(<Liquidaciones />);
     expect(await screen.findByText(/aún no registra sus datos bancarios/)).toHaveTextContent('luis@demo.cl');
     expect(screen.getByText(/Fuera de plazo/)).toBeInTheDocument();
-    expect(screen.getByLabelText(/comprobante/)).toBeDisabled();
     expect(screen.getByRole('button', { name: /Registrar transferencia/ })).toBeDisabled();
   });
 });

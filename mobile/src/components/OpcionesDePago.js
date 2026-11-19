@@ -1,9 +1,9 @@
 import { useState } from 'react';
-import { Text, View } from 'react-native';
+import { Image, Text, View } from 'react-native';
 import { pesos } from '../lib/formato';
 import { Boton } from './Boton';
 import { Casilla } from './Casilla';
-import { colores, crearEstilos, espacio, radio } from '../theme';
+import { colores, crearEstilos, espacio, letra, radio } from '../theme';
 
 // Cómo pagar (Lite). Con una tarjeta guardada se paga con un toque, sin volver a ingresarla, y se
 // puede cambiar. Sin tarjeta guardada, se ofrece guardarla al pagar (Transbank la guarda; DeliMaster
@@ -16,7 +16,8 @@ export function OpcionesDePago({ monto, tarjeta, onPagar, cargando, guardarPorDe
     return (
       <View style={{ gap: espacio.s }}>
         <View style={estilos.tarjeta}>
-          <Text style={estilos.icono}>💳</Text>
+          <Image source={require('../../assets/iconos/app/tarjeta.png')} tintColor={colores.texto} accessibilityIgnoresInvertColors
+            style={estilos.icono} />
           <View style={{ flex: 1 }}>
             <Text style={estilos.tarjetaNombre}>{tarjeta.tipo ?? 'Tarjeta'} •••• {tarjeta.ultimos4}</Text>
             <Text style={estilos.suave}>Tu tarjeta guardada</Text>
@@ -58,7 +59,7 @@ const estilos = crearEstilos((colores) => ({
     flexDirection: 'row', alignItems: 'center', gap: espacio.s, padding: espacio.s, borderRadius: radio.s,
     backgroundColor: colores.superficie, borderWidth: 1, borderColor: colores.bordeTarjeta,
   },
-  icono: { fontSize: 24 },
+  icono: { width: letra(28), height: letra(28) },
   tarjetaNombre: { fontSize: 15, fontWeight: '700', color: colores.texto },
   suave: { fontSize: 13, color: colores.textoSuave },
   enlace: { color: colores.primario, fontWeight: '700', fontSize: 14, textAlign: 'center', paddingVertical: 4 },

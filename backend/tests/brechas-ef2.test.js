@@ -54,7 +54,9 @@ describe('Brechas EF2: reputación propia, catálogo, agenda y panel contable', 
 
   // ---------------------------------------------------------- (2) catálogo CU-05
   test('el catálogo filtra por «en horario» y acepta el orden del cliente', async () => {
-    const hoyIso = ((new Date().getDay() + 6) % 7) + 1; // 1 = lunes … 7 = domingo
+    // Día de la semana en hora de Chile (1 = lunes … 7 = domingo), igual que lo calcula el servidor
+    const diaChile = new Intl.DateTimeFormat('en-US', { timeZone: 'America/Santiago', weekday: 'short' }).format(new Date());
+    const hoyIso = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].indexOf(diaChile) + 1;
     const otroDia = hoyIso === 7 ? 1 : hoyIso + 1;
     // Luis atiende hoy todo el día; Pedro atiende otro día
     await como(prestador)(request(app).put('/api/prestadores/yo'))
@@ -66,8 +68,11 @@ describe('Brechas EF2: reputación propia, catálogo, agenda y panel contable', 
     const todos = await request(app).get('/api/prestadores');
     assert.deepEqual(todos.body.prestadores.map((p) => p.nombre).sort(), ['Luis Poda', 'Pedro Poda']);
 
+    // La jornada de un maestro va de 08:00 a 24:00: de madrugada nadie está «en horario», así que
+    // lo esperado depende de la hora de Chile en que corre la prueba (no debe fallar de noche).
+    const horaChile = Number(new Intl.DateTimeFormat('en-GB', { timeZone: 'America/Santiago', hour: '2-digit', hourCycle: 'h23' }).format(new Date()));
     const ahora = await request(app).get('/api/prestadores?disponible_ahora=true');
-    assert.deepEqual(ahora.body.prestadores.map((p) => p.nombre), ['Luis Poda']);
+    assert.deepEqual(ahora.body.prestadores.map((p) => p.nombre), horaChile >= 8 ? ['Luis Poda'] : []);
 
     const ordenado = await request(app).get('/api/prestadores?orden=trabajos');
     assert.equal(ordenado.status, 200);
@@ -85,7 +90,10 @@ describe('Brechas EF2: reputación propia, catálogo, agenda y panel contable', 
     await como(cliente)(request(app).post('/api/solicitudes'))
       .send({ direccion: 'Av. Libertad 1234', id, descripcion: 'Necesito podar un árbol alto' });
     await como(cliente)(request(app).post(`/api/solicitudes/${id}/asignar`)).send({ prestador_id: prestador.id });
-    const manana = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+    // Mañana a media mañana (hora de Chile), dentro de la jornada del maestro sin importar a qué hora corra la prueba
+    const dia = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    dia.setUTCHours(14, 0, 0, 0);
+    const manana = dia.toISOString();
     await como(prestador)(request(app).post(`/api/solicitudes/${id}/responder`))
       .send({ aceptar: true, modalidad: 'visita', tarifa_visita: 20000, visita_programada_en: manana });
     // El pago de la visita se simula directo en la base: la agenda solo muestra visitas confirmadas
@@ -131,9 +139,17 @@ describe('Brechas EF2: reputación propia, catálogo, agenda y panel contable', 
     assert.equal(totalLiberado.neto, 39600);
     assert.equal(body.gastos.length, 1);
     assert.equal(body.gastos[0].con_boleta, false);
+    // Datos de los gráficos: sumas por día y por servicio, y el total de gastos
+    assert.equal(body.por_dia.length, 1);
+    assert.match(body.por_dia[0].dia, /^\d{4}-\d{2}-\d{2}$/);
+    assert.deepEqual({ bruto: body.por_dia[0].bruto, comision: body.por_dia[0].comision }, { bruto: 45000, comision: 5400 });
+    assert.equal(body.por_categoria[0].comision, 5400);
+    assert.equal(body.por_categoria[0].cantidad, 1);
+    assert.deepEqual(body.gastos_total, { total: 12000, cantidad: 1 });
 
     const fuera = await como(admin)(request(app).get('/api/admin/contabilidad?desde=2020-01-01&hasta=2020-01-31'));
     assert.equal(fuera.body.movimientos.length, 0);
+    assert.deepEqual(fuera.body.por_dia, []);
 
     const prohibido = await como(cliente)(request(app).get('/api/admin/contabilidad'));
     assert.equal(prohibido.status, 403);

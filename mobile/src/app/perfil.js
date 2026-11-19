@@ -1,24 +1,34 @@
 import { useCallback, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-native';
+import { ActivityIndicator, Image, Pressable, ScrollView, Text, View } from 'react-native';
 import { router, Stack, useFocusEffect } from 'expo-router';
 import { api } from '../lib/api';
 import { Aviso } from '../components/Aviso';
 import { BotonAvisos } from '../components/BotonAvisos';
 import { BotonCuenta } from '../components/BotonCuenta';
 import { Estrellas } from '../components/Estrellas';
-import { colores, crearEstilos, espacio, radio } from '../theme';
+import { colores, crearEstilos, espacio, letra, radio } from '../theme';
 import { useTema } from '../context/tema';
 
 // DeliMaster Pro · Perfil: lo que el maestro configura una vez y consulta de vez en cuando.
 // Ya no ocupa la portada: se entra desde la barra inferior.
+// Íconos de línea (PNG con fondo transparente) que se pintan del color del tema
 const OPCIONES = [
   {
-    ruta: '/ficha', icono: '🧰', titulo: 'Mi ficha',
+    ruta: '/ficha', icono: require('../../assets/iconos/perfil/ficha.png'), titulo: 'Mi ficha',
     detalle: (f) => `${f.categorias.length} ${f.categorias.length === 1 ? 'servicio' : 'servicios'} · ${f.comunas_atendidas.join(', ') || 'sin comunas'}`,
   },
-  { ruta: '/portafolio', icono: '🖼️', titulo: 'Mi portafolio', detalle: () => 'Fotos de tus trabajos anteriores' },
-  { ruta: '/verificaciones', icono: '🛡️', titulo: 'Mis verificaciones', detalle: () => 'Certificados de la SEC y del SAG' },
-  { ruta: '/cuenta', icono: '⚙️', titulo: 'Mi cuenta', detalle: () => 'Datos, contraseña y apariencia' },
+  {
+    ruta: '/portafolio', icono: require('../../assets/iconos/perfil/portafolio.png'), titulo: 'Mi portafolio',
+    detalle: () => 'Fotos de tus trabajos anteriores',
+  },
+  {
+    ruta: '/verificaciones', icono: require('../../assets/iconos/perfil/verificaciones.png'), titulo: 'Mis verificaciones',
+    detalle: () => 'Certificados de la SEC y del SAG',
+  },
+  {
+    ruta: '/cuenta', icono: require('../../assets/iconos/perfil/cuenta.png'), titulo: 'Mi cuenta',
+    detalle: () => 'Datos, contraseña y apariencia',
+  },
 ];
 
 export default function Perfil() {
@@ -68,7 +78,7 @@ export default function Perfil() {
       {OPCIONES.map((o) => (
         <Pressable key={o.ruta} style={[estilos.tarjeta, estilos.fila]} onPress={() => router.push(o.ruta)}
           accessibilityRole="button" accessibilityLabel={o.titulo}>
-          <Text style={estilos.icono}>{o.icono}</Text>
+          <Image source={o.icono} tintColor={colores.texto} accessibilityIgnoresInvertColors style={estilos.icono} />
           <View style={{ flex: 1 }}>
             <Text style={estilos.tarjetaTitulo}>{o.titulo}</Text>
             <Text style={estilos.suave}>{o.detalle(ficha)}</Text>
@@ -87,7 +97,7 @@ const estilos = crearEstilos((colores) => ({
     marginBottom: espacio.m, borderWidth: 1, borderColor: colores.bordeTarjeta,
   },
   fila: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: espacio.s },
-  icono: { fontSize: 22 },
+  icono: { width: letra(28), height: letra(28) },
   tarjetaTitulo: { fontSize: 16, fontWeight: '800', color: colores.texto },
   suave: { fontSize: 14, color: colores.textoSuave },
   etiqueta: { fontSize: 12, fontWeight: '800', color: colores.textoSuave, letterSpacing: 1, marginBottom: espacio.xs },

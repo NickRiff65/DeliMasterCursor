@@ -44,7 +44,7 @@ describe('Chat con fotos', () => {
     const user = userEvent.setup();
 
     await user.press(await screen.findByRole('button', { name: 'Enviar una foto' }));
-    await user.press(screen.getByRole('button', { name: '🖼️ Galería' }));
+    await user.press(screen.getByRole('button', { name: 'Galería' }));
     expect(await screen.findByRole('imagebutton', { name: 'Tu foto' })).toBeOnTheScreen();
     expect(llamadas.find((l) => l.metodo === 'POST').cuerpo).toEqual({ imagen_base64: 'FOTO-ARBOL' });
   });

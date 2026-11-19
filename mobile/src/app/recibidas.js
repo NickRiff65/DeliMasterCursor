@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useState } from 'react';
-import { FlatList, Pressable, Text, View } from 'react-native';
+import { FlatList, Image, Pressable, Text, View } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { api } from '../lib/api';
 import { fechaCorta, pesos } from '../lib/formato';
 import { Aviso } from '../components/Aviso';
 import { EstadoSolicitud } from '../components/EstadoSolicitud';
 import { CuentaRegresiva } from '../components/CuentaRegresiva';
-import { colores, crearEstilos, espacio, radio } from '../theme';
+import { ConUbicacion } from '../components/ConUbicacion';
+import { colores, crearEstilos, espacio, letra, radio } from '../theme';
 import { useTema } from '../context/tema';
 
 // Pro: solicitudes que los clientes asignaron a este prestador (HU-05)
@@ -54,9 +55,10 @@ export default function Recibidas() {
       </View>
       <Text style={estilos.descripcion} numberOfLines={2}>“{s.descripcion}”</Text>
       <View style={[estilos.fila, { marginTop: espacio.xs }]}>
-        <Text style={[estilos.suave, { flex: 1 }]} numberOfLines={1}>
-          {s.cliente.nombre} · 📍 {s.comuna} · {fechaCorta(s.creado_en)}
-        </Text>
+        <View style={{ flex: 1 }}>
+          <Text style={estilos.suave} numberOfLines={1}>{s.cliente.nombre}</Text>
+          <ConUbicacion estilo={estilos.suave} numberOfLines={1}>{s.comuna} · {fechaCorta(s.creado_en)}</ConUbicacion>
+        </View>
         {s.precio_acordado ? <Text style={estilos.precio}>{pesos(s.precio_acordado)}</Text> : null}
       </View>
       {s.estado === 'asignada' ? (
@@ -79,10 +81,14 @@ export default function Recibidas() {
           <Pressable onPress={() => router.push('/agenda')} accessibilityRole="button"
             style={[estilos.tarjeta, { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: espacio.s }]}>
             <View style={{ flex: 1 }}>
-              <Text style={estilos.subtitulo}>📅 Mi agenda</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <Image source={require('../../assets/iconos/app/agenda.png')} tintColor={colores.texto}
+                  accessibilityIgnoresInvertColors style={{ width: 20, height: 20 }} />
+                <Text style={estilos.subtitulo}>Mi agenda</Text>
+              </View>
               <Text style={estilos.suave}>Tus próximas visitas programadas, en orden de fecha.</Text>
             </View>
-            <Text style={{ color: colores.primario, fontWeight: '700', fontSize: 15 }}>Ver →</Text>
+            <Text style={{ color: colores.primario, fontWeight: '700', fontSize: letra(15) }}>Ver →</Text>
           </Pressable>
           <Text style={estilos.subtitulo}>Por responder ({porResponder.length})</Text>
           {porResponder.length ? porResponder.map(tarjeta) : (

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, FlatList, Pressable, Text, View } from 'react-native';
+import { ActivityIndicator, FlatList, Image, Pressable, Text, View } from 'react-native';
 import { router, Stack, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { api, consulta } from '../lib/api';
 import { useSesion } from '../context/sesion';
@@ -11,7 +11,11 @@ import { EstadoSolicitud } from '../components/EstadoSolicitud';
 import { ProgresoSolicitud } from '../components/ProgresoSolicitud';
 import { BotonCuenta } from '../components/BotonCuenta';
 import { BotonAvisos } from '../components/BotonAvisos';
-import { colores, crearEstilos, degradado, espacio, radio } from '../theme';
+import { ConIcono } from '../components/ConIcono';
+import { colores, crearEstilos, degradado, espacio, letra, radio } from '../theme';
+
+const ESCRIBIR = require('../../assets/iconos/app/escribir.png');
+const TRABAJADOR = require('../../assets/iconos/app/trabajador.png');
 import { useTema } from '../context/tema';
 
 // Lite: inicio del cliente. Pedir un servicio, ver los maestros disponibles y seguir sus solicitudes.
@@ -60,7 +64,11 @@ export default function Inicio() {
         onRefresh={async () => { setRecargando(true); await cargar(); setRecargando(false); }}
         ListHeaderComponent={
           <View>
-            <Text style={estilos.saludo}>Hola{primerNombre ? `, ${primerNombre}` : ''} 👋</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <Text style={estilos.saludo}>Hola{primerNombre ? `, ${primerNombre}` : ''}</Text>
+              <Image source={require('../../assets/iconos/app/mano.png')} tintColor={colores.texto}
+                accessibilityIgnoresInvertColors style={{ width: letra(36), height: letra(36) }} />
+            </View>
             <Text style={estilos.pregunta}>¿Qué necesitas hoy?</Text>
 
             {/* Lo que el cliente debe hacer ahora: su solicitud en curso, con el paso en que va */}
@@ -81,14 +89,14 @@ export default function Inicio() {
             {proxima ? (
               <Pressable onPress={() => router.push('/nueva-solicitud')} accessibilityRole="button"
                 style={({ pressed }) => [estilos.pedirCompacto, pressed && { transform: [{ scale: 0.98 }] }]}>
-                <Text style={estilos.pedirCompactoTexto}>✍️  Pedir otro servicio</Text>
+                <ConIcono icono={ESCRIBIR} estilo={estilos.pedirCompactoTexto}>Pedir otro servicio</ConIcono>
                 <Text style={estilos.flecha}>›</Text>
               </Pressable>
             ) : (
               <Pressable onPress={() => router.push('/nueva-solicitud')} accessibilityRole="button"
                 style={({ pressed }) => [estilos.pedir, degradado(colores.degradadoHeroe), pressed && { transform: [{ scale: 0.98 }] }]}>
                 <Text style={estilos.pedirEtiqueta}>PIDE CON TUS PALABRAS</Text>
-                <Text style={estilos.pedirTitulo}>✍️  Escríbelo y lo resolvemos</Text>
+                <ConIcono icono={ESCRIBIR} estilo={estilos.pedirTitulo}>Escríbelo y lo resolvemos</ConIcono>
                 <Text style={estilos.pedirTexto}>“Se rompió una cañería…” · “Me quedé sin llaves…” · y agrega fotos</Text>
                 <View style={estilos.pedirBoton}><Text style={estilos.pedirBotonTexto}>Pedir un servicio →</Text></View>
               </Pressable>
@@ -97,7 +105,10 @@ export default function Inicio() {
             {/* HU-01: catálogo de maestros */}
             <Pressable onPress={() => router.push('/maestros')} accessibilityRole="button"
               style={({ pressed }) => [estilos.maestros, pressed && { transform: [{ scale: 0.98 }] }]}>
-              <View style={estilos.maestrosIcono}><Text style={{ fontSize: 24 }}>👷</Text></View>
+              <View style={estilos.maestrosIcono}>
+                <Image source={TRABAJADOR} tintColor={colores.primarioOscuro} accessibilityIgnoresInvertColors
+                  style={{ width: letra(28), height: letra(28) }} />
+              </View>
               <View style={{ flex: 1 }}>
                 <Text style={estilos.maestrosTitulo}>Ver maestros disponibles</Text>
                 <Text style={estilos.maestrosTexto}>
@@ -123,7 +134,8 @@ export default function Inicio() {
           !solicitudes ? (error ? null : <ActivityIndicator color={colores.primario} style={{ margin: espacio.l }} />)
             : !enCola.length ? (
               <View style={estilos.vacio}>
-                <Text style={{ fontSize: 34 }}>🧰</Text>
+                <Image source={TRABAJADOR} tintColor={colores.textoSuave} accessibilityIgnoresInvertColors
+                  style={{ width: letra(44), height: letra(44) }} />
                 <Text style={estilos.vacioTitulo}>Aún no tienes solicitudes</Text>
                 <Text style={estilos.vacioTexto}>Cuando pidas un servicio, aquí verás cómo avanza: el maestro, el precio y el pago.</Text>
               </View>
@@ -169,7 +181,7 @@ const estilos = crearEstilos((colores) => ({
     boxShadow: colores.sombra,
   },
   maestrosIcono: {
-    width: 48, height: 48, borderRadius: 999, alignItems: 'center', justifyContent: 'center', backgroundColor: colores.primarioSuave,
+    width: letra(48), height: letra(48), borderRadius: 999, alignItems: 'center', justifyContent: 'center', backgroundColor: colores.primarioSuave,
   },
   maestrosTitulo: { fontSize: 16, fontWeight: '800', color: colores.texto },
   maestrosTexto: { fontSize: 13, color: colores.textoSuave, marginTop: 2 },

@@ -52,7 +52,7 @@ describe('Catálogo: horario y orden', () => {
     expect(await screen.findByText('1 maestro disponible')).toBeOnTheScreen();
 
     const user = userEvent.setup();
-    await user.press(screen.getByRole('button', { name: '🕒 Solo en horario ahora' }));
+    await user.press(screen.getByRole('button', { name: 'Solo en horario ahora' }));
     expect(await screen.findByText('1 maestro disponible')).toBeOnTheScreen();
     await user.press(screen.getByRole('button', { name: 'Más trabajos' }));
 
@@ -76,7 +76,8 @@ describe('Agenda del maestro (Pro)', () => {
 
     expect(await screen.findByText('Valentina Rojas')).toBeOnTheScreen();
     expect(screen.getByText(/11 oct/)).toBeOnTheScreen();
-    expect(screen.getByText(/Electricidad · 📍 Chillán/)).toBeOnTheScreen();
+    expect(screen.getByText('Electricidad')).toBeOnTheScreen();
+    expect(screen.getByText('Chillán')).toBeOnTheScreen();   // la comuna va con su ícono de ubicación
     expect(screen.getByText(/\$25\.000/)).toBeOnTheScreen();
 
     await userEvent.setup().press(screen.getByText('Valentina Rojas'));

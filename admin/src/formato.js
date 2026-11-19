@@ -1,4 +1,11 @@
 export const pesos = (n) => `$${Number(n ?? 0).toLocaleString('es-CL')}`;
+// Pesos abreviados para ejes y cifras grandes: $850 · $45 mil · $1,2 M
+export const pesosCorto = (n) => {
+  const v = Number(n ?? 0);
+  if (Math.abs(v) >= 1_000_000) return `$${(v / 1_000_000).toLocaleString('es-CL', { maximumFractionDigits: 1 })} M`;
+  if (Math.abs(v) >= 1_000) return `$${Math.round(v / 1_000).toLocaleString('es-CL')} mil`;
+  return `$${v.toLocaleString('es-CL')}`;
+};
 export const fecha = (iso) => (iso ? new Date(iso).toLocaleDateString('es-CL', { day: 'numeric', month: 'short', year: 'numeric' }) : '—');
 export const fechaHora = (iso) => (iso ? new Date(iso).toLocaleString('es-CL', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '—');
 // Fecha AAAA-MM-DD (sin hora) mostrada como "8 ene 2027"

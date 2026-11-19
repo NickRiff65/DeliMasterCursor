@@ -6,6 +6,7 @@ import { colores, crearEstilos, espacio } from '../theme';
 //  · permitirTodas: agrega "Todas" (valor null), para filtrar el catálogo
 //  · opcional: tocar la comuna elegida la desmarca (registro y perfil)
 export const COMUNAS_ATENDIDAS = ['Chillán', 'Coihueco'];
+const UBICACION = require('../../assets/iconos/app/ubicacion.png');
 
 export function SelectorComuna({ comunas, valor, onCambio, permitirTodas = false, opcional = false, etiqueta, error }) {
   const lista = comunas?.length ? comunas : COMUNAS_ATENDIDAS;
@@ -15,7 +16,8 @@ export function SelectorComuna({ comunas, valor, onCambio, permitirTodas = false
       <View style={estilos.fila} accessibilityRole="radiogroup" accessibilityLabel="Comuna">
         {permitirTodas ? <Chip texto="Todas" activo={!valor} onPress={() => onCambio(null)} /> : null}
         {lista.map((c) => (
-          <Chip key={c} texto={`📍 ${c}`} activo={valor === c} onPress={() => onCambio(opcional && valor === c ? null : c)} />
+          <Chip key={c} texto={c} icono={UBICACION} activo={valor === c}
+            onPress={() => onCambio(opcional && valor === c ? null : c)} />
         ))}
       </View>
       {error ? <Text style={estilos.error}>{error}</Text> : null}

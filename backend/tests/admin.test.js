@@ -287,6 +287,32 @@ describe('Panel de administración (HU-13, HU-14, HU-16)', { skip: !hayBaseDeDat
     assert.equal(despues.body.historial[0].total, 70400);
   });
 
+  test('transferencia: sin comprobante escrito, DeliMaster genera uno correlativo del día', async () => {
+    await cerrada();
+    await cerrada(otroPrestador);
+    for (const p of [prestador, otroPrestador]) {
+      await como(p)(request(app).put('/api/prestadores/yo/datos-pago')).send(DATOS_PAGO);
+    }
+    const { body } = await comoAdmin(request(app).get('/api/admin/liquidaciones'));
+    const movimientosDe = (p) => body.pendientes.find((x) => x.prestador_id === p.id).movimientos.map((m) => m.id);
+    const { rows: [{ hoy }] } = await pool.query(
+      "SELECT to_char(now() AT TIME ZONE 'America/Santiago', 'YYYYMMDD') AS hoy");
+
+    const primera = await comoAdmin(request(app).post(`/api/admin/liquidaciones/${prestador.id}`))
+      .send({ movimientos: movimientosDe(prestador) });
+    assert.equal(primera.status, 201);
+    assert.equal(primera.body.transferencia.comprobante, `DM-${hoy}-001`);
+
+    const segunda = await comoAdmin(request(app).post(`/api/admin/liquidaciones/${otroPrestador.id}`))
+      .send({ movimientos: movimientosDe(otroPrestador) });
+    assert.equal(segunda.body.transferencia.comprobante, `DM-${hoy}-002`);
+
+    // El maestro recibe el aviso con ese número
+    const { rows: [aviso] } = await pool.query(
+      "SELECT texto FROM notificaciones WHERE usuario_id = $1 AND tipo = 'pago' ORDER BY creado_en DESC LIMIT 1", [prestador.id]);
+    assert.match(aviso.texto, new RegExp(`Comprobante DM-${hoy}-001`));
+  });
+
   // ------------------------------------------------------------------ moderación
   test('moderación: marca a quien insiste en compartir contactos y permite desactivar su cuenta', async () => {
     const id = await solicitudPagada();

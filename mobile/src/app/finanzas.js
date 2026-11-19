@@ -1,11 +1,11 @@
 import { useCallback, useState } from 'react';
-import { ActivityIndicator, FlatList, Pressable, Text, View } from 'react-native';
+import { ActivityIndicator, FlatList, Image, Pressable, Text, View } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { api } from '../lib/api';
 import { pesos, fechaCorta } from '../lib/formato';
 import { Aviso } from '../components/Aviso';
 import { EstadoSolicitud } from '../components/EstadoSolicitud';
-import { colores, crearEstilos, degradado, espacio, radio } from '../theme';
+import { colores, crearEstilos, degradado, espacio, letra, radio } from '../theme';
 import { useTema } from '../context/tema';
 
 const MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
@@ -58,8 +58,10 @@ export default function Finanzas() {
           {/* Los datos bancarios se configuran una vez: aquí, junto al dinero, se pueden revisar */}
           <Pressable onPress={() => router.push('/datos-pago')} accessibilityRole="button"
             style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: espacio.s, backgroundColor: colores.superficie, borderRadius: radio.m, borderWidth: 1, borderColor: colores.bordeTarjeta, padding: espacio.m, marginBottom: espacio.m }}>
-            <Text style={{ flex: 1, fontSize: 16, fontWeight: '800', color: colores.texto }}>💳 Datos para recibir pagos</Text>
-            <Text style={{ color: colores.primario, fontWeight: '700', fontSize: 15 }}>Ver →</Text>
+            <Image source={require('../../assets/iconos/app/tarjeta.png')} tintColor={colores.texto}
+              accessibilityIgnoresInvertColors style={estilos.icono} />
+            <Text style={{ flex: 1, fontSize: letra(16), fontWeight: '800', color: colores.texto }}>Datos para recibir pagos</Text>
+            <Text style={{ color: colores.primario, fontWeight: '700', fontSize: letra(15) }}>Ver →</Text>
           </Pressable>
           {!datos && !error ? <ActivityIndicator color={colores.primario} style={{ margin: espacio.l }} /> : null}
 
@@ -82,7 +84,11 @@ export default function Finanzas() {
               {/* Mi dinero: retenido, por transferir y transferencias recibidas */}
               {dinero ? (
                 <View style={estilos.tarjeta}>
-                  <Text style={estilos.categoria}>💰 Mi dinero</Text>
+                  <View style={estilos.encabezado}>
+                    <Image source={require('../../assets/iconos/app/cartera.png')} tintColor={colores.texto}
+                      accessibilityIgnoresInvertColors style={estilos.icono} />
+                    <Text style={estilos.categoria}>Mi dinero</Text>
+                  </View>
                   <View style={[estilos.fila, { marginTop: espacio.s }]}>
                     <Text style={estilos.suave}>Retenido (trabajos en curso)</Text><Text style={estilos.categoria}>{pesos(dinero.retenido)}</Text>
                   </View>
@@ -160,6 +166,8 @@ const estilos = crearEstilos((colores) => ({
   },
   fila: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: espacio.s },
   categoria: { fontSize: 15, fontWeight: '700', color: colores.texto, flex: 1 },
+  encabezado: { flexDirection: 'row', alignItems: 'center', gap: espacio.s },
+  icono: { width: letra(24), height: letra(24) },
   suave: { fontSize: 13, color: colores.textoSuave },
   ganancia: { fontSize: 16, fontWeight: '800', color: colores.primarioOscuro },
 }));

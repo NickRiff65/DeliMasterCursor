@@ -5,6 +5,7 @@ import { elegirFoto } from '../lib/fotos';
 import { fechaCorta } from '../lib/formato';
 import { Aviso } from './Aviso';
 import { BotonesFoto } from './BotonesFoto';
+import { ConIcono } from './ConIcono';
 import { colores, crearEstilos, espacio, radio } from '../theme';
 
 // Fotos de una solicitud (ambas apps): el cliente muestra lo que necesita para que el maestro cotice con
@@ -48,7 +49,7 @@ export function FotosEvidencia({ solicitudId, titulo, ayuda }) {
 
   return (
     <View style={estilos.tarjeta}>
-      <Text style={estilos.titulo}>📷 {titulo}</Text>
+      <ConIcono icono={require('../../assets/iconos/app/fotos.png')} estilo={estilos.titulo}>{titulo}</ConIcono>
       {ayuda && datos.puede_subir ? <Text style={estilos.ayuda}>{ayuda}</Text> : null}
       <Aviso mensaje={error} />
 

@@ -74,6 +74,38 @@ describe('Verificaciones (HU-11, HU-17)', () => {
     window.removeEventListener('delimaster:pendientes', aviso);
   });
 
+  test('el botón +90 días pone el vencimiento sin abrir el calendario y se aprueba con esa fecha', async () => {
+    const llamadas = simularApi({
+      'GET /admin/verificaciones?estado=pendiente': { verificaciones: [pendiente] },
+      'PATCH /admin/verificaciones/v1': { verificacion: { id: 'v1' } },
+    });
+    mostrar(<Verificaciones />);
+    const campoFecha = await screen.findByLabelText(/obligatorio para la SEC/);
+
+    await userEvent.click(screen.getByRole('button', { name: '+90 días desde hoy' }));
+    expect(campoFecha).toHaveValue(enDias(90));
+    await userEvent.click(screen.getByRole('button', { name: 'Aprobar' }));
+
+    await vi.waitFor(() => expect(llamadas.some((l) => l.metodo === 'PATCH')).toBe(true));
+    expect(llamadas.find((l) => l.metodo === 'PATCH').cuerpo).toEqual({ decision: 'aprobada', vence_en: enDias(90) });
+  });
+
+  test('revisar de a uno: la tecla 9 pone 90 días y la A aprueba', async () => {
+    const llamadas = simularApi({
+      'GET /admin/verificaciones?estado=pendiente': { verificaciones: [pendiente] },
+      'PATCH /admin/verificaciones/v1': { verificacion: { id: 'v1' } },
+    });
+    mostrar(<Verificaciones />);
+    await screen.findByText('12.345.678-9');
+
+    fireEvent.keyDown(document.body, { key: '9' });
+    expect(screen.getByLabelText(/obligatorio para la SEC/)).toHaveValue(enDias(90));
+    fireEvent.keyDown(document.body, { key: 'a' });
+
+    await vi.waitFor(() => expect(llamadas.some((l) => l.metodo === 'PATCH')).toBe(true));
+    expect(llamadas.find((l) => l.metodo === 'PATCH').cuerpo).toEqual({ decision: 'aprobada', vence_en: enDias(90) });
+  });
+
   test('una excepción muestra el RUT, los apellidos y por qué llegó al panel', async () => {
     simularApi({
       'GET /admin/verificaciones?estado=pendiente': { verificaciones: [{
@@ -220,6 +252,26 @@ describe('Verificaciones (HU-11, HU-17)', () => {
     expect(await screen.findByText('Aprobadas 1 de 2.')).toBeInTheDocument();
     expect(screen.getByText('Juan Soto: Esta solicitud ya fue resuelta')).toBeInTheDocument();
     expect(screen.getByRole('checkbox', { name: 'Elegir a Juan Soto' })).toBeChecked();
+  });
+
+  test('en lote, +90 días llena solo las seleccionadas sin fecha y respeta las escritas a mano', async () => {
+    simularApi({ 'GET /admin/verificaciones?estado=pendiente': { verificaciones: [pendiente, otra, sag] } });
+    mostrar(<Verificaciones />);
+    await userEvent.click(await screen.findByRole('button', { name: 'Lista y aprobación en lote' }));
+    await userEvent.click(screen.getByRole('checkbox', { name: 'Elegir a Luis Fuentes' }));
+    await userEvent.click(screen.getByRole('checkbox', { name: 'Elegir a Rosa Paz' }));
+    fireEvent.change(screen.getByLabelText(/Vencimiento de Rosa Paz \(obligatorio\)/), { target: { value: enDias(40) } });
+
+    await userEvent.click(screen.getByRole('button', { name: /\+90 días a las seleccionadas sin fecha \(1\)/ }));
+
+    expect(screen.getByLabelText(/Vencimiento de Luis Fuentes \(obligatorio\)/)).toHaveValue(enDias(90));
+    expect(screen.getByLabelText(/Vencimiento de Rosa Paz \(obligatorio\)/)).toHaveValue(enDias(40));   // la escrita a mano
+    expect(screen.getByLabelText(/^Vencimiento de Juan Soto$/)).toHaveValue('');                       // no estaba elegida
+    expect(screen.queryByText(/falta el vencimiento/)).not.toBeInTheDocument();
+
+    // También se puede poner por fila
+    await userEvent.click(screen.getByRole('button', { name: 'Poner 90 días a Juan Soto' }));
+    expect(screen.getByLabelText(/^Vencimiento de Juan Soto$/)).toHaveValue(enDias(90));
   });
 
   test('en lote, no se puede elegir más de 50 verificaciones a la vez', async () => {

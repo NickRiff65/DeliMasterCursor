@@ -47,6 +47,8 @@ describe('Navegación según la sesión', () => {
     const app = await abrirApp({ ruta: '/maestros', pantallas: { 'aceptar-terminos': AceptarTerminos } });
     expect(await screen.findByText('Hola, Valentina')).toBeOnTheScreen();
     expect(app.ruta()).toBe('/aceptar-terminos');
+    // El resumen ya no ofrece guardar la tarjeta (el equipo lo consideró innecesario)
+    expect(screen.queryByText(/guardar tu tarjeta/i)).toBeNull();
 
     const aceptar = screen.getByRole('button', { name: 'Aceptar y continuar' });
     expect(aceptar).toBeDisabled();

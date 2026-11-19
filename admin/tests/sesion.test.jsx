@@ -74,6 +74,22 @@ describe('Sesión del panel', () => {
     expect(sessionStorage.getItem(CLAVE)).toBeNull();
   });
 
+  test('la apariencia oscura se elige en el menú, se aplica al instante y queda guardada', async () => {
+    sessionStorage.setItem(CLAVE, JSON.stringify({ token: 't', usuario: admin }));
+    simularApi({ 'GET /admin/resumen': resumenVacio });
+    abrirPanel();
+    const selector = await screen.findByRole('combobox', { name: 'Apariencia' });
+    expect(selector).toHaveValue('sistema');                                   // por defecto, la del equipo
+
+    await userEvent.selectOptions(selector, 'oscuro');
+    expect(document.documentElement.dataset.tema).toBe('oscuro');
+    expect(localStorage.getItem('delimaster.admin.tema')).toBe('oscuro');
+
+    await userEvent.selectOptions(selector, 'sistema');                        // automática: sin forzar
+    expect(document.documentElement.dataset.tema).toBeUndefined();
+    localStorage.clear();
+  });
+
   test('cerrar sesión vuelve a la pantalla de ingreso', async () => {
     sessionStorage.setItem(CLAVE, JSON.stringify({ token: 't', usuario: admin }));
     simularApi({ 'GET /admin/resumen': resumenVacio });

@@ -1,7 +1,21 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { useSesion } from '../sesion.jsx';
+import { OPCIONES_TEMA, guardarTema, leerTema } from '../tema.js';
 import { useDatos } from './comunes.jsx';
+
+// Apariencia del panel: automática (la del equipo), clara u oscura
+function SelectorTema() {
+  const [tema, setTema] = useState(leerTema);
+  return (
+    <label className="tema">
+      <span className="tema-texto">Apariencia</span>
+      <select value={tema} onChange={(e) => { setTema(e.target.value); guardarTema(e.target.value); }}>
+        {OPCIONES_TEMA.map(([valor, nombre]) => <option key={valor} value={valor}>{nombre}</option>)}
+      </select>
+    </label>
+  );
+}
 
 // Las páginas avisan cuando resuelven algo para que los contadores del menú se actualicen
 export const avisarCambio = () => window.dispatchEvent(new Event('delimaster:pendientes'));
@@ -48,6 +62,7 @@ export function Marco({ children }) {
         </nav>
         <div className="usuario">
           <span>{usuario.nombre}</span>
+          <SelectorTema />
           <button className="enlace" onClick={cerrarSesion}>Cerrar sesión</button>
         </div>
       </aside>

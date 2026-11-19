@@ -83,7 +83,8 @@ export default function Maestros() {
             <SelectorComuna comunas={comunas} valor={comuna} onCambio={setComuna} permitirTodas />
 
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={estilos.chips} contentContainerStyle={estilos.chipsContenido}>
-              <Chip texto="🕒 Solo en horario ahora" activo={soloEnHorario} onPress={() => setSoloEnHorario((v) => !v)} />
+              <Chip texto="Solo en horario ahora" icono={require('../../assets/iconos/app/reloj.png')} activo={soloEnHorario}
+                onPress={() => setSoloEnHorario((v) => !v)} />
               <Chip texto="✨ Nuevos" activo={soloNuevos} onPress={() => setSoloNuevos((v) => !v)} />
             </ScrollView>
 

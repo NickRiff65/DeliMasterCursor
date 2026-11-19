@@ -16,7 +16,8 @@ export default function Liquidaciones() {
       <header className="cabecera">
         <h1>Transferencias a prestadores</h1>
         <p className="suave">
-          Transfiere desde la cuenta de DeliMaster y registra aquí el comprobante. El plazo comprometido es de {datos.sla_horas} horas desde el cierre.
+          Transfiere desde la cuenta de DeliMaster y regístralo aquí: el número de comprobante se genera solo.
+          El plazo comprometido es de {datos.sla_horas} horas desde el cierre.
         </p>
       </header>
       <Aviso tipo="ok" mensaje={hecho} />
@@ -64,14 +65,18 @@ function Copiar({ texto }) {
   return <button className="enlace pequeno" onClick={copiar}>{copiado ? 'Copiado' : 'Copiar'}</button>;
 }
 
+// El comprobante lo genera el servidor (DM-AAAAMMDD-NNN). Antes de registrar se pide confirmar a quién,
+// cuánto y a qué cuenta, porque el registro avisa al maestro que ya tiene el dinero.
 function Prestador({ p, alRegistrar }) {
   const [elegidos, setElegidos] = useState(() => new Set(p.movimientos.map((m) => m.id)));
-  const [comprobante, setComprobante] = useState('');
+  const [confirmando, setConfirmando] = useState(false);
   const [error, setError] = useState(null);
   const [enviando, setEnviando] = useState(false);
   const total = p.movimientos.filter((m) => elegidos.has(m.id)).reduce((t, m) => t + m.monto_neto, 0);
+  const cantidad = elegidos.size;
 
   function alternar(id) {
+    setConfirmando(false);
     setElegidos((s) => {
       const n = new Set(s);
       if (n.has(id)) n.delete(id); else n.add(id);
@@ -79,17 +84,15 @@ function Prestador({ p, alRegistrar }) {
     });
   }
 
-  async function registrar(e) {
-    e.preventDefault();
+  async function registrar() {
     setEnviando(true);
     setError(null);
     try {
-      const { transferencia } = await api.post(`/admin/liquidaciones/${p.prestador_id}`, {
-        movimientos: [...elegidos], comprobante: comprobante.trim(),
-      });
+      const { transferencia } = await api.post(`/admin/liquidaciones/${p.prestador_id}`, { movimientos: [...elegidos] });
       alRegistrar(transferencia);
     } catch (err) {
-      setError(err.campos?.comprobante ?? err.message);
+      setError(err.message);
+      setConfirmando(false);
     } finally {
       setEnviando(false);
     }
@@ -131,16 +134,29 @@ function Prestador({ p, alRegistrar }) {
         </tbody>
       </table>
 
-      <form className="fila-formulario" onSubmit={registrar}>
-        <label>
-          N.º de comprobante de la transferencia
-          <input value={comprobante} onChange={(e) => setComprobante(e.target.value)} placeholder="Ej.: 0012345678" disabled={!p.datos_completos} />
-        </label>
-        <button className="boton" disabled={!p.datos_completos || enviando || elegidos.size === 0 || comprobante.trim().length < 4}>
-          Registrar transferencia de {pesos(total)}
-        </button>
-      </form>
       <Aviso mensaje={error} />
+      {!confirmando ? (
+        <div className="acciones">
+          <button className="boton" disabled={!p.datos_completos || enviando || cantidad === 0} onClick={() => setConfirmando(true)}>
+            Registrar transferencia de {pesos(total)}
+          </button>
+        </div>
+      ) : (
+        <div className="confirmar" role="alertdialog" aria-label={`Confirmar transferencia a ${p.nombre}`}>
+          <p>
+            <strong>¿Estás seguro de transferir {pesos(total)} a {p.nombre}?</strong>{' '}
+            {cantidad === 1 ? 'Es 1 pago' : `Son ${cantidad} pagos`}, a su {p.tipo_cuenta} de {p.banco}
+            {' '}<span className="mono">{p.numero_cuenta}</span>. El número de comprobante se genera solo y le avisaremos al maestro.
+            Hazlo después de transferir desde el banco.
+          </p>
+          <div className="acciones">
+            <button className="boton" disabled={enviando} onClick={registrar}>
+              {enviando ? 'Registrando…' : 'Sí, registrar la transferencia'}
+            </button>
+            <button className="boton secundario" disabled={enviando} onClick={() => setConfirmando(false)}>Cancelar</button>
+          </div>
+        </div>
+      )}
     </article>
   );
 }

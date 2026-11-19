@@ -3,6 +3,8 @@ import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-nati
 import { router, useFocusEffect } from 'expo-router';
 import { api } from '../lib/api';
 import { Aviso } from '../components/Aviso';
+import { ConUbicacion } from '../components/ConUbicacion';
+import { ConIcono } from '../components/ConIcono';
 import { EstadoSolicitud } from '../components/EstadoSolicitud';
 import { diaYHora, pesos } from '../lib/formato';
 import { colores, crearEstilos, espacio, radio } from '../theme';
@@ -36,11 +38,16 @@ export default function Agenda() {
       {visitas.length ? visitas.map((v) => (
         <Pressable key={v.id} style={estilos.tarjeta} onPress={() => router.push(`/trabajo/${v.id}`)} accessibilityRole="button">
           <View style={estilos.fila}>
-            <Text style={estilos.fecha}>🗓️ {diaYHora(v.visita_programada_en)}</Text>
+            <View style={{ flex: 1 }}>
+              <ConIcono icono={require('../../assets/iconos/app/agenda.png')} estilo={estilos.fecha}>
+                {diaYHora(v.visita_programada_en)}
+              </ConIcono>
+            </View>
             <EstadoSolicitud estado={v.estado} vista="prestador" />
           </View>
           <Text style={estilos.cliente}>{v.cliente}</Text>
-          <Text style={estilos.suave}>{v.categoria} · 📍 {v.comuna}</Text>
+          <Text style={estilos.suave}>{v.categoria}</Text>
+          <ConUbicacion estilo={estilos.suave}>{v.comuna}</ConUbicacion>
           {v.descripcion ? <Text style={estilos.texto}>“{v.descripcion}”</Text> : null}
           <Text style={estilos.tarifa}>Visita: {pesos(v.tarifa_visita)}</Text>
         </Pressable>

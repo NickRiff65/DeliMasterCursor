@@ -34,7 +34,7 @@ describe('Inicio del cliente', () => {
     expect(screen.getByText('Solicitud s2')).toBeOnTheScreen();
     expect(screen.getByText('Tus solicitudes')).toBeOnTheScreen();
     expect(screen.getByText('1 en curso')).toBeOnTheScreen();
-    expect(screen.getByText('👷 Juan Soto')).toBeOnTheScreen();
+    expect(screen.getByText('Juan Soto')).toBeOnTheScreen();
     expect(screen.getByText('$45.000')).toBeOnTheScreen();   // el monto va en su propia línea
     expect(await screen.findByText(/7 maestros en Chillán/)).toBeOnTheScreen();
     expect(screen.queryByText(/prestador/i)).not.toBeOnTheScreen();
@@ -80,9 +80,30 @@ describe('Maestros disponibles', () => {
     await abrirApp({ ruta: '/maestros', pantallas: { maestros: Maestros, 'prestador/[id]': PerfilMaestro } });
 
     expect(await screen.findByText('1 maestro disponible')).toBeOnTheScreen();
-    expect(screen.getByText('🕒 Lunes a sábado · 08:00 a 17:00')).toBeOnTheScreen();
+    expect(screen.getByText('Lunes a sábado · 08:00 a 17:00')).toBeOnTheScreen();
     await userEvent.setup().press(screen.getByRole('button', { name: 'Ver perfil de Juan Soto' }));
     expect(await screen.findByText('Horario de atención')).toBeOnTheScreen();
     expect(screen.getByText('Las visitas se agendan dentro de este horario.')).toBeOnTheScreen();
+  });
+
+  // Desde la lista de una solicitud ya publicada, «Contratar» en el perfil elige a ese maestro para ella:
+  // no vuelve a pedir el servicio (antes abría «Pedir un servicio» y chocaba con la solicitud activa)
+  test('al venir desde una solicitud, Contratar le asigna esa misma solicitud', async () => {
+    const llamadas = simularApi({
+      'GET /auth/yo': { usuario: cliente },
+      'GET /prestadores/p1': { prestador: {
+        ...maestro, verificaciones: [], resenas: [], trabajos_cerrados: 12, miembro_desde: '2026-01-01', disponible: true,
+      } },
+      'POST /solicitudes/s1/asignar': { solicitud: solicitud('s1', 'asignada') },
+    });
+    const app = await abrirApp({ ruta: '/prestador/p1?solicitud=s1', pantallas: { 'prestador/[id]': PerfilMaestro } });
+
+    expect(await screen.findByText('Se lo pediremos en tu solicitud.')).toBeOnTheScreen();
+    await userEvent.setup().press(screen.getByRole('button', { name: 'Contratar' }));
+
+    expect(await screen.findByText('Pantalla solicitud/[id]')).toBeOnTheScreen();
+    expect(app.ruta()).toBe('/solicitud/s1');
+    expect(llamadas.find((l) => l.ruta === '/solicitudes/s1/asignar').cuerpo).toEqual({ prestador_id: 'p1' });
+    expect(llamadas.some((l) => l.ruta === '/solicitudes' && l.metodo === 'POST')).toBe(false);
   });
 });

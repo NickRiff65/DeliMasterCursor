@@ -15,7 +15,11 @@
     "db:demo": "node --env-file=.env src/db/datos-demo.js",
     "test": "node --env-file-if-exists=.env --test --test-concurrency=1 \"tests/**/*.test.js\"",
     "crear-admin": "node --env-file=.env src/db/crear-admin.js",
-    "probar-correo": "node --env-file=.env scripts/probar-correo.js"
+    "probar-correo": "node --env-file=.env scripts/probar-correo.js",
+    "respaldo": "node --env-file=.env scripts/respaldo.js",
+    "restaurar": "node --env-file=.env scripts/restaurar.js",
+    "simulacro": "node --env-file=.env scripts/simulacro-restauracion.js",
+    "rendimiento": "node rendimiento/ejecutar.js"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",

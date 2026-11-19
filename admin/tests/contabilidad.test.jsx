@@ -35,6 +35,15 @@ const datos = {
       con_boleta: false, ocr_monto: null, ocr_lector: null,
     },
   ],
+  por_dia: [
+    { dia: '2026-11-05', cantidad: 2, bruto: 100000, comision: 12000 },
+    { dia: '2026-11-08', cantidad: 1, bruto: 45000, comision: 5400 },
+  ],
+  por_categoria: [
+    { categoria: 'Electricidad', cantidad: 2, bruto: 100000, comision: 12000 },
+    { categoria: 'Gasfitería', cantidad: 1, bruto: 45000, comision: 5400 },
+  ],
+  gastos_total: { total: 20000, cantidad: 2 },
 };
 
 describe('Panel contable (HU-09 / HU-14)', () => {
@@ -101,6 +110,52 @@ describe('Panel contable (HU-09 / HU-14)', () => {
 
     expect(await screen.findByText(/1 nov 2026/)).toBeInTheDocument();
     expect(llamadas.some((l) => l.metodo === 'GET' && l.ruta === '/admin/contabilidad?desde=2026-11-01&hasta=2026-11-07')).toBe(true);
+  });
+
+  test('muestra las cifras del período y los gráficos, con su tabla para leer los números', async () => {
+    simularApi({ 'GET /admin/contabilidad': datos });
+    mostrar(<Contabilidad />);
+
+    const cifras = await screen.findByRole('region', { name: 'Cifras del período' });
+    expect(within(cifras).getByText('$145.000')).toBeInTheDocument();     // cobrado (45.000 + 100.000)
+    expect(within(cifras).getByText('$17.400')).toBeInTheDocument();      // comisión
+    expect(within(cifras).getByText('$127.600')).toBeInTheDocument();     // para los maestros
+    expect(within(cifras).getByText('$20.000')).toBeInTheDocument();      // gastos
+    expect(within(cifras).getByText('3 pagos')).toBeInTheDocument();
+
+    // Cobrado por día: un mes de rango → una columna por día, los días sin pagos en $0
+    expect(screen.getByText('por día')).toBeInTheDocument();
+    expect(screen.getByLabelText('5 nov: $100.000')).toBeInTheDocument();
+    expect(screen.getByLabelText('6 nov: $0')).toBeInTheDocument();
+
+    // Comisión por servicio, de mayor a menor, con el monto en la punta
+    const servicios = screen.getByRole('list', { name: 'Comisión por servicio' });
+    const filas = within(servicios).getAllByRole('listitem');
+    expect(filas[0]).toHaveAccessibleName('Electricidad: $12.000, 2 pagos · cobrado $100.000');
+    expect(filas[1]).toHaveAccessibleName('Gasfitería: $5.400, 1 pago · cobrado $45.000');
+
+    // Dinero según su estado, en el orden del recorrido del dinero
+    const estados = within(screen.getByRole('list', { name: 'Dinero según su estado' })).getAllByRole('listitem');
+    expect(estados.map((e) => e.textContent)).toEqual(['Retenido$45.000', 'Transferido$100.000']);
+
+    // Vista de tabla del gráfico de columnas
+    const [verTabla] = screen.getAllByRole('button', { name: 'Ver tabla' });
+    await userEvent.click(verTabla);
+    expect(screen.getByRole('columnheader', { name: 'Día' })).toBeInTheDocument();
+    expect(screen.getByRole('row', { name: '8 nov $45.000' })).toBeInTheDocument();
+  });
+
+  test('un rango largo agrupa lo cobrado por semana o por mes', async () => {
+    const { serieEnElTiempo } = await import('../src/paginas/Contabilidad.jsx');
+    const semanas = serieEnElTiempo([{ dia: '2026-09-02', bruto: 1000 }, { dia: '2026-09-03', bruto: 500 }],
+      { desde: '2026-09-01', hasta: '2026-11-15' });
+    expect(semanas.unidad).toBe('semana');
+    expect(semanas.datos[0]).toMatchObject({ clave: '2026-08-31', valor: 1500 });   // semana que parte el lunes 31 de agosto
+
+    const meses = serieEnElTiempo([{ dia: '2026-03-10', bruto: 2000 }], { desde: '2026-01-01', hasta: '2026-12-31' });
+    expect(meses.unidad).toBe('mes');
+    expect(meses.datos).toHaveLength(12);
+    expect(meses.datos[2]).toMatchObject({ clave: '2026-03', valor: 2000 });
   });
 
   test('sin datos en el período muestra los estados vacíos', async () => {

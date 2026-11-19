@@ -1,4 +1,4 @@
-import { Pressable, Text, View } from 'react-native';
+import { Image, Pressable, Text, View } from 'react-native';
 import { router, usePathname } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ES_PRO } from '../lib/variante';
@@ -7,12 +7,19 @@ import { colores, crearEstilos, espacio } from '../theme';
 
 // Secciones de DeliMaster Pro: cada una tiene su pantalla raíz y las pantallas que se abren desde ella.
 // Los detalles (un trabajo, un chat) no llevan barra: se sale con la flecha de atrás.
+// Íconos de línea (PNG con fondo transparente): se pintan del color del tema según la sección activa
 export const SECCIONES = [
-  { clave: 'inicio', nombre: 'Inicio', icono: '🏠', ruta: '/panel', pantallas: ['/panel'] },
-  { clave: 'trabajos', nombre: 'Trabajos', icono: '📋', ruta: '/recibidas', pantallas: ['/recibidas', '/agenda'] },
-  { clave: 'dinero', nombre: 'Dinero', icono: '💰', ruta: '/finanzas', pantallas: ['/finanzas', '/datos-pago'] },
+  { clave: 'inicio', nombre: 'Inicio', icono: require('../../assets/iconos/barra/inicio.png'), ruta: '/panel', pantallas: ['/panel'] },
   {
-    clave: 'perfil', nombre: 'Perfil', icono: '👤', ruta: '/perfil',
+    clave: 'trabajos', nombre: 'Trabajos', icono: require('../../assets/iconos/barra/trabajos.png'),
+    ruta: '/recibidas', pantallas: ['/recibidas', '/agenda'],
+  },
+  {
+    clave: 'dinero', nombre: 'Finanzas', icono: require('../../assets/iconos/barra/finanzas.png'),
+    ruta: '/finanzas', pantallas: ['/finanzas', '/datos-pago'],
+  },
+  {
+    clave: 'perfil', nombre: 'Perfil', icono: require('../../assets/iconos/barra/perfil.png'), ruta: '/perfil',
     pantallas: ['/perfil', '/ficha', '/portafolio', '/verificaciones', '/cuenta'],
   },
 ];
@@ -34,11 +41,15 @@ export function ConBarraPro({ children }) {
   );
 }
 
+// Espacio extra bajo los íconos: en las pantallas curvas el borde de abajo se ve deformado,
+// así que la barra queda un poco más arriba que la zona segura del teléfono
+export const MARGEN_INFERIOR_BARRA = 14;
+
 function BarraPro({ activa }) {
   useTema();   // se vuelve a dibujar al cambiar entre modo claro y oscuro
   const insets = useSafeAreaInsets();
   return (
-    <View style={[estilos.barra, { paddingBottom: Math.max(insets.bottom, espacio.xs) }]} accessibilityRole="tablist">
+    <View style={[estilos.barra, { paddingBottom: insets.bottom + MARGEN_INFERIOR_BARRA }]} accessibilityRole="tablist">
       {SECCIONES.map((s) => {
         const seleccionada = s.clave === activa;
         return (
@@ -49,9 +60,10 @@ function BarraPro({ activa }) {
             accessibilityLabel={s.nombre}
             accessibilityState={{ selected: seleccionada }}
             style={estilos.item}
-            hitSlop={6}
+            hitSlop={4}
           >
-            <Text style={estilos.icono}>{s.icono}</Text>
+            <Image source={s.icono} tintColor={seleccionada ? colores.texto : colores.textoSuave}
+              accessibilityIgnoresInvertColors style={estilos.icono} />
             <Text style={[estilos.nombre, seleccionada && estilos.nombreActivo]}>{s.nombre}</Text>
           </Pressable>
         );
@@ -63,10 +75,10 @@ function BarraPro({ activa }) {
 const estilos = crearEstilos((colores) => ({
   barra: {
     flexDirection: 'row', backgroundColor: colores.superficie, borderTopWidth: 1, borderColor: colores.borde,
-    paddingTop: espacio.xs,
+    paddingTop: espacio.s, paddingHorizontal: espacio.s,
   },
-  item: { flex: 1, alignItems: 'center', paddingVertical: espacio.xs, gap: 2 },
-  icono: { fontSize: 20 },
-  nombre: { fontSize: 12, fontWeight: '600', color: colores.textoSuave },
+  item: { flex: 1, alignItems: 'center', justifyContent: 'center', minHeight: 56, paddingVertical: espacio.xs, gap: 4 },
+  icono: { width: 30, height: 30 },
+  nombre: { fontSize: 13, fontWeight: '600', color: colores.textoSuave },
   nombreActivo: { color: colores.texto, fontWeight: '800' },
 }));

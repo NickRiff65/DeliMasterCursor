@@ -11,7 +11,7 @@ import { BotonInicio } from '../components/BotonInicio';
 import { AvisoFlotante } from '../components/AvisoFlotante';
 import { AvisosProvider } from '../context/avisos';
 import { ES_PRO, NOMBRE_APP } from '../lib/variante';
-import { colores, degradado } from '../theme';
+import { colores, degradado, letra } from '../theme';
 
 // Pantallas interiores (con sesión): llevan un botón para volver al inicio en el encabezado
 const conInicio = (opciones) => ({ ...opciones, headerRight: () => <BotonInicio /> });
@@ -53,7 +53,7 @@ function Navegacion() {
           headerTintColor: colores.primarioOscuro,
           headerStyle: { backgroundColor: colores.fondoArriba },
           headerShadowVisible: false,
-          headerTitleStyle: { color: colores.texto, fontWeight: '800', fontSize: 18 },
+          headerTitleStyle: { color: colores.texto, fontWeight: '800', fontSize: letra(18) },
           contentStyle: { backgroundColor: colores.fondo },
         }}
       >

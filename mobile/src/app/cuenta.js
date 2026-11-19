@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, View } from 'react-native';
+import { ActivityIndicator, Image, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { guardarTarjeta } from '../lib/pago';
 import { ES_PRO } from '../lib/variante';
@@ -9,9 +9,10 @@ import { Aviso } from '../components/Aviso';
 import { Boton } from '../components/Boton';
 import { Campo } from '../components/Campo';
 import { Casilla } from '../components/Casilla';
+import { ConIcono } from '../components/ConIcono';
 import { Estrellas } from '../components/Estrellas';
 import { SelectorComuna } from '../components/SelectorComuna';
-import { colores, crearEstilos, espacio, radio } from '../theme';
+import { colores, crearEstilos, espacio, letra, radio } from '../theme';
 import { useTema } from '../context/tema';
 
 // Mi cuenta (ambas apps): datos personales, apariencia, cambio de contraseña, documentos legales, cierre de
@@ -47,7 +48,9 @@ export default function Cuenta() {
 function ReputacionCliente({ usuario }) {
   return (
     <View style={estilos.tarjeta}>
-      <Text style={estilos.titulo}>⭐ Tu reputación como cliente</Text>
+      <ConIcono icono={require('../../assets/iconos/app/reputacion.png')} estilo={estilos.titulo}>
+        Tu reputación como cliente
+      </ConIcono>
       {usuario.total_resenas > 0 ? (
         <>
           <Estrellas promedio={usuario.calificacion_promedio} total={usuario.total_resenas} tamano={16} />
@@ -64,11 +67,12 @@ function ReputacionCliente({ usuario }) {
   );
 }
 
-// Modo claro u oscuro: el cambio se ve de inmediato y queda guardado en este dispositivo
+// Modo claro u oscuro: el cambio se ve de inmediato y queda guardado en este dispositivo.
+// Íconos de línea (PNG transparente) que se pintan del color del texto
 const OPCIONES_TEMA = [
-  ['sistema', 'Automático', '📱'],
-  ['claro', 'Claro', '☀️'],
-  ['oscuro', 'Oscuro', '🌙'],
+  ['sistema', 'Automático', require('../../assets/iconos/app/automatico.png')],
+  ['claro', 'Claro', require('../../assets/iconos/app/claro.png')],
+  ['oscuro', 'Oscuro', require('../../assets/iconos/app/oscuro.png')],
 ];
 
 function Apariencia() {
@@ -83,7 +87,8 @@ function Apariencia() {
             <Pressable key={valor} onPress={() => cambiarPreferencia(valor)} accessibilityRole="radio"
               accessibilityState={{ checked: elegida }} accessibilityLabel={`Modo ${nombre.toLowerCase()}`}
               style={[estilos.opcionTema, elegida && estilos.opcionTemaElegida]}>
-              <Text style={estilos.opcionIcono}>{icono}</Text>
+              <Image source={icono} tintColor={elegida ? colores.primarioOscuro : colores.texto} accessibilityIgnoresInvertColors
+                style={estilos.opcionIcono} />
               <Text style={[estilos.opcionTexto, elegida && estilos.opcionTextoElegida]}>{nombre}</Text>
             </Pressable>
           );
@@ -144,7 +149,7 @@ function TarjetaGuardada() {
   if (tarjeta === undefined) return error ? <Aviso mensaje={error} /> : null;
   return (
     <View style={estilos.tarjeta}>
-      <Text style={estilos.titulo}>💳 Tarjeta guardada</Text>
+      <ConIcono icono={require('../../assets/iconos/app/tarjeta.png')} estilo={estilos.titulo}>Tarjeta guardada</ConIcono>
       {mensaje ? <Text style={estilos.ok}>{mensaje}</Text> : null}
       <Aviso mensaje={error} />
       {tarjeta ? (
@@ -391,7 +396,7 @@ const estilos = crearEstilos((colores) => ({
     borderWidth: 1.5, borderColor: colores.borde, backgroundColor: colores.fondo,
   },
   opcionTemaElegida: { borderColor: colores.primario, backgroundColor: colores.primarioSuave },
-  opcionIcono: { fontSize: 22, color: colores.texto },
+  opcionIcono: { width: letra(26), height: letra(26) },
   opcionTexto: { fontSize: 14, fontWeight: '600', color: colores.texto },
   opcionTextoElegida: { color: colores.primarioOscuro },
   ayudaTema: { fontSize: 13, color: colores.textoSuave, marginTop: espacio.s },

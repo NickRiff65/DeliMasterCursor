@@ -44,7 +44,7 @@ describe('Barra inferior en la app de maestros', () => {
 
     expect(await screen.findByRole('tab', { name: 'Inicio' })).toBeSelected();
     expect(screen.getByRole('tab', { name: 'Trabajos' })).not.toBeSelected();
-    expect(screen.getByRole('tab', { name: 'Dinero' })).not.toBeSelected();
+    expect(screen.getByRole('tab', { name: 'Finanzas' })).not.toBeSelected();
     expect(screen.getByRole('tab', { name: 'Perfil' })).not.toBeSelected();
   });
 
@@ -52,9 +52,9 @@ describe('Barra inferior en la app de maestros', () => {
     simularMaestro();
     const app = await abrirApp({ ruta: '/panel', pantallas: { panel: Panel } });
 
-    await userEvent.setup().press(await screen.findByRole('tab', { name: 'Dinero' }));
+    await userEvent.setup().press(await screen.findByRole('tab', { name: 'Finanzas' }));
     expect(app.ruta()).toBe('/finanzas');
-    expect(await screen.findByRole('tab', { name: 'Dinero' })).toBeSelected();
+    expect(await screen.findByRole('tab', { name: 'Finanzas' })).toBeSelected();
   });
 
   test('Perfil reúne la ficha, el portafolio, las verificaciones y la cuenta', async () => {

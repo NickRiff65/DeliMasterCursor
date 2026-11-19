@@ -6,7 +6,7 @@ import { distanciaMetros, RADIO_LLEGADA_M } from '../../utils/geo.js';
 import { interpretar } from './interprete.js';
 import { sqlVigente } from '../verificaciones/verificaciones.servicio.js';
 import { reembolsarPago } from '../pagos/pasarela.js';
-import { calcularComision } from '../pagos/pagos.servicio.js';
+import { calcularComision, comisionCobrada } from '../pagos/pagos.servicio.js';
 import { expulsarDeSala } from '../../socket.js';
 import { rangoVisita, REGLAS_VISITA } from './visita.js';
 import { avisar } from '../../utils/avisos.js';
@@ -907,7 +907,8 @@ export async function resolverDisputa(admin, id, { decision, observacion, monto_
         }
       }
       const queda = mov.monto_bruto - devolver;
-      const comision = calcularComision(queda);
+      // Lo que queda paga comisión, sin que el trabajo completo (con la visita) pase del tope
+      const comision = calcularComision(queda, await comisionCobrada(db, s.id, mov.id));
       await db.query(
         'UPDATE ledger_movimientos SET monto_reembolsado = $2, comision = $3, monto_neto = $4 WHERE id = $1',
         [mov.id, devolver, comision, queda - comision]);

@@ -10,3 +10,5 @@ build/
 # Backend: caché del lector de boletas y archivos subidos
 backend/.cache/
 backend/uploads/
+backend/respaldos/
+backend/rendimiento/resultados/

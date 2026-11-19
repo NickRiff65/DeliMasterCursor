@@ -56,10 +56,10 @@ describe('Registro (términos obligatorios)', () => {
     await abrirApp({ ruta: '/registro', pantallas: { registro: Registro } });
     const user = userEvent.setup();
     await completar(user, { nombre: 'Ana', email: 'ana@demo.cl', password: 'clave1234' });
-    expect(screen.getByRole('button', { name: '📍 Chillán' })).toBeOnTheScreen();
-    await user.press(screen.getByRole('button', { name: '📍 Chillán' }));
-    await user.press(screen.getByRole('button', { name: '📍 Chillán' }));          // la desmarca
-    await user.press(screen.getByRole('button', { name: '📍 Coihueco' }));
+    expect(screen.getByRole('button', { name: 'Chillán' })).toBeOnTheScreen();
+    await user.press(screen.getByRole('button', { name: 'Chillán' }));
+    await user.press(screen.getByRole('button', { name: 'Chillán' }));          // la desmarca
+    await user.press(screen.getByRole('button', { name: 'Coihueco' }));
     await user.press(screen.getByRole('checkbox'));
     await user.press(screen.getByRole('button', { name: 'Crear cuenta' }));
     expect(await screen.findByText('Pantalla index')).toBeOnTheScreen();
@@ -94,18 +94,18 @@ describe('Registro (términos obligatorios)', () => {
     await user.type(screen.getByLabelText('Contraseña'), 'clave1234');
 
     // Por defecto, todos los días de 08:00 a medianoche; quita el domingo y ajusta el horario
-    expect(screen.getByText('🕒 Todos los días · 08:00 a medianoche')).toBeOnTheScreen();
+    expect(screen.getByText('Todos los días · 08:00 a medianoche')).toBeOnTheScreen();
     expect(screen.queryByRole('button', { name: '07:30' })).not.toBeOnTheScreen();   // parte a las 08:00
     await user.press(screen.getByRole('button', { name: 'Dom' }));
     await user.press(screen.getAllByRole('button', { name: '09:00' })[0]);          // fila "Desde"
     await user.press(screen.getAllByRole('button', { name: '22:00' }).at(-1));      // fila "Hasta"
-    expect(screen.getByText('🕒 Lunes a sábado · 09:00 a 22:00')).toBeOnTheScreen();
+    expect(screen.getByText('Lunes a sábado · 09:00 a 22:00')).toBeOnTheScreen();
 
     await user.press(screen.getByRole('checkbox'));
     await user.press(screen.getByRole('button', { name: 'Crear cuenta' }));
     expect(await screen.findByText('Pantalla panel')).toBeOnTheScreen();
     expect(llamadas[0].cuerpo).toMatchObject({ rol: 'prestador', horario: { dias: [1, 2, 3, 4, 5, 6], desde: '09:00', hasta: '22:00' } });
-  });
+  }, 15000);   // muchas interacciones seguidas: tarda unos 6 s en este equipo
 
   test('sin días elegidos no se puede crear la cuenta de maestro', async () => {
     usarVariante('pro');

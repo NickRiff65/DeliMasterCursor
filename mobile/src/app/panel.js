@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, Switch, Text, View } from 'react-native';
+import { ActivityIndicator, Image, Pressable, ScrollView, Switch, Text, View } from 'react-native';
 import { router, Stack, useFocusEffect } from 'expo-router';
 import { api } from '../lib/api';
 import { useSesion } from '../context/sesion';
@@ -7,7 +7,7 @@ import { Aviso } from '../components/Aviso';
 import { Boton } from '../components/Boton';
 import { BotonCuenta } from '../components/BotonCuenta';
 import { BotonAvisos } from '../components/BotonAvisos';
-import { colores, crearEstilos, degradado, espacio, radio } from '../theme';
+import { colores, crearEstilos, degradado, espacio, letra, radio } from '../theme';
 import { useTema } from '../context/tema';
 import { pesos } from '../lib/formato';
 
@@ -77,7 +77,11 @@ export default function Panel() {
       {/* Portada: saludo y si el maestro está visible en el catálogo */}
       <View style={[estilos.portada, degradado(colores.degradadoHeroePro)]}>
         <Text style={estilos.portadaEtiqueta}>TU NEGOCIO HOY</Text>
-        <Text style={estilos.saludo}>Hola, {usuario.nombre.split(' ')[0]} 👋</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <Text style={estilos.saludo}>Hola, {usuario.nombre.split(' ')[0]}</Text>
+          <Image source={require('../../assets/iconos/app/mano.png')} tintColor={colores.sobreHeroe}
+            accessibilityIgnoresInvertColors style={{ width: letra(40), height: letra(40) }} />
+        </View>
         <View style={estilos.estadoFila}>
           <View style={[estilos.estadoPunto, { backgroundColor: enCatalogo ? '#34D399' : '#FBBF24' }]} />
           <Text style={estilos.estadoTexto}>{enCatalogo ? 'Visible en el catálogo' : 'Hoy no apareces en el catálogo'}</Text>
@@ -105,7 +109,11 @@ export default function Panel() {
       {dinero ? (
         <Pressable style={[estilos.tarjeta, estilos.fila]} onPress={() => router.push('/finanzas')} accessibilityRole="button">
           <View style={{ flex: 1 }}>
-            <Text style={estilos.tarjetaTitulo}>💰 Mi dinero</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <Image source={require('../../assets/iconos/app/dinero.png')} tintColor={colores.texto}
+                accessibilityIgnoresInvertColors style={{ width: 20, height: 20 }} />
+              <Text style={estilos.tarjetaTitulo}>Mi dinero</Text>
+            </View>
             <Text style={estilos.suave}>Por transferir {pesos(dinero.por_transferir)} · Retenido {pesos(dinero.retenido)}</Text>
           </View>
           <Text style={estilos.enlace}>Ver →</Text>

@@ -19,12 +19,12 @@ describe('Fotos de evidencia', () => {
   test('muestra las fotos de ambas partes con su autor y los botones para agregar', async () => {
     simularApi({ [`GET /solicitudes/${ID}/fotos`]: lista([foto('f1', 'prestador', true), foto('f2', 'cliente', false)]) });
     await mostrar();
-    expect(await screen.findByText('📷 Fotos del trabajo')).toBeOnTheScreen();
+    expect(await screen.findByText('Fotos del trabajo')).toBeOnTheScreen();
     expect(screen.getByText('Muestra cómo quedó el trabajo.')).toBeOnTheScreen();
     expect(screen.getByText('Tú')).toBeOnTheScreen();
     expect(screen.getByText('Cliente')).toBeOnTheScreen();
-    expect(screen.getByRole('button', { name: '📷 Cámara' })).toBeOnTheScreen();
-    expect(screen.getByRole('button', { name: '🖼️ Galería' })).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Cámara' })).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Galería' })).toBeOnTheScreen();
     expect(screen.getByText(/no se pueden borrar/)).toBeOnTheScreen();
   });
 
@@ -38,7 +38,7 @@ describe('Fotos de evidencia', () => {
     await mostrar();
     expect(await screen.findByText('Aún no hay fotos.')).toBeOnTheScreen();
 
-    await userEvent.setup().press(screen.getByRole('button', { name: '📷 Cámara' }));
+    await userEvent.setup().press(screen.getByRole('button', { name: 'Cámara' }));
     expect(await screen.findByText('Tú')).toBeOnTheScreen();
     expect(llamadas.find((l) => l.metodo === 'POST').cuerpo).toEqual({ imagen_base64: 'BASE64DELAFOTO' });
     expect(ImagePicker.launchCameraAsync).toHaveBeenCalledWith(expect.objectContaining({ quality: 0.6, base64: true }));
@@ -50,11 +50,11 @@ describe('Fotos de evidencia', () => {
     ImagePicker.launchImageLibraryAsync.mockResolvedValue({ canceled: true, assets: null });
     await mostrar();
     const user = userEvent.setup();
-    await user.press(await screen.findByRole('button', { name: '📷 Cámara' }));
+    await user.press(await screen.findByRole('button', { name: 'Cámara' }));
     expect(await screen.findByRole('alert')).toHaveTextContent('Necesitamos permiso para usar la cámara.');
     expect(ImagePicker.launchCameraAsync).not.toHaveBeenCalled();
 
-    await user.press(screen.getByRole('button', { name: '🖼️ Galería' }));
+    await user.press(screen.getByRole('button', { name: 'Galería' }));
     expect(llamadas.filter((l) => l.metodo === 'POST')).toHaveLength(0);
   });
 
@@ -63,7 +63,7 @@ describe('Fotos de evidencia', () => {
     simularApi({ [`GET /solicitudes/${ID}/fotos`]: lista(seis) });
     await mostrar();
     expect(await screen.findByText('Ya subiste las 6 fotos permitidas.')).toBeOnTheScreen();
-    expect(screen.queryByRole('button', { name: '📷 Cámara' })).not.toBeOnTheScreen();
+    expect(screen.queryByRole('button', { name: 'Cámara' })).not.toBeOnTheScreen();
   });
 
   test('cuando ya no se pueden subir y no hay fotos, no ocupa espacio en la pantalla', async () => {

@@ -43,11 +43,11 @@ describe('Pedir servicio: fotos del problema (máx. 2)', () => {
     const user = userEvent.setup();
     await user.type(await screen.findByLabelText('Describe lo que necesitas'), TEXTO);
     expect(screen.getByText('0/2')).toBeOnTheScreen();
-    await user.press(screen.getByRole('button', { name: '🖼️ Galería' }));
+    await user.press(screen.getByRole('button', { name: 'Galería' }));
     expect(await screen.findByText('1/2')).toBeOnTheScreen();
-    await user.press(screen.getByRole('button', { name: '🖼️ Galería' }));
+    await user.press(screen.getByRole('button', { name: 'Galería' }));
     expect(await screen.findByText('2/2')).toBeOnTheScreen();
-    expect(screen.queryByRole('button', { name: '🖼️ Galería' })).not.toBeOnTheScreen();
+    expect(screen.queryByRole('button', { name: 'Galería' })).not.toBeOnTheScreen();
 
     await user.press(screen.getByRole('button', { name: 'Continuar' }));
     await user.type(await screen.findByLabelText('Dirección exacta'), 'Av. Libertad 1234');
@@ -142,7 +142,7 @@ describe('Mi portafolio (Pro)', () => {
     expect(screen.getByLabelText('Foto 1 de mi portafolio')).toBeOnTheScreen();
 
     const user = userEvent.setup();
-    await user.press(screen.getByRole('button', { name: '🖼️ Galería' }));
+    await user.press(screen.getByRole('button', { name: 'Galería' }));
     expect(await screen.findByText('2/12')).toBeOnTheScreen();
     expect(llamadas.find((l) => l.metodo === 'POST').cuerpo).toEqual({ imagen_base64: 'FOTO-NUEVA' });
 

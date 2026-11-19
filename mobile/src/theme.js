@@ -1,4 +1,5 @@
 import { Platform, StyleSheet } from 'react-native';
+import { ES_PRO } from './lib/variante';
 
 // Identidad visual de DeliMaster: verde azulado profundo (confianza) con acento ámbar
 // (reputación), neutros cálidos y sombras suaves en capas. Rediseño 2026: paleta más pulida,
@@ -52,7 +53,6 @@ export const paletas = {
     campoFondo: '#FFFFFF',
     sobreHeroe: '#FFFFFF',
     sobreHeroeSuave: 'rgba(255, 255, 255, 0.82)',
-    burbujaHeroe: 'rgba(255, 255, 255, 0.10)',
     // Botón y logo sobre el encabezado de color; avatares con un degradado por prestador
     sobreHeroeBoton: '#FFFFFF',
     sobreHeroeBotonTexto: '#0B7568',
@@ -114,7 +114,6 @@ export const paletas = {
     campoFondo: '#141414',
     sobreHeroe: '#FFFFFF',
     sobreHeroeSuave: 'rgba(255, 255, 255, 0.80)',
-    burbujaHeroe: 'rgba(255, 255, 255, 0.08)',
     // Negro y blanco: el botón y el logo son blancos o grises; los avatares son grises
     sobreHeroeBoton: '#FFFFFF',
     sobreHeroeBotonTexto: '#000000',
@@ -146,12 +145,38 @@ for (const nombre of Object.keys(paletas.claro)) {
   Object.defineProperty(colores, nombre, { get: () => vigente[nombre], enumerable: true });
 }
 
+// Letra más grande (recomendación del profesor): muchos maestros son mayores y usan el celular con las
+// manos grandes, ocupadas o sucias. Toda la app agranda la letra en esta proporción, y con ella la
+// altura mínima de botones, campos y chips (más fáciles de tocar): bastante en la de maestros y un
+// poco en la de clientes.
+export const ESCALA_LETRA_PRO = 1.15;
+export const ESCALA_LETRA_LITE = 1.1;
+const escalaLetra = () => (ES_PRO ? ESCALA_LETRA_PRO : ESCALA_LETRA_LITE);
+
+// Tamaño de letra para estilos escritos directamente en una pantalla (fuera de crearEstilos)
+export const letra = (tamano) => Math.round(tamano * escalaLetra());
+
+function agrandarLetras(estilos, escala) {
+  if (escala === 1) return estilos;
+  const agrandados = {};
+  for (const [nombre, estilo] of Object.entries(estilos)) {
+    agrandados[nombre] = { ...estilo };
+    for (const medida of ['fontSize', 'lineHeight', 'minHeight']) {
+      if (typeof estilo[medida] === 'number') agrandados[nombre][medida] = Math.round(estilo[medida] * escala);
+    }
+  }
+  return agrandados;
+}
+
 // Estilos que dependen de la paleta: se calculan una vez por paleta y se entregan los de la vigente.
+// Las letras salen agrandadas según la app (ESCALA_LETRA_PRO o ESCALA_LETRA_LITE).
 //   const estilos = crearEstilos((colores) => ({ caja: { backgroundColor: colores.superficie } }));
 export function crearEstilos(fabrica) {
   const calculados = new Map();
   const actuales = () => {
-    if (!calculados.has(vigente)) calculados.set(vigente, StyleSheet.create(fabrica(vigente)));
+    if (!calculados.has(vigente)) {
+      calculados.set(vigente, StyleSheet.create(agrandarLetras(fabrica(vigente), escalaLetra())));
+    }
     return calculados.get(vigente);
   };
   return new Proxy({}, { get: (_objeto, nombre) => actuales()[nombre] });

@@ -2,8 +2,10 @@ import { Pressable, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { fechaCorta, pesos } from '../lib/formato';
 import { EstadoSolicitud } from './EstadoSolicitud';
+import { ConUbicacion } from './ConUbicacion';
+import { ConIcono } from './ConIcono';
 import { ProgresoSolicitud } from './ProgresoSolicitud';
-import { colores, crearEstilos, espacio, radio } from '../theme';
+import { colores, crearEstilos, espacio, letra, radio } from '../theme';
 
 // Lite: una solicitud del cliente en la lista de inicio
 export function TarjetaSolicitud({ solicitud: s }) {
@@ -16,10 +18,17 @@ export function TarjetaSolicitud({ solicitud: s }) {
         <EstadoSolicitud estado={s.estado} />
       </View>
       <Text style={estilos.descripcion} numberOfLines={2}>{s.descripcion}</Text>
-      <Text style={estilos.suave}>📍 {s.comuna} · {fechaCorta(s.creado_en)}</Text>
+      <ConUbicacion estilo={estilos.suave}>{s.comuna} · {fechaCorta(s.creado_en)}</ConUbicacion>
       {s.prestador || s.precio_acordado ? (
         <View style={[estilos.fila, { marginTop: espacio.xs }]}>
-          <Text style={[estilos.suave, { flex: 1 }]} numberOfLines={1}>{s.prestador ? `👷 ${s.prestador.nombre}` : ' '}</Text>
+          <View style={{ flex: 1 }}>
+            {s.prestador ? (
+              <ConIcono icono={require('../../assets/iconos/app/trabajador.png')} estilo={estilos.suave} numberOfLines={1}
+                tamano={letra(16)}>
+                {s.prestador.nombre}
+              </ConIcono>
+            ) : null}
+          </View>
           {s.precio_acordado ? <Text style={estilos.precio}>{pesos(s.precio_acordado)}</Text> : null}
         </View>
       ) : null}
@@ -27,7 +36,9 @@ export function TarjetaSolicitud({ solicitud: s }) {
       {/* Sin respuesta en 1 día hábil: el cliente puede elegir a otro maestro en el detalle */}
       {s.estado === 'creada' && s.sin_respuesta ? (
         <View style={estilos.sinRespuesta}>
-          <Text style={estilos.sinRespuestaTexto}>⏰ El maestro no respondió en 1 día hábil</Text>
+          <ConIcono icono={require('../../assets/iconos/app/reloj.png')} estilo={estilos.sinRespuestaTexto}>
+            El maestro no respondió en 1 día hábil
+          </ConIcono>
           <Pressable onPress={() => router.push(`/solicitud/${s.id}`)} accessibilityRole="button"
             accessibilityLabel="Elegir otro maestro" hitSlop={6}>
             <Text style={estilos.elegirOtro}>Elegir otro maestro →</Text>

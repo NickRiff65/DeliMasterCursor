@@ -13,9 +13,21 @@ function nuevaOrdenCompra() {
   return `DM${Date.now().toString(36)}${randomBytes(4).toString('hex')}`.toUpperCase();
 }
 
-// Comisión de la plataforma en pesos enteros (el CLP no usa decimales)
-export function calcularComision(monto) {
-  return Math.round((monto * config.comisionPorcentaje) / 100);
+// Comisión de la plataforma en pesos enteros (el CLP no usa decimales): el porcentaje del monto, sin pasar
+// del tope por trabajo. `yaCobrada` es la comisión que el mismo trabajo ya pagó en otro cobro (la visita),
+// para que entre todos sus cobros nunca se supere el tope.
+export function calcularComision(monto, yaCobrada = 0) {
+  const porcentaje = Math.round((monto * config.comisionPorcentaje) / 100);
+  return Math.min(porcentaje, Math.max(0, config.comisionTope - yaCobrada));
+}
+
+// Comisión que un trabajo ya pagó en sus cobros vigentes (sin contar los devueltos al cliente)
+export async function comisionCobrada(db, solicitudId, excepto = null) {
+  const { rows: [r] } = await db.query(
+    `SELECT COALESCE(sum(comision), 0)::int AS total FROM ledger_movimientos
+      WHERE solicitud_id = $1 AND estado <> 'reembolsado' AND ($2::uuid IS NULL OR id <> $2)`,
+    [solicitudId, excepto]);
+  return r.total;
 }
 
 // A dónde vuelve el cliente después de pagar. Para evitar redirecciones a sitios ajenos, solo se
@@ -186,8 +198,9 @@ async function aplicarPagoAutorizado(pago, { codigo, respuesta }) {
     }
 
     // Ledger de garantía: el dinero queda "retenido" a favor del prestador hasta que se libere
-    // (la visita, al llegar; el trabajo, en el cierre oficial). La comisión se cobra sobre cada pago.
-    const comision = calcularComision(pago.monto);
+    // (la visita, al llegar; el trabajo, en el cierre oficial). La comisión se cobra sobre cada pago,
+    // y entre la visita y el saldo no pasa del tope por trabajo.
+    const comision = calcularComision(pago.monto, await comisionCobrada(db, s.id));
     const { rows: [mov] } = await db.query(
       `INSERT INTO ledger_movimientos (solicitud_id, pago_id, prestador_id, monto_bruto, comision, monto_neto, concepto)
        VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`,

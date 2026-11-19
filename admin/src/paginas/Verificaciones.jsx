@@ -7,6 +7,10 @@ import { fecha, fechaDia, diasHasta, enDias } from '../formato.js';
 // Máximo de verificaciones que el servidor acepta en un solo lote
 const LOTE_MAXIMO = 50;
 
+// Vencimiento rápido: el certificado de la SEC dura tres meses, así que el botón pone 90 días desde hoy
+// y ahorra elegir la fecha en el calendario. Si el certificado se emitió antes y vence antes, se corrige a mano.
+const DIAS_VIGENCIA = 90;
+
 // HU-11 / HU-17: revisión de certificados contra los registros oficiales (SEC, SAG)
 export default function Verificaciones() {
   const [estado, setEstado] = useState('pendiente');
@@ -170,11 +174,17 @@ function Revision({ v, alResolver, alSaltar }) {
       if (tecla === 'a') { e.preventDefault(); resolver('aprobada'); }
       else if (tecla === 'r') { e.preventDefault(); resolver('rechazada'); }
       else if (tecla === 's') { e.preventDefault(); alSaltar(); }
+      else if (tecla === '9') { e.preventDefault(); ponerVigencia(); }
       else if (tecla === 'o' && v.fuente_sugerida) window.open(v.fuente_sugerida, '_blank', 'noopener');
     }
     window.addEventListener('keydown', alPresionar);
     return () => window.removeEventListener('keydown', alPresionar);
   });
+
+  function ponerVigencia() {
+    setVence(enDias(DIAS_VIGENCIA));
+    setCampos((previo) => ({ ...previo, vence_en: undefined }));
+  }
 
   function copiar(texto, clave) {
     navigator.clipboard.writeText(texto)
@@ -207,12 +217,17 @@ function Revision({ v, alResolver, alSaltar }) {
       ) : null}
       {v.consulta_motivo ? <Aviso tipo="alerta" mensaje={`Necesita revisión: ${v.consulta_motivo}`} /> : null}
       <div className="formulario">
-        <label>
-          Vencimiento del certificado {esSec ? '(obligatorio para la SEC)' : '(si tiene)'}
-          <input ref={campoVence} type="date" value={vence} min={enDias(0)} max={esSec ? enDias(93) : undefined}
-            onChange={(e) => setVence(e.target.value)} aria-invalid={Boolean(campos.vence_en)} />
-          {campos.vence_en ? <span className="error-campo">{campos.vence_en}</span> : null}
-        </label>
+        <div className="campo-vence">
+          <label>
+            Vencimiento del certificado {esSec ? '(obligatorio para la SEC)' : '(si tiene)'}
+            <input ref={campoVence} type="date" value={vence} min={enDias(0)} max={esSec ? enDias(93) : undefined}
+              onChange={(e) => setVence(e.target.value)} aria-invalid={Boolean(campos.vence_en)} />
+            {campos.vence_en ? <span className="error-campo">{campos.vence_en}</span> : null}
+          </label>
+          <button type="button" className="chip" aria-keyshortcuts="9" onClick={ponerVigencia}>
+            +{DIAS_VIGENCIA} días desde hoy
+          </button>
+        </div>
         <label>
           Enlace de la consulta (opcional)
           <input type="url" value={fuente} onChange={(e) => setFuente(e.target.value)} placeholder={v.fuente_sugerida} />
@@ -231,7 +246,8 @@ function Revision({ v, alResolver, alSaltar }) {
         <button className="boton secundario" aria-keyshortcuts="S" disabled={enviando} onClick={alSaltar}>Saltar</button>
       </div>
       <p className="suave pequeno atajos">
-        Atajos: <kbd>A</kbd> aprobar · <kbd>R</kbd> rechazar · <kbd>S</kbd> saltar · <kbd>O</kbd> abrir la consulta oficial
+        Atajos: <kbd>A</kbd> aprobar · <kbd>R</kbd> rechazar · <kbd>S</kbd> saltar · <kbd>9</kbd> vence en {DIAS_VIGENCIA} días
+        · <kbd>O</kbd> abrir la consulta oficial
       </p>
     </article>
   );
@@ -260,6 +276,17 @@ function Lote({ lista, alResolver, alResultado }) {
   function alternarTodas() {
     setElegidas(todas ? {} : Object.fromEntries(lista.map((v) => [v.id, true])));
   }
+
+  // 90 días desde hoy a las seleccionadas que aún no tienen fecha (no pisa las escritas a mano)
+  function vigenciaASeleccionadas() {
+    const fecha = enDias(DIAS_VIGENCIA);
+    setVences((previo) => ({
+      ...previo,
+      ...Object.fromEntries(seleccionadas.filter((v) => !previo[v.id]).map((v) => [v.id, fecha])),
+    }));
+  }
+
+  const sinFechaElegidas = seleccionadas.filter((v) => !vences[v.id]).length;
 
   async function aprobar() {
     setEnviando(true);
@@ -313,6 +340,9 @@ function Lote({ lista, alResolver, alResultado }) {
         <button type="button" className="enlace" onClick={alternarTodas}>
           {todas ? 'Quitar selección' : 'Elegir todas'}
         </button>
+        <button type="button" className="chip" disabled={sinFechaElegidas === 0} onClick={vigenciaASeleccionadas}>
+          +{DIAS_VIGENCIA} días a las seleccionadas sin fecha{sinFechaElegidas ? ` (${sinFechaElegidas})` : ''}
+        </button>
       </div>
       <Aviso mensaje={error} />
       <table className="tabla" aria-label="Verificaciones por revisar">
@@ -346,11 +376,17 @@ function Lote({ lista, alResolver, alResultado }) {
                   {v.codigo_certificado ? <div className="pequeno">{v.codigo_certificado}</div> : null}
                 </td>
                 <td>
-                  <input type="date" className="vencimiento-lote" value={vences[v.id] ?? ''}
-                    min={enDias(0)} max={esSec ? enDias(93) : undefined}
-                    aria-label={`Vencimiento de ${v.prestador_nombre}${esSec ? ' (obligatorio)' : ''}`}
-                    aria-invalid={Boolean(elegidas[v.id] && esSec && !vences[v.id])}
-                    onChange={(e) => setVences((previo) => ({ ...previo, [v.id]: e.target.value }))} />
+                  <div className="vencimiento-fila">
+                    <input type="date" className="vencimiento-lote" value={vences[v.id] ?? ''}
+                      min={enDias(0)} max={esSec ? enDias(93) : undefined}
+                      aria-label={`Vencimiento de ${v.prestador_nombre}${esSec ? ' (obligatorio)' : ''}`}
+                      aria-invalid={Boolean(elegidas[v.id] && esSec && !vences[v.id])}
+                      onChange={(e) => setVences((previo) => ({ ...previo, [v.id]: e.target.value }))} />
+                    <button type="button" className="chip" aria-label={`Poner ${DIAS_VIGENCIA} días a ${v.prestador_nombre}`}
+                      onClick={() => setVences((previo) => ({ ...previo, [v.id]: enDias(DIAS_VIGENCIA) }))}>
+                      +{DIAS_VIGENCIA}
+                    </button>
+                  </div>
                 </td>
                 <td>
                   <a href={v.fuente_sugerida} target="_blank" rel="noreferrer"

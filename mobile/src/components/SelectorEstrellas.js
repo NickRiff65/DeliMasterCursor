@@ -1,5 +1,5 @@
 import { Pressable, Text, View } from 'react-native';
-import { colores, crearEstilos, espacio } from '../theme';
+import { colores, crearEstilos, espacio, letra } from '../theme';
 
 const ETIQUETAS = ['', 'Malo', 'Regular', 'Bueno', 'Muy bueno', 'Excelente'];
 
@@ -12,7 +12,7 @@ export function SelectorEstrellas({ valor, onCambio, soloLectura = false, tamano
         {[1, 2, 3, 4, 5].map((n) => (
           <Pressable key={n} disabled={soloLectura} onPress={() => onCambio?.(n)} hitSlop={4}
             accessibilityRole="button" accessibilityLabel={`${n} estrellas`}>
-            <Text style={{ fontSize: tamano, color: n <= valor ? colores.acento : colores.estrellaVacia }}>★</Text>
+            <Text style={{ fontSize: letra(tamano), color: n <= valor ? colores.acento : colores.estrellaVacia }}>★</Text>
           </Pressable>
         ))}
       </View>

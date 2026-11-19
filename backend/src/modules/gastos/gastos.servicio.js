@@ -136,9 +136,10 @@ export async function resumenDelTrabajo(usuario, solicitudId, urlApi) {
   ]);
   const precio = s.precio_acordado ?? 0;
   const pagado = ledger[0]?.pagos ? ledger[0] : { monto_neto: 0, comision: 0, bruto: 0 };
-  // Con visita pagada y el saldo aún pendiente, lo que falta se estima con la comisión de siempre
+  // Con visita pagada y el saldo aún pendiente, lo que falta se estima con la comisión de siempre,
+  // descontando la que ya pagó la visita para no pasar del tope por trabajo
   const pendiente = s.estado === 'confirmada' ? Math.max(0, precio - pagado.bruto) : 0;
-  const comisionPendiente = pendiente ? calcularComision(pendiente) : 0;
+  const comisionPendiente = pendiente ? calcularComision(pendiente, pagado.comision) : 0;
   const neto = ledger[0]?.pagos ? pagado.monto_neto + pendiente - comisionPendiente : ingresoNeto(precio, null);
   // Los gastos que el equipo rechazó en una disputa ya se devolvieron al cliente: no se descuentan otra vez
   const totalGastos = gastos.filter((g) => !g.rechazado).reduce((t, g) => t + g.monto, 0);

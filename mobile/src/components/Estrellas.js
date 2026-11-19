@@ -1,8 +1,9 @@
 import { Text, View } from 'react-native';
-import { colores, crearEstilos } from '../theme';
+import { colores, crearEstilos, letra } from '../theme';
 
 // Muestra la reputación: "★ 4,8 (32)" o "Nuevo" si aún no tiene reseñas.
-export function Estrellas({ promedio, total, tamano = 14 }) {
+export function Estrellas({ promedio, total, tamano: base = 14 }) {
+  const tamano = letra(base);
   if (!total) {
     return (
       <View style={estilos.nuevo}>

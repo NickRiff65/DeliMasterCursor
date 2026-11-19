@@ -7,8 +7,10 @@ import { Boton } from './Boton';
 import { BotonesFoto } from './BotonesFoto';
 import { Campo } from './Campo';
 import { Aviso } from './Aviso';
-import { colores, crearEstilos, espacio, radio } from '../theme';
+import { ConIcono } from './ConIcono';
+import { colores, crearEstilos, espacio, letra, radio } from '../theme';
 
+const BOLETA = require('../../assets/iconos/app/gastos.png');
 const aEntero = (texto) => Number(String(texto).replace(/\D/g, '')) || 0;
 const ADVERTENCIA = 'Adjunta la boleta de cada gasto. Sin boleta, el gasto no es válido para el cliente '
   + 'y él puede apelarlo ante la administración de DeliMaster.';
@@ -114,7 +116,9 @@ export function GastosDelTrabajo({ solicitudId }) {
 
   return (
     <View style={estilos.tarjeta}>
-      <Text style={estilos.titulo}>💰 Gastos y ganancia de este trabajo</Text>
+      <ConIcono icono={BOLETA} estilo={estilos.titulo}>
+        Gastos y ganancia de este trabajo
+      </ConIcono>
 
       {/* Resumen: precio → comisión → ingreso neto → gastos → ganancia */}
       <View style={estilos.resumen}>
@@ -135,7 +139,9 @@ export function GastosDelTrabajo({ solicitudId }) {
         <View key={g.id} style={estilos.gasto}>
           <View style={estilos.gastoFila}>
             {g.imagen_url ? <Image source={{ uri: g.imagen_url }} style={estilos.miniatura} /> : (
-              <View style={[estilos.miniatura, estilos.sinFoto]}><Text>🧾</Text></View>
+              <View style={[estilos.miniatura, estilos.sinFoto]}>
+                <Image source={BOLETA} tintColor={colores.textoSuave} accessibilityIgnoresInvertColors style={{ width: 24, height: 24 }} />
+              </View>
             )}
             <View style={{ flex: 1 }}>
               <Text style={[estilos.gastoMonto, g.rechazado && { textDecorationLine: 'line-through', color: colores.textoSuave }]}>{pesos(g.monto)}</Text>
@@ -148,7 +154,7 @@ export function GastosDelTrabajo({ solicitudId }) {
             </View>
             {editable ? (
               <Pressable onPress={() => eliminar(g.id)} hitSlop={8} accessibilityRole="button" accessibilityLabel="Eliminar gasto">
-                <Text style={{ color: colores.error, fontSize: 13, fontWeight: '600' }}>Eliminar</Text>
+                <Text style={{ color: colores.error, fontSize: letra(13), fontWeight: '600' }}>Eliminar</Text>
               </Pressable>
             ) : null}
           </View>
@@ -156,7 +162,7 @@ export function GastosDelTrabajo({ solicitudId }) {
             leyendo === g.id ? (
               <View style={estilos.leyendo}><ActivityIndicator color={colores.primario} /><Text style={estilos.texto}>Subiendo la boleta…</Text></View>
             ) : adjuntandoA === g.id ? (
-              <BotonesFoto onElegir={(camara) => adjuntarAGasto(g.id, camara)} web="🧾 Subir foto de la boleta" />
+              <BotonesFoto onElegir={(camara) => adjuntarAGasto(g.id, camara)} web="Subir foto de la boleta" />
             ) : (
               <Text style={estilos.enlace} onPress={() => setAdjuntandoA(g.id)} accessibilityRole="button">🧾 Adjuntar boleta</Text>
             )
@@ -173,7 +179,7 @@ export function GastosDelTrabajo({ solicitudId }) {
           <Campo etiqueta="Descripción (opcional)" value={descripcion} onChangeText={setDescripcion}
             placeholder="Ej.: cable y enchufes" maxLength={200} />
 
-          <Text style={estilos.subtitulo}>🧾 Boleta</Text>
+          <ConIcono icono={BOLETA} estilo={estilos.subtitulo}>Boleta</ConIcono>
           {leyendo === 'formulario' ? (
             <View style={estilos.leyendo}><ActivityIndicator color={colores.primario} /><Text style={estilos.texto}>Leyendo la boleta…</Text></View>
           ) : boleta ? (
@@ -192,7 +198,7 @@ export function GastosDelTrabajo({ solicitudId }) {
           ) : (
             <>
               <View style={estilos.advertencia}><Text style={estilos.advertenciaTexto}>⚠️ {ADVERTENCIA}</Text></View>
-              <BotonesFoto onElegir={adjuntarAlFormulario} camara="📷 Fotografiar" web="📷 Subir foto de la boleta" />
+              <BotonesFoto onElegir={adjuntarAlFormulario} camara="Fotografiar" web="Subir foto de la boleta" />
             </>
           )}
 
@@ -204,7 +210,8 @@ export function GastosDelTrabajo({ solicitudId }) {
         </View>
       ) : (
         <View style={{ marginTop: espacio.s }}>
-          <Boton titulo="✍️ Ingresar gasto a mano" onPress={() => setAbierto(true)} />
+          <Boton titulo="Ingresar gasto a mano" icono={require('../../assets/iconos/app/escribir.png')}
+            onPress={() => setAbierto(true)} />
         </View>
       )}
     </View>
