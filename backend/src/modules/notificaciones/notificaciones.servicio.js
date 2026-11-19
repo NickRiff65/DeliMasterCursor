@@ -49,7 +49,7 @@ function avisosDe(nuevo, anterior, s) {
       return [{ para: 'cliente', titulo: `${maestro} terminó el trabajo`, texto: 'Confírmalo y califícalo. Si algo quedó mal, repórtalo antes de confirmar.' }];
     case 'cerrada':
       return [
-        { para: 'prestador', titulo: '💰 Tu pago quedó liberado', texto: `Se liberaron ${pesos(s.neto_liberado)} por "${resumen(s)}"${reembolso}. Te los transferimos dentro de 48 horas hábiles.`, tipo: 'pago' },
+        { para: 'prestador', titulo: 'Tu pago quedó liberado', texto: `Se liberaron ${pesos(s.neto_liberado)} por "${resumen(s)}"${reembolso}. Te los transferimos dentro de 48 horas hábiles.`, tipo: 'pago' },
         anterior === 'en_disputa'
           ? { para: 'cliente', titulo: 'Resolvimos tu reclamo', texto: s.monto_reembolsado ? `Te devolvimos ${pesos(s.monto_reembolsado)} a la tarjeta con que pagaste. El trabajo quedó cerrado.` : 'El equipo revisó el caso y el pago se liberó al maestro. El trabajo quedó cerrado.' }
           : { para: 'cliente', titulo: 'Trabajo cerrado', texto: `"${resumen(s)}" quedó cerrado y el pago se liberó a ${maestro}.` },

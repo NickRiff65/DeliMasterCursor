@@ -11,6 +11,7 @@ import { ConIcono } from './ConIcono';
 import { colores, crearEstilos, espacio, letra, radio } from '../theme';
 
 const BOLETA = require('../../assets/iconos/app/gastos.png');
+const ADVERTENCIA_ICONO = require('../../assets/iconos/app/advertencia.png');
 const aEntero = (texto) => Number(String(texto).replace(/\D/g, '')) || 0;
 const ADVERTENCIA = 'Adjunta la boleta de cada gasto. Sin boleta, el gasto no es válido para el cliente '
   + 'y él puede apelarlo ante la administración de DeliMaster.';
@@ -150,7 +151,7 @@ export function GastosDelTrabajo({ solicitudId }) {
                 ? <Text style={estilos.rechazado}>✖ Rechazado por la administración: se devolvió al cliente y no cuenta como gasto</Text>
                 : g.con_boleta
                   ? <Text style={estilos.conBoleta}>✓ Con boleta</Text>
-                  : <Text style={estilos.sinBoleta}>⚠️ Sin boleta: no es válido para el cliente</Text>}
+                  : <ConIcono icono={ADVERTENCIA_ICONO} estilo={estilos.sinBoleta}>Sin boleta: no es válido para el cliente</ConIcono>}
             </View>
             {editable ? (
               <Pressable onPress={() => eliminar(g.id)} hitSlop={8} accessibilityRole="button" accessibilityLabel="Eliminar gasto">
@@ -164,14 +165,18 @@ export function GastosDelTrabajo({ solicitudId }) {
             ) : adjuntandoA === g.id ? (
               <BotonesFoto onElegir={(camara) => adjuntarAGasto(g.id, camara)} web="Subir foto de la boleta" />
             ) : (
-              <Text style={estilos.enlace} onPress={() => setAdjuntandoA(g.id)} accessibilityRole="button">🧾 Adjuntar boleta</Text>
+              <Pressable onPress={() => setAdjuntandoA(g.id)} accessibilityRole="button" accessibilityLabel="Adjuntar boleta" hitSlop={6}>
+                <ConIcono icono={BOLETA} estilo={estilos.enlace}>Adjuntar boleta</ConIcono>
+              </Pressable>
             )
           ) : null}
         </View>
       ))}
 
       {!editable ? (
-        <Text style={estilos.cerrado}>🔒 Marcaste el trabajo como terminado: los gastos quedaron registrados y ya no se pueden modificar.</Text>
+        <ConIcono icono={require('../../assets/iconos/app/protegido.png')} estilo={estilos.cerrado}>
+          Marcaste el trabajo como terminado: los gastos quedaron registrados y ya no se pueden modificar.
+        </ConIcono>
       ) : abierto ? (
         <View style={estilos.formulario}>
           <Text style={estilos.subtitulo}>Nuevo gasto</Text>
@@ -197,7 +202,9 @@ export function GastosDelTrabajo({ solicitudId }) {
             </View>
           ) : (
             <>
-              <View style={estilos.advertencia}><Text style={estilos.advertenciaTexto}>⚠️ {ADVERTENCIA}</Text></View>
+              <View style={estilos.advertencia}>
+                <ConIcono icono={ADVERTENCIA_ICONO} estilo={estilos.advertenciaTexto}>{ADVERTENCIA}</ConIcono>
+              </View>
               <BotonesFoto onElegir={adjuntarAlFormulario} camara="Fotografiar" web="Subir foto de la boleta" />
             </>
           )}

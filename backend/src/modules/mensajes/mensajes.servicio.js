@@ -93,13 +93,13 @@ async function avisarPorBloqueos(usuario, solicitudId) {
     'SELECT count(*)::int AS n FROM mensajes WHERE emisor_id = $1 AND bloqueado', [usuario.id]);
   if (n === UMBRAL_MODERACION) {
     await crearNotificacion(pool, usuario.id, {
-      titulo: '⚠️ Aviso por mensajes bloqueados',
+      titulo: 'Aviso por mensajes bloqueados',
       texto: 'Varios de tus mensajes fueron bloqueados por intentar acordar pagos o contactos por fuera de DeliMaster, lo que infringe las normas de la plataforma. Si continúas, tu cuenta será bloqueada.',
       solicitudId,
     });
   } else if (n === UMBRAL_MODERACION * 2) {
     await crearNotificacion(pool, usuario.id, {
-      titulo: '⛔ Último aviso: tu cuenta puede ser bloqueada',
+      titulo: 'Último aviso: tu cuenta puede ser bloqueada',
       texto: 'Siguen bloqueándose tus mensajes por intentar acordar pagos o contactos por fuera de DeliMaster. Este es el último aviso: si continúas infringiendo las normas, tu cuenta será bloqueada.',
       solicitudId,
     });

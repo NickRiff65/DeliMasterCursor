@@ -128,7 +128,7 @@ describe('Pedir un servicio', () => {
     const app = await abrirApp({ ruta: '/nueva-solicitud', pantallas: { 'nueva-solicitud': NuevaSolicitud } });
     const user = await escribir();
 
-    expect(await screen.findByText('📶 Estás sin conexión')).toBeOnTheScreen();
+    expect(await screen.findByText('Estás sin conexión')).toBeOnTheScreen();
     expect(screen.getByRole('button', { name: 'Guardar y enviar cuando haya señal' })).toBeDisabled();   // falta la dirección
     await user.type(screen.getByLabelText('Dirección exacta del trabajo'), DIRECCION);
     await user.press(screen.getByRole('button', { name: 'Guardar y enviar cuando haya señal' }));

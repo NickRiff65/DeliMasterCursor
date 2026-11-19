@@ -20,6 +20,8 @@ import { ResumenCotizacion } from '../../components/ResumenCotizacion';
 import { colores, crearEstilos, espacio, radio } from '../../theme';
 import { useTema } from '../../context/tema';
 
+const PROTEGIDO = require('../../../assets/iconos/app/protegido.png');
+
 const RESULTADOS = {
   aprobado: { texto: '✔ Pago aprobado. Tu dinero quedó protegido.', fondo: 'exitoFondo', borde: 'exitoBorde', color: 'exitoTexto' },
   rechazado: { texto: 'El pago fue rechazado. Puedes intentarlo de nuevo con otro medio de pago.', fondo: 'errorSuave', borde: 'errorBorde', color: 'errorTexto' },
@@ -157,7 +159,7 @@ export default function DetalleSolicitud() {
       {/* Privacidad de la dirección: el maestro solo ve la comuna hasta que la visita se concreta */}
       {s.prestador && !['creada', 'asignada', 'cerrada', 'cancelada'].includes(s.estado) ? (
         <View style={estilos.tarjeta}>
-          <Text style={estilos.subtitulo}>🔒 Tu dirección está protegida</Text>
+          <ConIcono icono={PROTEGIDO} estilo={estilos.subtitulo}>Tu dirección está protegida</ConIcono>
           {s.direccion_visible_para_prestador ? (
             <Text style={estilos.texto}>
               {s.prestador.nombre.split(' ')[0]} ya puede ver tu dirección exacta, porque la visita quedó concretada
@@ -292,9 +294,9 @@ export default function DetalleSolicitud() {
           {/* Al pagar la visita conviene guardar la tarjeta: el saldo se paga después con un toque */}
           <OpcionesDePago monto={s.tarifa_visita} etiqueta="Pagar visita" tarjeta={tarjeta} onPagar={pagar}
             cargando={accion} guardarPorDefecto />
-          <Text style={estilos.suave}>
-            🔒 Si contratas el trabajo, la visita se descuenta del total. Si {primerNombre} no llega, te la devolvemos.
-          </Text>
+          <ConIcono icono={PROTEGIDO} estilo={estilos.suave}>
+            Si contratas el trabajo, la visita se descuenta del total. Si {primerNombre} no llega, te la devolvemos.
+          </ConIcono>
         </View>
       ) : null}
 
@@ -334,9 +336,9 @@ export default function DetalleSolicitud() {
           <Text style={estilos.nombre}>Cotización de {primerNombre}</Text>
           {s.cotizacion.total_anterior ? (
             <View style={estilos.corregida}>
-              <Text style={estilos.corregidaTexto}>
-                ✏️ {primerNombre} corrigió la cotización: antes era {pesos(s.cotizacion.total_anterior)}.
-              </Text>
+              <ConIcono icono={require('../../../assets/iconos/app/escribir.png')} estilo={estilos.corregidaTexto}>
+                {primerNombre} corrigió la cotización: antes era {pesos(s.cotizacion.total_anterior)}.
+              </ConIcono>
             </View>
           ) : null}
           <ResumenCotizacion cotizacion={s.cotizacion} tarifaVisita={s.tarifa_visita} />
@@ -355,7 +357,7 @@ export default function DetalleSolicitud() {
           ) : (
             <Boton titulo="Rechazar" variante="secundario" onPress={() => setConfirmarCancelar(true)} />
           )}
-          <Text style={estilos.suave}>🔒 El saldo queda retenido por DeliMaster hasta que confirmes que el trabajo terminó.</Text>
+          <ConIcono icono={PROTEGIDO} estilo={estilos.suave}>El saldo queda retenido por DeliMaster hasta que confirmes que el trabajo terminó.</ConIcono>
         </View>
       ) : null}
 
@@ -368,16 +370,16 @@ export default function DetalleSolicitud() {
             <Text style={estilos.suave}>Total {pesos(s.precio_acordado)} menos la visita ya pagada ({pesos(s.tarifa_visita)}).</Text>
           ) : null}
           <OpcionesDePago monto={s.monto_por_pagar} tarjeta={tarjeta} onPagar={pagar} cargando={accion} />
-          <Text style={estilos.suave}>
-            🔒 Tu pago queda retenido por DeliMaster y solo se libera al maestro cuando confirmes que el trabajo terminó.
-          </Text>
+          <ConIcono icono={PROTEGIDO} estilo={estilos.suave}>
+            Tu pago queda retenido por DeliMaster y solo se libera al maestro cuando confirmes que el trabajo terminó.
+          </ConIcono>
         </View>
       ) : null}
 
       {/* pagada: dinero retenido en garantía */}
       {s.estado === 'pagada' ? (
         <View style={[estilos.tarjeta, estilos.confirmada]}>
-          <Text style={estilos.nombre}>🔒 Pago protegido</Text>
+          <ConIcono icono={PROTEGIDO} estilo={estilos.nombre}>Pago protegido</ConIcono>
           <Text style={estilos.precio}>{pesos(s.precio_acordado)}</Text>
           <Text style={estilos.texto}>
             DeliMaster retiene tu pago. {s.prestador.nombre.split(' ')[0]} lo recibirá cuando el trabajo termine y tú confirmes el cierre.

@@ -8,6 +8,8 @@ import { Campo } from './Campo';
 import { ConIcono } from './ConIcono';
 import { colores, crearEstilos, espacio, radio } from '../theme';
 
+const ADVERTENCIA_ICONO = require('../../assets/iconos/app/advertencia.png');
+
 // Lite: gastos en materiales que el maestro registró en el trabajo y si tienen boleta. Los que no la
 // tienen no están justificados: el cliente puede apelarlos ante la administración (se abre un reclamo
 // y el pago sigue retenido mientras el equipo revisa).
@@ -61,7 +63,7 @@ export function MaterialesDelTrabajo({ solicitudId, maestro, onApelada }) {
               <Text style={estilos.sinBoleta}>✖ Rechazado por el equipo · se te devolvió</Text>
             ) : g.con_boleta ? (
               <Text style={estilos.conBoleta} onPress={() => setAmpliada(g)} accessibilityRole="button">✓ Con boleta · Ver</Text>
-            ) : <Text style={estilos.sinBoleta}>⚠️ Sin boleta</Text>}
+            ) : <ConIcono icono={ADVERTENCIA_ICONO} estilo={estilos.sinBoleta}>Sin boleta</ConIcono>}
           </View>
           <Text style={[estilos.monto, g.rechazado && { textDecorationLine: 'line-through', color: colores.textoSuave }]}>{pesos(g.monto)}</Text>
         </View>
@@ -73,10 +75,10 @@ export function MaterialesDelTrabajo({ solicitudId, maestro, onApelada }) {
 
       {sinBoleta.length ? (
         <View style={estilos.advertencia}>
-          <Text style={estilos.advertenciaTexto}>
-            ⚠️ {sinBoleta.length === 1 ? 'Un gasto no tiene boleta: no está justificado.' : `${sinBoleta.length} gastos no tienen boleta: no están justificados.`}
+          <ConIcono icono={ADVERTENCIA_ICONO} estilo={estilos.advertenciaTexto}>
+            {sinBoleta.length === 1 ? 'Un gasto no tiene boleta: no está justificado.' : `${sinBoleta.length} gastos no tienen boleta: no están justificados.`}
             {datos.puede_apelar ? ' Si no se justifican, puedes apelarlos ante la administración de DeliMaster.' : ''}
-          </Text>
+          </ConIcono>
         </View>
       ) : null}
 

@@ -5,6 +5,8 @@ import { useAvisos } from '../context/avisos';
 import { ES_PRO } from '../lib/variante';
 import { fechaCorta } from '../lib/formato';
 import { Aviso } from '../components/Aviso';
+import { ConIcono } from '../components/ConIcono';
+import { presentarAviso } from '../lib/avisos';
 import { colores, crearEstilos, espacio, radio } from '../theme';
 import { useTema } from '../context/tema';
 
@@ -37,7 +39,7 @@ export default function Avisos() {
         <Pressable accessibilityRole="button" disabled={!n.solicitud_id}
           onPress={() => router.push(ES_PRO ? `/trabajo/${n.solicitud_id}` : `/solicitud/${n.solicitud_id}`)}
           style={[estilos.tarjeta, recien(n) && estilos.nuevo, n.tipo === 'pago' && estilos.pago]}>
-          <Text style={estilos.titulo}>{n.titulo}</Text>
+          <ConIcono icono={presentarAviso(n).icono} estilo={estilos.titulo}>{presentarAviso(n).titulo}</ConIcono>
           <Text style={estilos.texto}>{n.texto}</Text>
           <Text style={estilos.fecha}>{fechaCorta(n.creado_en)}</Text>
         </Pressable>

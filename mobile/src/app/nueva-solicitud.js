@@ -253,7 +253,9 @@ export default function NuevaSolicitud() {
 
         {sinConexion && paso === 'escribir' ? (
           <View style={estilos.sinSenal}>
-            <Text style={estilos.sinSenalTitulo}>📶 Estás sin conexión</Text>
+            <ConIcono icono={require('../../assets/iconos/app/sin-senal.png')} estilo={estilos.sinSenalTitulo}>
+              Estás sin conexión
+            </ConIcono>
             <Text style={estilos.sinSenalTexto}>
               Guarda tu solicitud y la enviaremos sola apenas vuelva la señal. Luego podrás elegir al maestro.
             </Text>

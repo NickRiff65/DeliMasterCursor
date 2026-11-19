@@ -66,8 +66,8 @@ describe('Gastos del trabajo (maestro)', () => {
     await render(<GastosDelTrabajo solicitudId={ID} />);
     const user = userEvent.setup();
 
-    expect(await screen.findByText('⚠️ Sin boleta: no es válido para el cliente')).toBeOnTheScreen();
-    await user.press(screen.getByRole('button', { name: '🧾 Adjuntar boleta' }));
+    expect(await screen.findByText('Sin boleta: no es válido para el cliente')).toBeOnTheScreen();
+    await user.press(screen.getByRole('button', { name: 'Adjuntar boleta' }));
     await user.press(screen.getByRole('button', { name: 'Cámara' }));
     expect(await screen.findByText('✓ Con boleta')).toBeOnTheScreen();
     expect(llamadas.find((l) => l.metodo === 'PATCH').cuerpo).toEqual({ boleta_id: 'b1' });
@@ -81,7 +81,7 @@ describe('Gastos del trabajo terminado (maestro)', () => {
     expect(await screen.findByText(/los gastos quedaron registrados y ya no se pueden modificar/)).toBeOnTheScreen();
     expect(screen.queryByRole('button', { name: 'Ingresar gasto a mano' })).not.toBeOnTheScreen();
     expect(screen.queryByRole('button', { name: 'Eliminar gasto' })).not.toBeOnTheScreen();
-    expect(screen.queryByRole('button', { name: '🧾 Adjuntar boleta' })).not.toBeOnTheScreen();
+    expect(screen.queryByRole('button', { name: 'Adjuntar boleta' })).not.toBeOnTheScreen();
   });
 });
 
@@ -102,7 +102,7 @@ describe('Gastos en materiales (cliente)', () => {
 
     expect(await screen.findByText('Juan registró estos gastos del trabajo. Cada uno debe tener su boleta.')).toBeOnTheScreen();
     expect(screen.getByText('✓ Con boleta · Ver')).toBeOnTheScreen();
-    expect(screen.getByText('⚠️ Sin boleta')).toBeOnTheScreen();
+    expect(screen.getByText('Sin boleta')).toBeOnTheScreen();
     expect(screen.getByText('$19.780')).toBeOnTheScreen();
     expect(screen.getByText(/Un gasto no tiene boleta: no está justificado\. Si no se justifican, puedes apelarlos/)).toBeOnTheScreen();
 
@@ -116,7 +116,7 @@ describe('Gastos en materiales (cliente)', () => {
   test('antes del pago informa, pero aún no ofrece apelar', async () => {
     simularApi({ [`GET /solicitudes/${ID}/materiales`]: materiales(false) });
     await render(<MaterialesDelTrabajo solicitudId={ID} maestro="Juan" />);
-    expect(await screen.findByText('⚠️ Sin boleta')).toBeOnTheScreen();
+    expect(await screen.findByText('Sin boleta')).toBeOnTheScreen();
     expect(screen.queryByRole('button', { name: 'Apelar gastos sin boleta' })).not.toBeOnTheScreen();
   });
 
@@ -125,7 +125,7 @@ describe('Gastos en materiales (cliente)', () => {
     await render(<MaterialesDelTrabajo solicitudId={ID} maestro="Juan" />);
     await waitFor(() => expect(global.fetch).toHaveBeenCalledTimes(1));
     await act(async () => {});   // termina de cargar
-    expect(screen.queryByText('🧾 Gastos en materiales')).not.toBeOnTheScreen();
+    expect(screen.queryByText('Gastos en materiales')).not.toBeOnTheScreen();
   });
 });
 

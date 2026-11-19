@@ -354,7 +354,7 @@ export async function revisarVencimientos(db = pool) {
 // La app promete avisar al maestro cuando el equipo revise su solicitud
 function avisoResolucion({ categoria, organismo }, decision, observacion) {
   return decision === 'aprobada'
-    ? { titulo: `✅ Quedaste verificado en ${categoria}`, tipo: 'verificacion',
+    ? { titulo: `Quedaste verificado en ${categoria}`, tipo: 'verificacion',
       texto: `Revisamos tu registro en ${organismo}. Ya puedes aparecer en el catálogo para este servicio.` }
     : { titulo: `No pudimos verificarte en ${categoria}`, tipo: 'verificacion',
       texto: `Motivo: ${observacion} Revisa tus datos y envía una nueva solicitud desde Mis verificaciones.` };

@@ -74,7 +74,7 @@ describe('Cliente (Lite)', () => {
 
   test('si el maestro corrigió la cotización, lo muestra con el monto anterior', async () => {
     await abrirComoCliente({ ...base, estado: 'cotizada', cotizacion: { ...cotizacion, total_anterior: 150_000 } });
-    expect(await screen.findByText('✏️ María corrigió la cotización: antes era $150.000.')).toBeOnTheScreen();
+    expect(await screen.findByText('María corrigió la cotización: antes era $150.000.')).toBeOnTheScreen();
   });
 
   test('si la cotización cambió mientras la miraba, no la acepta a ciegas y muestra la nueva', async () => {
@@ -119,7 +119,7 @@ describe('Prestador (Pro)', () => {
       { [`POST /solicitudes/${ID}/responder`]: { solicitud: { ...base, estado: 'visita_por_pagar' } } });
     const user = userEvent.setup();
     expect(await screen.findByText(/entre \$15\.000 y \$35\.000/)).toBeOnTheScreen();
-    expect(screen.getByRole('radio', { name: '🔍 Visita + cotización' })).toBeChecked();
+    expect(screen.getByRole('radio', { name: 'Visita + cotización' })).toBeChecked();
 
     await user.press(screen.getByRole('button', { name: 'Aceptar trabajo' }));
     expect(screen.getByText('Indica cuánto cobras por la visita')).toBeOnTheScreen();
@@ -195,7 +195,7 @@ describe('Prestador (Pro)', () => {
       } }),
     });
     const user = userEvent.setup();
-    await user.press(await screen.findByRole('button', { name: '✏️ Corregir cotización' }));
+    await user.press(await screen.findByRole('button', { name: 'Corregir cotización' }));
     // El formulario parte con la cotización enviada
     const manoObra = screen.getByLabelText('Mano de obra (CLP)');
     expect(manoObra).toHaveDisplayValue('100000');
@@ -204,7 +204,7 @@ describe('Prestador (Pro)', () => {
     await user.type(manoObra, '80000');
     await user.press(screen.getByRole('button', { name: 'Enviar cotización corregida' }));
 
-    expect(await screen.findByText('✏️ La corregiste (antes $120.000).')).toBeOnTheScreen();
+    expect(await screen.findByText('La corregiste (antes $120.000).')).toBeOnTheScreen();
     expect(llamadas.find((l) => l.metodo === 'POST').cuerpo).toEqual({
       mano_obra: 80_000, materiales: 20_000, detalle: 'Cambio de tablero y dos automáticos',
     });

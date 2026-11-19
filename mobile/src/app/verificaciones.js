@@ -6,8 +6,12 @@ import { Boton } from '../components/Boton';
 import { Campo } from '../components/Campo';
 import { Chip } from '../components/Chip';
 import { EstadoVerificacion } from '../components/EstadoVerificacion';
+import { ConIcono } from '../components/ConIcono';
 import { colores, crearEstilos, espacio, radio } from '../theme';
 import { useTema } from '../context/tema';
+
+const ESCUDO = require('../../assets/iconos/perfil/verificaciones.png');
+const RELOJ = require('../../assets/iconos/app/reloj.png');
 
 const fecha = (iso) => new Date(iso).toLocaleDateString('es-CL', { day: 'numeric', month: 'short', year: 'numeric' });
 // Fecha sin hora (AAAA-MM-DD) y días que faltan para ella
@@ -88,8 +92,8 @@ export default function Verificaciones() {
       setNumero('');
       setCodigo('');
       setExito(verificacion.estado === 'aprobada'
-        ? '✅ La SEC confirmó tu registro: ya quedaste verificado.'
-        : 'Solicitud enviada. Te avisaremos cuando el equipo la revise.');
+        ? { texto: 'La SEC confirmó tu registro: ya quedaste verificado.', icono: ESCUDO }
+        : { texto: 'Solicitud enviada. Te avisaremos cuando el equipo la revise.', icono: RELOJ });
       await cargarLista();
     } catch (e) {
       setErrores(e.campos);
@@ -125,12 +129,14 @@ export default function Verificaciones() {
         </View>
 
         <Aviso mensaje={error} />
-        {exito ? <Text style={estilos.exito}>{exito}</Text> : null}
+        {exito ? <ConIcono icono={exito.icono} estilo={estilos.exito}>{exito.texto}</ConIcono> : null}
 
         {/* Ya verificado (o en revisión) en este oficio: se dice claramente en vez de ofrecer verificarse otra vez */}
         {estadoActual === 'verificado' ? (
           <View style={estilos.yaVerificado}>
-            <Text style={estilos.yaVerificadoTitulo}>✅ Ya estás verificado por la {actual.organismo} en {seleccionada?.nombre}</Text>
+            <ConIcono icono={ESCUDO} estilo={estilos.yaVerificadoTitulo}>
+              Ya estás verificado por la {actual.organismo} en {seleccionada?.nombre}
+            </ConIcono>
             <Text style={estilos.yaVerificadoTexto}>
               {actual.vence_en ? `Vigente hasta el ${fechaDia(actual.vence_en)}. ` : ''}
               Apareces en el catálogo para este servicio.{actual.vence_en ? ' Te avisaremos cuando debas renovarlo.' : ''}
@@ -138,7 +144,9 @@ export default function Verificaciones() {
           </View>
         ) : estadoActual === 'en_revision' ? (
           <View style={estilos.enRevision}>
-            <Text style={estilos.enRevisionTitulo}>⏳ Tu solicitud para {seleccionada?.nombre} está en revisión</Text>
+            <ConIcono icono={RELOJ} estilo={estilos.enRevisionTitulo}>
+              Tu solicitud para {seleccionada?.nombre} está en revisión
+            </ConIcono>
             <Text style={estilos.enRevisionTexto}>La enviaste el {fecha(actual.creado_en)}. Te avisaremos cuando el equipo la revise.</Text>
           </View>
         ) : estadoActual === 'por_vencer' ? (

@@ -126,9 +126,9 @@ export default function Chat() {
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined} keyboardVerticalOffset={90}>
       {filtroActivo ? (
         <View style={estilos.banner}>
-          <Text style={estilos.bannerTexto}>
-            🔒 Por tu seguridad, los teléfonos, correos y datos bancarios se bloquean hasta que el pago esté protegido.
-          </Text>
+          <ConIcono icono={require('../../../assets/iconos/app/protegido.png')} estilo={estilos.bannerTexto}>
+            Por tu seguridad, los teléfonos, correos y datos bancarios se bloquean hasta que el pago esté protegido.
+          </ConIcono>
         </View>
       ) : null}
 

@@ -21,6 +21,14 @@ import { ResumenCotizacion } from '../../components/ResumenCotizacion';
 import { colores, crearEstilos, espacio, radio } from '../../theme';
 import { useTema } from '../../context/tema';
 
+// Íconos de línea (PNG transparente) que se pintan del color del texto
+const ICONOS = {
+  lupa: require('../../../assets/iconos/app/lupa.png'),
+  cartera: require('../../../assets/iconos/app/cartera.png'),
+  protegido: require('../../../assets/iconos/app/protegido.png'),
+  escribir: require('../../../assets/iconos/app/escribir.png'),
+};
+
 // "45.000" o "45000" → 45000
 const aPesos = (texto) => Number(String(texto).replace(/\D/g, ''));
 
@@ -196,13 +204,15 @@ export default function DetalleTrabajo() {
           <Text style={[estilos.titulo, { marginTop: espacio.m }]}>¿Cómo quieres cobrar?</Text>
           <View style={estilos.opciones} accessibilityRole="radiogroup">
             {[
-              ['visita', '🔍 Visita + cotización', 'Cobras la visita, diagnosticas y cotizas en la app.'],
-              ['precio_cerrado', '💰 Precio cerrado', 'Ya sabes cuánto cuesta: el cliente paga el total.'],
-            ].map(([valor, nombre, descripcion]) => (
+              ['visita', 'Visita + cotización', 'Cobras la visita, diagnosticas y cotizas en la app.', ICONOS.lupa],
+              ['precio_cerrado', 'Precio cerrado', 'Ya sabes cuánto cuesta: el cliente paga el total.', ICONOS.cartera],
+            ].map(([valor, nombre, descripcion, icono]) => (
               <Pressable key={valor} onPress={() => setModalidad(valor)} accessibilityRole="radio"
                 accessibilityState={{ checked: modalidad === valor }} accessibilityLabel={nombre}
                 style={[estilos.opcion, modalidad === valor && estilos.opcionElegida]}>
-                <Text style={[estilos.opcionNombre, modalidad === valor && { color: colores.primarioOscuro }]}>{nombre}</Text>
+                <ConIcono icono={icono} estilo={[estilos.opcionNombre, modalidad === valor && { color: colores.primarioOscuro }]}>
+                  {nombre}
+                </ConIcono>
                 <Text style={estilos.suave}>{descripcion}</Text>
               </Pressable>
             ))}
@@ -257,7 +267,7 @@ export default function DetalleTrabajo() {
 
       {s.estado === 'visita_pagada' ? (
         <View style={[estilos.tarjeta, estilos.confirmada, { gap: espacio.xs }]}>
-          <Text style={estilos.titulo}>🔒 Visita pagada: {diaYHora(s.visita_programada_en)}</Text>
+          <ConIcono icono={ICONOS.protegido} estilo={estilos.titulo}>Visita pagada: {diaYHora(s.visita_programada_en)}</ConIcono>
           <Text style={estilos.texto}>
             Cuando llegues, pídele a {s.cliente.nombre} su código de 4 dígitos. Al ingresarlo, la visita ({pesos(s.tarifa_visita)}) pasa a ser tuya.
             {s.latitud != null ? ' Como dejó el punto en el mapa, también confirmamos que estás en el lugar.' : ''}
@@ -282,7 +292,7 @@ export default function DetalleTrabajo() {
         <View style={[estilos.tarjeta, { gap: espacio.xs }]}>
           {corrigiendo ? (
             <>
-              <Text style={estilos.titulo}>✏️ Corregir la cotización</Text>
+              <ConIcono icono={ICONOS.escribir} estilo={estilos.titulo}>Corregir la cotización</ConIcono>
               <Text style={estilos.texto}>{s.cliente.nombre} verá la nueva y cuánto era antes. Puedes corregirla mientras no responda.</Text>
             </>
           ) : (
@@ -320,13 +330,13 @@ export default function DetalleTrabajo() {
         <View style={[estilos.tarjeta, estilos.responder]}>
           <Text style={estilos.titulo}>Cotización enviada · esperando a {s.cliente.nombre}</Text>
           {s.cotizacion.total_anterior ? (
-            <Text style={estilos.suave}>✏️ La corregiste (antes {pesos(s.cotizacion.total_anterior)}).</Text>
+            <ConIcono icono={ICONOS.escribir} estilo={estilos.suave}>La corregiste (antes {pesos(s.cotizacion.total_anterior)}).</ConIcono>
           ) : null}
           <ResumenCotizacion cotizacion={s.cotizacion} tarifaVisita={s.tarifa_visita} />
           <Text style={estilos.suave}>Si la rechaza, la visita igual queda para ti.</Text>
           {/* ¿Te equivocaste? Se puede corregir mientras el cliente no responda */}
           <View style={{ marginTop: espacio.s }}>
-            <Boton titulo="✏️ Corregir cotización" variante="secundario" onPress={() => {
+            <Boton titulo="Corregir cotización" icono={ICONOS.escribir} variante="secundario" onPress={() => {
               setManoObra(String(s.cotizacion.mano_obra));
               setMateriales(s.cotizacion.materiales ? String(s.cotizacion.materiales) : '');
               setDetalle(s.cotizacion.detalle ?? '');
@@ -351,7 +361,7 @@ export default function DetalleTrabajo() {
 
       {s.estado === 'pagada' ? (
         <View style={[estilos.tarjeta, estilos.confirmada]}>
-          <Text style={estilos.titulo}>🔒 {s.cliente.nombre} pagó {pesos(s.precio_acordado)}</Text>
+          <ConIcono icono={ICONOS.protegido} estilo={estilos.titulo}>{s.cliente.nombre} pagó {pesos(s.precio_acordado)}</ConIcono>
           <Text style={estilos.texto}>
             El dinero está retenido en DeliMaster. Haz el trabajo y, cuando el cliente confirme el cierre, se te transferirá
             el monto menos la comisión de la plataforma. Ya pueden compartir datos de contacto en el chat.

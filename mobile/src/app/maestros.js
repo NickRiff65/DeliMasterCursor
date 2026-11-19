@@ -85,7 +85,8 @@ export default function Maestros() {
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={estilos.chips} contentContainerStyle={estilos.chipsContenido}>
               <Chip texto="Solo en horario ahora" icono={require('../../assets/iconos/app/reloj.png')} activo={soloEnHorario}
                 onPress={() => setSoloEnHorario((v) => !v)} />
-              <Chip texto="✨ Nuevos" activo={soloNuevos} onPress={() => setSoloNuevos((v) => !v)} />
+              <Chip texto="Nuevos" icono={require('../../assets/iconos/app/destellos.png')} activo={soloNuevos}
+                onPress={() => setSoloNuevos((v) => !v)} />
             </ScrollView>
 
             <Text style={estilos.ordenEtiqueta}>Ordenar por</Text>

@@ -139,7 +139,7 @@ describe('Dirección, gastos rechazados, avisos y dinero del maestro', { skip: !
     await como(prestador)(request(app).post(`/api/solicitudes/${solicitudId}/finalizar`));
     await como(cliente)(request(app).post(`/api/solicitudes/${solicitudId}/cerrar`));
     const liberado = (await avisos(prestador)).notificaciones[0];
-    assert.equal(liberado.titulo, '💰 Tu pago quedó liberado');
+    assert.equal(liberado.titulo, 'Tu pago quedó liberado');
     assert.match(liberado.texto, /Se liberaron \$44\.000/);
     assert.equal(liberado.tipo, 'pago');
     assert.deepEqual(await dinero(), { retenido: 0, por_transferir: 44000, transferido: 0, transferencias: [] });
@@ -149,7 +149,7 @@ describe('Dirección, gastos rechazados, avisos y dinero del maestro', { skip: !
       .send({ movimientos: [mov.id], comprobante: 'TRF-2026-001' });
     assert.equal(t.status, 201, JSON.stringify(t.body));
     const transferido = (await avisos(prestador)).notificaciones[0];
-    assert.equal(transferido.titulo, '🏦 Te transferimos tu pago');
+    assert.equal(transferido.titulo, 'Te transferimos tu pago');
     assert.match(transferido.texto, /Te transferimos \$44\.000 por 1 trabajo\. Comprobante TRF-2026-001/);
 
     const d = await dinero();

@@ -2,6 +2,10 @@ import { Pressable, Text, View } from 'react-native';
 import { useCola } from '../context/cola';
 import { fechaCorta } from '../lib/formato';
 import { ConUbicacion } from './ConUbicacion';
+import { ConIcono } from './ConIcono';
+
+const RELOJ = require('../../assets/iconos/app/reloj.png');
+const SIN_SENAL = require('../../assets/iconos/app/sin-senal.png');
 import { colores, crearEstilos, espacio, radio } from '../theme';
 
 // HU-12: solicitudes guardadas en el celular que aún no llegan al servidor
@@ -25,9 +29,9 @@ export function PendientesDeEnvio({ recienGuardada = false }) {
           {item.estado === 'revisar' ? (
             <Text style={estilos.error}>No se pudo enviar: {item.error}</Text>
           ) : (
-            <Text style={estilos.estado}>
-              {enviando ? '⏳ Enviando…' : conectado ? '⏳ Esperando para enviar' : '📶 Esperando señal'}
-            </Text>
+            <ConIcono icono={conectado || enviando ? RELOJ : SIN_SENAL} estilo={estilos.estado}>
+              {enviando ? 'Enviando…' : conectado ? 'Esperando para enviar' : 'Esperando señal'}
+            </ConIcono>
           )}
           <View style={estilos.acciones}>
             {item.estado === 'pendiente' ? (

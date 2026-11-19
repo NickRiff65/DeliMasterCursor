@@ -33,7 +33,7 @@ describe('Verificaciones (Pro)', () => {
     expect(screen.getByRole('button', { name: '✓ Electricidad · SEC' })).toBeOnTheScreen();
 
     await userEvent.setup().press(screen.getByRole('button', { name: '✓ Electricidad · SEC' }));
-    expect(screen.getByText('✅ Ya estás verificado por la SEC en Electricidad')).toBeOnTheScreen();
+    expect(screen.getByText('Ya estás verificado por la SEC en Electricidad')).toBeOnTheScreen();
     expect(screen.getByText(/Vigente hasta el .*Apareces en el catálogo para este servicio/)).toBeOnTheScreen();
     expect(screen.queryByRole('button', { name: 'Enviar solicitud' })).not.toBeOnTheScreen();
     expect(screen.queryByLabelText('N.º de registro SEC')).not.toBeOnTheScreen();
@@ -42,7 +42,7 @@ describe('Verificaciones (Pro)', () => {
   test('con la solicitud en revisión, avisa que se está revisando', async () => {
     await abrir([verificacion('electricidad', 'Electricidad'), verificacion('gas', 'Instalaciones de gas', { estado: 'pendiente', vence_en: null })]);
     await userEvent.setup().press(await screen.findByRole('button', { name: 'Instalaciones de gas · SEC' }));
-    expect(screen.getByText('⏳ Tu solicitud para Instalaciones de gas está en revisión')).toBeOnTheScreen();
+    expect(screen.getByText('Tu solicitud para Instalaciones de gas está en revisión')).toBeOnTheScreen();
     expect(screen.queryByRole('button', { name: 'Enviar solicitud' })).not.toBeOnTheScreen();
   });
 
@@ -78,7 +78,7 @@ describe('Verificaciones (Pro)', () => {
       expect(envio.cuerpo).toEqual({
         categoria: 'electricidad', numero_registro: 'SEC-123', codigo_certificado: '7731-2209', rut: '12.345.678-5', apellido_paterno: 'Soto',
       });
-      expect(await screen.findByText('✅ La SEC confirmó tu registro: ya quedaste verificado.')).toBeOnTheScreen();
+      expect(await screen.findByText('La SEC confirmó tu registro: ya quedaste verificado.')).toBeOnTheScreen();
     });
 
     test('si queda en revisión, avisa que el equipo la revisará', async () => {

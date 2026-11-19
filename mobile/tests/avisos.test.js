@@ -51,7 +51,25 @@ describe('Avisos dentro de la app', () => {
     await screen.findByRole('button', { name: 'Avisos' });
     await act(async () => manejadores.notificacion(aviso(9, '🏦 Te transferimos tu pago', { tipo: 'pago' })));
     expect(await screen.findByRole('alert', { name: /Te transferimos tu pago/ })).toBeOnTheScreen();
+    expect(screen.getByText('Te transferimos tu pago')).toBeOnTheScreen();   // un aviso antiguo se muestra sin su emoji
     expect(screen.getByRole('button', { name: 'Avisos, 1 sin leer' })).toBeOnTheScreen();
+  });
+
+  test('cada aviso lleva un ícono según de qué trata, en vez de un emoji', () => {
+    const { iconoDeAviso, tituloSinEmoji } = require('../src/lib/avisos');
+    const icono = (nombre) => require(`../assets/iconos/${nombre}.png`);
+    expect(tituloSinEmoji('🏦 Te transferimos tu pago')).toBe('Te transferimos tu pago');
+    expect(tituloSinEmoji('⚠️ Aviso por mensajes bloqueados')).toBe('Aviso por mensajes bloqueados');
+    expect(tituloSinEmoji('✅ Quedaste verificado en Electricidad')).toBe('Quedaste verificado en Electricidad');
+    expect(tituloSinEmoji('El maestro no respondió')).toBe('El maestro no respondió');
+
+    expect(iconoDeAviso({ tipo: 'pago', titulo: 'Tu pago quedó liberado' })).toBe(icono('app/cartera'));
+    expect(iconoDeAviso({ tipo: 'verificacion', titulo: 'Quedaste verificado en Electricidad' })).toBe(icono('perfil/verificaciones'));
+    expect(iconoDeAviso({ tipo: 'verificacion', titulo: 'Tu verificación SEC venció' })).toBe(icono('app/advertencia'));
+    expect(iconoDeAviso({ tipo: 'solicitud', titulo: 'Último aviso: tu cuenta puede ser bloqueada' })).toBe(icono('app/advertencia'));
+    expect(iconoDeAviso({ tipo: 'solicitud', titulo: 'El maestro no respondió' })).toBe(icono('app/reloj'));
+    expect(iconoDeAviso({ tipo: 'solicitud', titulo: 'El cliente compartió su dirección' })).toBe(icono('app/ubicacion'));
+    expect(iconoDeAviso({ tipo: 'solicitud', titulo: 'Tienes una nueva solicitud' })).toBe(icono('app/trabajador'));
   });
 });
 

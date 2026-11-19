@@ -397,7 +397,7 @@ export async function registrarTransferencia(admin, prestadorId, { movimientos, 
     // Aviso al maestro: el dinero ya está en su cuenta
     await crearNotificacion(db, prestadorId, {
       tipo: 'pago',
-      titulo: '🏦 Te transferimos tu pago',
+      titulo: 'Te transferimos tu pago',
       texto: `Te transferimos $${total.toLocaleString('es-CL')} por ${rows.length === 1 ? '1 trabajo' : `${rows.length} trabajos`}. `
         + `Comprobante ${comprobante}.`,
     });
