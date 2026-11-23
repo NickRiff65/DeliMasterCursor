@@ -67,10 +67,11 @@ function coordenada(partes, referencia) {
   return Math.round(valor * 1e7) / 1e7;
 }
 
-// Extrae del JPEG: fecha original de la foto, coordenadas GPS y equipo que la tomó.
-// Lo que no venga queda en null (no todos los teléfonos guardan el GPS, por ejemplo).
+// Extrae del JPEG: fecha original de la foto, coordenadas GPS, equipo que la tomó y programa con
+// que se guardó (un editor deja su nombre ahí). Lo que no venga queda en null (no todos los
+// teléfonos guardan el GPS, por ejemplo).
 export function extraerExif(buffer) {
-  const vacio = { fechaOriginal: null, lat: null, lng: null, dispositivo: null };
+  const vacio = { fechaOriginal: null, lat: null, lng: null, dispositivo: null, software: null };
   if (!Buffer.isBuffer(buffer) || buffer.length < 4 || buffer[0] !== 0xff || buffer[1] !== 0xd8) return vacio;
   try {
     let pos = 2;
@@ -97,6 +98,7 @@ export function extraerExif(buffer) {
           lat: coordenada(gps[0x0002], gps[0x0001]),
           lng: coordenada(gps[0x0004], gps[0x0003]),
           dispositivo,
+          software: typeof ifd0[0x0131] === 'string' && ifd0[0x0131] ? ifd0[0x0131] : null,
         };
       }
       pos += 2 + largo;

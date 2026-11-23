@@ -5,7 +5,8 @@ import { useSesion } from '../context/sesion';
 import { Aviso } from '../components/Aviso';
 import { Boton } from '../components/Boton';
 import { Casilla } from '../components/Casilla';
-import { VERSION_TERMINOS } from '../legal/textos';
+import { VERSION_TERMINOS, RESUMEN_TERMINOS } from '../legal/textos';
+import { ROL_APP } from '../lib/variante';
 import { colores, crearEstilos, espacio, radio } from '../theme';
 import { useTema } from '../context/tema';
 
@@ -37,13 +38,8 @@ export default function AceptarTerminos() {
       </Text>
       <View style={estilos.resumen}>
         <Text style={estilos.resumenTitulo}>Lo más importante</Text>
-        {[
-          'Tu pago queda retenido hasta que el trabajo se cierra.',
-          'Si el maestro cobra visita, se descuenta del total al contratar y te la devolvemos si no llega.',
-          'Antes del pago, el chat no deja compartir teléfonos, correos ni pagos por fuera.',
-          'Solo se califican trabajos cerrados en DeliMaster.',
-          'Tu teléfono y tus datos bancarios nunca se muestran a la otra parte.',
-        ].map((t) => <Text key={t} style={estilos.punto}>• {t}</Text>)}
+        {/* Cada app resume lo que le toca: el cliente paga y pide; el maestro responde, llega y cobra */}
+        {RESUMEN_TERMINOS[ROL_APP].map((t) => <Text key={t} style={estilos.punto}>• {t}</Text>)}
       </View>
       <Aviso mensaje={error} />
       <Casilla marcada={acepta} onCambio={setAcepta}>

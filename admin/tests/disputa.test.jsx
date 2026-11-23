@@ -2,6 +2,7 @@ import { describe, test, expect } from 'vitest';
 import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import Solicitud from '../src/paginas/Solicitud.jsx';
+import Disputas from '../src/paginas/Disputas.jsx';
 import { simularApi, errorApi, mostrar } from './ayudas.jsx';
 
 const ID = '94bd5c84-8cf4-5144-975e-92e2a711a363';
@@ -24,6 +25,46 @@ const enDisputa = {
 };
 
 const abrir = () => mostrar(<Solicitud />, { ruta: `/solicitudes/${ID}`, patron: '/solicitudes/:id' });
+
+describe('Disputa: conversación del equipo con cada parte', () => {
+  test('muestra las dos conversaciones por separado y escribe a una parte', async () => {
+    let conversaciones = {
+      cliente: [{ id: 1, de_equipo: false, contenido: 'Les mando fotos del goteo', creado_en: '2026-10-03T13:00:00Z' }],
+      prestador: [],
+      puede_escribir: true,
+    };
+    const llamadas = simularApi({
+      [`GET /admin/solicitudes/${ID}`]: { solicitud: enDisputa },
+      [`GET /admin/solicitudes/${ID}/disputa`]: () => conversaciones,
+      [`POST /admin/solicitudes/${ID}/disputa`]: (cuerpo) => {
+        conversaciones = { ...conversaciones, prestador: [{ id: 2, de_equipo: true, contenido: cuerpo.contenido, creado_en: '2026-10-03T14:00:00Z' }] };
+        return conversaciones;
+      },
+    });
+    abrir();
+    expect(await screen.findByRole('heading', { name: 'Conversación con las partes' })).toBeInTheDocument();
+    expect(screen.getByText('Les mando fotos del goteo')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Con el maestro · María González' })).toBeInTheDocument();
+
+    await userEvent.type(screen.getByLabelText('Escribir al maestro'), '¿Qué repuesto usó?');
+    await userEvent.click(screen.getAllByRole('button', { name: 'Enviar' })[1]);
+    expect(await screen.findByText('¿Qué repuesto usó?')).toBeInTheDocument();
+    expect(llamadas.find((l) => l.metodo === 'POST').cuerpo).toEqual({ parte: 'prestador', contenido: '¿Qué repuesto usó?' });
+  });
+  test('la lista de disputas avisa cuando una parte respondió al equipo', async () => {
+    simularApi({
+      'GET /admin/disputas?estado=abiertas': {
+        disputas: [{
+          id: ID, categoria: 'Gasfitería', precio_acordado: 50000, abierta_en: '2026-10-03T12:00:00Z',
+          motivo_disputa: 'La llave sigue goteando', cliente: 'Valentina Rojas', prestador: 'María González',
+          mensajes: 2, respuesta_pendiente: true,
+        }],
+      },
+    });
+    mostrar(<Disputas />);
+    expect(await screen.findByText('Respuesta nueva')).toBeInTheDocument();
+  });
+});
 
 describe('Disputa: evidencia y resolución (HU-16)', () => {
   test('muestra la evidencia: partes, pago retenido, chat con bloqueos y fotos de ambas partes', async () => {
@@ -79,6 +120,7 @@ describe('Disputa: evidencia y resolución (HU-16)', () => {
   test('si la resolución falla se muestra el motivo y se puede reintentar', async () => {
     simularApi({
       [`GET /admin/solicitudes/${ID}`]: { solicitud: enDisputa },
+      [`GET /admin/solicitudes/${ID}/disputa`]: { cliente: [], prestador: [], puede_escribir: true },
       [`POST /admin/disputas/${ID}/resolver`]: errorApi(502, 'PASARELA', 'Webpay no respondió; el dinero sigue retenido'),
     });
     abrir();
@@ -144,9 +186,30 @@ describe('Foto sospechosa en la evidencia', () => {
     abrir();
     expect(await screen.findByRole('heading', { name: /Gasfitería · \$50\.000/ })).toBeInTheDocument();
     // Solo la foto marcada lleva la insignia (una sola aparición)
-    expect(screen.getAllByText(/Sospechosa/)).toHaveLength(1);
-    expect(screen.getByText(/⚠ Sospechosa/)).toBeInTheDocument();
+    expect(screen.getAllByText('⚠ Sin datos de cámara')).toHaveLength(1);
     expect(screen.getByText('Sin datos de cámara: podría ser una captura o una imagen descargada')).toBeInTheDocument();
+  });
+
+  test('cada foto muestra si quedó verificada y, si no, por qué, con la fecha, el equipo y la distancia', async () => {
+    const conDetalle = {
+      ...enDisputa,
+      fotos: [
+        { ...enDisputa.fotos[0], verificacion: 'verificada', verificacion_motivos: [], exif_fecha: '2026-11-20T11:30:00',
+          exif_dispositivo: 'samsung SM-A515F', minutos_antes: 25, tomada_con: 'camara', metadatos_origen: 'app', distancia_m: 120 },
+        { ...enDisputa.fotos[1], verificacion: 'revisar', verificacion_motivos: ['antigua', 'editada'],
+          exif_fecha: '2026-10-01T09:00:00', exif_software: 'Adobe Photoshop 25.0', minutos_antes: 72000, tomada_con: 'galeria' },
+      ],
+    };
+    simularApi({ [`GET /admin/solicitudes/${ID}`]: { solicitud: conDetalle } });
+    abrir();
+    expect(await screen.findByText('✓ Verificada')).toBeInTheDocument();
+    expect(screen.getByText(/25 min antes de subirla/)).toBeInTheDocument();
+    expect(screen.getByText('Equipo: samsung SM-A515F')).toBeInTheDocument();
+    expect(screen.getByText('A 120 m del punto del trabajo')).toBeInTheDocument();
+    expect(screen.getByText(/con la cámara de la app · datos leídos por la app/)).toBeInTheDocument();
+    expect(screen.getByText('Revisar')).toBeInTheDocument();
+    expect(screen.getByText('Foto antigua: se tomó más de un día antes de subirla')).toBeInTheDocument();
+    expect(screen.getByText('Programa: Adobe Photoshop 25.0')).toBeInTheDocument();
   });
 
   test('sin fotos sospechosas no se muestra la marca ni la explicación', async () => {

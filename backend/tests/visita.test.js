@@ -56,6 +56,7 @@ describe('Visita de diagnóstico y cotización en la app', { skip: !hayBaseDeDat
     return inicio.body;
   }
 
+  const aceptarPrecioCerrado = (precio) => post(prestador, '/responder', { aceptar: true, precio, visita_programada_en: enHoras(5) });
   const aceptarConVisita = (cuerpo = {}) => post(prestador, '/responder', {
     aceptar: true, modalidad: 'visita', tarifa_visita: 25_000, visita_programada_en: enHoras(5), ...cuerpo,
   });
@@ -85,11 +86,15 @@ describe('Visita de diagnóstico y cotización en la app', { skip: !hayBaseDeDat
   });
 
   test('el prestador ve el rango de la visita y acepta con tarifa y fecha dentro de lo permitido', async () => {
-    assert.deepEqual((await ver(prestador)).rango_visita, { min: 15_000, max: 35_000, zona: 'urbana' });
+    assert.deepEqual((await ver(prestador)).rango_visita, { min: 5_000, max: 35_000, zona: 'urbana' });
 
     const cara = await aceptarConVisita({ tarifa_visita: 80_000 });
     assert.equal(cara.status, 422);
-    assert.match(cara.body.error.campos.tarifa_visita, /entre \$15\.000 y \$35\.000/);
+    assert.match(cara.body.error.campos.tarifa_visita, /entre \$5\.000 y \$35\.000/);
+    // La visita mínima es de $5.000 (decisión del equipo)
+    const barata = await aceptarConVisita({ tarifa_visita: 4_000 });
+    assert.equal(barata.status, 422);
+    assert.match(barata.body.error.campos.tarifa_visita, /La visita mínima es \$5\.000/);
     const pasada = await aceptarConVisita({ visita_programada_en: enHoras(-1) });
     assert.equal(pasada.status, 422);
     assert.ok(pasada.body.error.campos.visita_programada_en);
@@ -188,10 +193,10 @@ describe('Visita de diagnóstico y cotización en la app', { skip: !hayBaseDeDat
     assert.equal(bloqueado.body.error.codigo, 'CODIGO_BLOQUEADO');
   });
 
-  test('cotización aceptada: el cliente paga el saldo y la comisión queda sobre el total', async () => {
+  test('cotización aceptada: es solo el trabajo, el cliente la paga completa y el maestro recibe visita + cotización', async () => {
     await hastaDiagnostico();
-    const corta = await post(prestador, '/cotizacion', { mano_obra: 10_000, detalle: 'Poda de dos ramas grandes' });
-    assert.equal(corta.status, 422);   // menos que la visita ya pagada
+    const vacia = await post(prestador, '/cotizacion', { mano_obra: 0, detalle: 'Poda de dos ramas grandes' });
+    assert.equal(vacia.status, 422);
     const q = await post(prestador, '/cotizacion', { mano_obra: 100_000, materiales: 20_000, detalle: 'Poda completa y retiro de ramas' });
     assert.equal(q.status, 201);
     assert.equal(q.body.solicitud.estado, 'cotizada');
@@ -199,18 +204,21 @@ describe('Visita de diagnóstico y cotización en la app', { skip: !hayBaseDeDat
 
     const acepta = await post(cliente, '/cotizacion/respuesta', { aceptar: true });
     assert.equal(acepta.body.solicitud.estado, 'confirmada');
-    assert.equal(acepta.body.solicitud.precio_acordado, 120_000);
-    assert.equal(acepta.body.solicitud.monto_por_pagar, 95_000);   // total − visita
+    // La visita ($25.000) va aparte: el cliente paga la cotización completa y el maestro recibe ambas
+    assert.equal(acepta.body.solicitud.precio_acordado, 145_000);
+    assert.equal(acepta.body.solicitud.monto_por_pagar, 120_000);
+    assert.equal(acepta.body.solicitud.cotizacion.por_pagar, 120_000);
+    assert.equal(acepta.body.solicitud.cotizacion.incluye_visita, false);
 
     // Con la visita pagada y el saldo pendiente, el panel del maestro estima sobre el total (no solo la visita)
     const gastos = (await como(prestador)(request(app).get(`/api/solicitudes/${solicitudId}/gastos`))).body.resumen;
     assert.deepEqual(gastos, {
-      precio: 120_000, comision: 3_000 + Math.round(95_000 * 0.12), reembolsado: 0, ingreso_neto: 120_000 - 3_000 - Math.round(95_000 * 0.12),
-      gastos: 0, gastos_rechazados: 0, ganancia_neta: 120_000 - 3_000 - Math.round(95_000 * 0.12), ingreso_confirmado: false,
+      precio: 145_000, comision: 3_000 + Math.round(120_000 * 0.12), reembolsado: 0, ingreso_neto: 145_000 - 3_000 - Math.round(120_000 * 0.12),
+      gastos: 0, gastos_rechazados: 0, ganancia_neta: 145_000 - 3_000 - Math.round(120_000 * 0.12), ingreso_confirmado: false,
     });
 
     const saldo = await pagar();
-    assert.deepEqual([saldo.concepto, saldo.monto], ['saldo', 95_000]);
+    assert.deepEqual([saldo.concepto, saldo.monto], ['saldo', 120_000]);
     assert.equal((await ver()).estado, 'pagada');
 
     // Terminar y cerrar libera el saldo; la visita ya estaba liberada desde la llegada
@@ -219,8 +227,8 @@ describe('Visita de diagnóstico y cotización en la app', { skip: !hayBaseDeDat
     const movs = await ledger();
     assert.deepEqual(movs.map((m) => [m.concepto, m.estado]), [['visita', 'liberado'], ['saldo', 'liberado']]);
     const comision = movs.reduce((t, m) => t + m.comision, 0);
-    assert.equal(comision, Math.round(120_000 * 0.12));            // 12 % del total del trabajo
-    assert.equal((await ver(prestador)).monto_neto, 120_000 - comision);
+    assert.equal(comision, Math.round(145_000 * 0.12));            // 12 % de la visita + la cotización
+    assert.equal((await ver(prestador)).monto_neto, 145_000 - comision);
   });
 
   test('el maestro corrige la cotización antes de que el cliente responda; el cliente no acepta una que no vio', async () => {
@@ -245,7 +253,7 @@ describe('Visita de diagnóstico y cotización en la app', { skip: !hayBaseDeDat
 
     const acepta = await post(cliente, '/cotizacion/respuesta', { aceptar: true, cotizacion_id: corregida.body.solicitud.cotizacion.id });
     assert.equal(acepta.body.solicitud.estado, 'confirmada');
-    assert.equal(acepta.body.solicitud.precio_acordado, 90_000);
+    assert.equal(acepta.body.solicitud.precio_acordado, 115_000);   // visita + cotización corregida
     // Ya aceptada, no se puede corregir
     const tarde = await post(prestador, '/cotizacion', { mano_obra: 150_000, detalle: 'Ahora cobro más por el trabajo' });
     assert.equal(tarde.status, 409);
@@ -267,11 +275,13 @@ describe('Visita de diagnóstico y cotización en la app', { skip: !hayBaseDeDat
     assert.equal(finanzas.body.totales.ingreso_neto, 22_000);
   });
 
-  test('si la visita cubre el total, al aceptar no hay saldo que pagar', async () => {
+  test('una cotización antigua, que incluía la visita, se cobra como se hizo', async () => {
     await hastaDiagnostico();
-    await post(prestador, '/cotizacion', { mano_obra: 25_000, detalle: 'Era solo un ajuste menor' });
+    await post(prestador, '/cotizacion', { mano_obra: 100_000, detalle: 'Poda completa (cotizada antes del cambio)' });
+    await pool.query('UPDATE cotizaciones SET incluye_visita = true WHERE solicitud_id = $1', [solicitudId]);
     const acepta = await post(cliente, '/cotizacion/respuesta', { aceptar: true });
-    assert.equal(acepta.body.solicitud.estado, 'pagada');
+    assert.equal(acepta.body.solicitud.precio_acordado, 100_000);
+    assert.equal(acepta.body.solicitud.monto_por_pagar, 75_000);
   });
 
   test('si el prestador no llega, pasada la tolerancia el cliente recupera la visita', async () => {
@@ -331,21 +341,108 @@ describe('Visita de diagnóstico y cotización en la app', { skip: !hayBaseDeDat
     const res = await como(admin)(request(app).post(`/api/admin/disputas/${solicitudId}/resolver`))
       .send({ decision: 'reembolsar', observacion: 'Las fotos muestran el patio sin limpiar' });
     assert.equal(res.status, 200, JSON.stringify(res.body));
-    assert.deepEqual(simulada.reembolsos.map((r) => r.monto), [95_000]);
+    assert.deepEqual(simulada.reembolsos.map((r) => r.monto), [120_000]);
     assert.deepEqual((await ledger()).map((m) => [m.concepto, m.estado]), [['visita', 'liberado'], ['saldo', 'reembolsado']]);
     assert.equal(res.body.solicitud.visita.pago.monto, 25_000);    // el equipo ve la visita aparte
   });
 
-  test('el precio cerrado sigue funcionando como antes', async () => {
-    await post(prestador, '/responder', { aceptar: true, precio: 45_000 });
+  test('con precio cerrado el maestro también indica el día de la visita', async () => {
+    // El día se valida igual que una visita: no en el pasado y dentro del horario del maestro
+    const pasado = await post(prestador, '/responder', { aceptar: true, precio: 45_000, visita_programada_en: enHoras(-2) });
+    assert.equal(pasado.status, 422);
+    assert.ok(pasado.body.error.campos.visita_programada_en);
+    const acepta = await aceptarPrecioCerrado(45_000);
+    assert.equal(acepta.status, 200, JSON.stringify(acepta.body));
+    assert.ok(acepta.body.solicitud.visita_programada_en);
+    // Y aparece en la agenda del maestro
+    const agenda = await como(prestador)(request(app).get('/api/prestadores/yo/agenda'));
+    assert.deepEqual(agenda.body.agenda.map((v) => v.id), [solicitudId]);
     const pago = await pagar();
     assert.deepEqual([pago.concepto, pago.monto], ['total', 45_000]);
     assert.equal((await ver()).estado, 'pagada');
   });
 
+  test('con precio cerrado el maestro también confirma su llegada con el código antes de terminar', async () => {
+    await aceptarPrecioCerrado(45_000);
+    await pagar();
+    // El cliente recibe el código al pagar; el maestro solo sabe que falta confirmar la llegada
+    const delCliente = await ver();
+    assert.equal(delCliente.estado, 'pagada');
+    assert.equal(delCliente.llegada_pendiente, true);
+    assert.match(delCliente.codigo_llegada, /^\d{4}$/);
+    const delMaestro = await ver(prestador);
+    assert.equal(delMaestro.llegada_pendiente, true);
+    assert.equal(delMaestro.codigo_llegada, undefined);
+
+    // Sin la llegada no puede marcar el trabajo como terminado
+    const antes = await post(prestador, '/finalizar');
+    assert.equal(antes.status, 409);
+    assert.equal(antes.body.error.codigo, 'LLEGADA_PENDIENTE');
+
+    const otro = delCliente.codigo_llegada === '0000' ? '1111' : '0000';
+    const malo = await post(prestador, '/llegada', { codigo: otro });
+    assert.equal(malo.status, 422);
+    assert.match(malo.body.error.mensaje, /quedan 4 intentos/);
+
+    const bien = await post(prestador, '/llegada', { codigo: delCliente.codigo_llegada });
+    assert.equal(bien.status, 200, JSON.stringify(bien.body));
+    assert.equal(bien.body.solicitud.estado, 'pagada');          // el trabajo sigue pagado, no cambia de etapa
+    assert.equal(bien.body.solicitud.llegada_pendiente, false);
+    assert.ok(bien.body.solicitud.llegada_en);
+    assert.equal((await ver()).codigo_llegada, undefined);       // ya no hace falta mostrarlo
+    // Una segunda confirmación no corresponde
+    assert.equal((await post(prestador, '/llegada', { codigo: delCliente.codigo_llegada })).status, 409);
+    // La llegada no libera dinero: todo sigue retenido hasta el cierre
+    assert.deepEqual((await ledger()).map((m) => [m.concepto, m.estado]), [['total', 'retenido']]);
+
+    const fin = await post(prestador, '/finalizar');
+    assert.equal(fin.status, 200, JSON.stringify(fin.body));
+    assert.equal(fin.body.solicitud.estado, 'finalizada');
+  });
+
+  test('con precio cerrado, si el maestro no llega, el cliente recupera el pago completo', async () => {
+    await aceptarPrecioCerrado(45_000);
+    await pagar();
+    const pagadaAhora = await ver();
+    assert.ok(pagadaAhora.reclamo_no_llego_desde);          // la app sabe desde cuándo ofrecer el botón
+    const antes = await post(cliente, '/no-llego');
+    assert.equal(antes.status, 409);
+    assert.equal(antes.body.error.codigo, 'AUN_EN_PLAZO');
+
+    // La hora acordada pasó hace una hora y el maestro no confirmó su llegada
+    await pool.query("UPDATE solicitudes SET visita_programada_en = now() - interval '1 hour' WHERE id = $1", [solicitudId]);
+    assert.equal((await post(prestador, '/no-llego')).status, 403);   // solo el cliente
+    const despues = await post(cliente, '/no-llego');
+    assert.equal(despues.status, 200, JSON.stringify(despues.body));
+    assert.equal(despues.body.solicitud.estado, 'cancelada');
+    assert.deepEqual(simulada.reembolsos.map((r) => r.monto), [45_000]);
+    assert.deepEqual((await ledger()).map((m) => [m.concepto, m.estado]), [['total', 'reembolsado']]);
+  });
+
+  test('con precio cerrado y la llegada ya confirmada, ya no se puede pedir la devolución', async () => {
+    await aceptarPrecioCerrado(45_000);
+    await pagar();
+    const { codigo_llegada } = await ver();
+    await pool.query("UPDATE solicitudes SET visita_programada_en = now() - interval '1 hour' WHERE id = $1", [solicitudId]);
+    assert.equal((await post(prestador, '/llegada', { codigo: codigo_llegada })).status, 200);
+    assert.equal((await ver()).reclamo_no_llego_desde, null);
+    const reclamo = await post(cliente, '/no-llego');
+    assert.equal(reclamo.status, 409);
+    assert.equal(reclamo.body.error.codigo, 'ESTADO_INVALIDO');
+    assert.deepEqual(simulada.reembolsos, []);
+  });
+
+  test('un precio cerrado pagado antes del cambio (sin código) se puede terminar como siempre', async () => {
+    await aceptarPrecioCerrado(45_000);
+    await pagar();
+    await pool.query('UPDATE solicitudes SET codigo_llegada = NULL WHERE id = $1', [solicitudId]);
+    assert.equal((await ver()).llegada_pendiente, false);
+    assert.equal((await post(prestador, '/finalizar')).status, 200);
+  });
+
   // Tope de la comisión (decisión del equipo): 12 % de cada pago, pero nunca más de $25.000 por trabajo
   test('precio cerrado grande: la comisión no pasa de $25.000', async () => {
-    const acepta = await post(prestador, '/responder', { aceptar: true, precio: 300_000 });
+    const acepta = await aceptarPrecioCerrado(300_000);
     assert.equal(acepta.status, 200, JSON.stringify(acepta.body));
     await pagar();
     const [mov] = await ledger();
@@ -361,16 +458,16 @@ describe('Visita de diagnóstico y cotización en la app', { skip: !hayBaseDeDat
     // Antes de pagar el saldo, el maestro ya ve la comisión con el tope aplicado
     const estimacion = (await como(prestador)(request(app).get(`/api/solicitudes/${solicitudId}/gastos`))).body.resumen;
     assert.equal(estimacion.comision, 25_000);
-    assert.equal(estimacion.ingreso_neto, 400_000 - 25_000);
+    assert.equal(estimacion.ingreso_neto, 425_000 - 25_000);   // visita + cotización, menos el tope
 
-    await pagar();   // saldo de $375.000: el 12 % serían $45.000, pero solo quedan $22.000 hasta el tope
+    await pagar();   // cotización de $400.000: el 12 % serían $48.000, pero solo quedan $22.000 hasta el tope
     const movs = await ledger();
     assert.deepEqual(movs.map((m) => [m.concepto, m.comision]), [['visita', 3_000], ['saldo', 22_000]]);
     assert.equal(movs.reduce((t, m) => t + m.comision, 0), 25_000);
   });
 
   test('un trabajo chico sigue pagando el 12 % completo', async () => {
-    await post(prestador, '/responder', { aceptar: true, precio: 100_000 });
+    await aceptarPrecioCerrado(100_000);
     await pagar();
     const [mov] = await ledger();
     assert.equal(mov.comision, 12_000);

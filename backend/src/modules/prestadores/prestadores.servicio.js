@@ -180,10 +180,36 @@ export async function perfilPublico(id, urlApi) {
   };
 }
 
+// ------------------------------------------------------------------ reseñas del propio maestro
+// Su reputación como maestro (la que ven los clientes en el catálogo) y todas las reseñas que le
+// dejaron, con el trabajo al que corresponde cada una. Del cliente, solo el primer nombre.
+export const MAX_RESENAS_PROPIAS = 100;
+
+export async function misResenas(id) {
+  const [{ rows: [resumen] }, { rows: resenas }] = await Promise.all([
+    pool.query(
+      `SELECT calificacion_promedio::float AS calificacion_promedio, total_resenas, trabajos_cerrados
+         FROM prestadores WHERE usuario_id = $1`, [id]),
+    pool.query(
+      `SELECT r.id, r.estrellas, r.comentario, r.creado_en, split_part(u.nombre, ' ', 1) AS cliente,
+              c.nombre AS categoria
+         FROM resenas r
+         JOIN usuarios u    ON u.id = r.cliente_id
+         JOIN solicitudes s ON s.id = r.solicitud_id
+         JOIN categorias c  ON c.id = s.categoria_id
+        WHERE r.prestador_id = $1
+        ORDER BY r.creado_en DESC
+        LIMIT ${MAX_RESENAS_PROPIAS}`, [id]),
+  ]);
+  if (!resumen) throw new AppError('Prestador no encontrado', 404, 'PRESTADOR_NO_ENCONTRADO');
+  return { ...resumen, resenas };
+}
+
 // ------------------------------------------------------------------ ficha propia del prestador
 // ------------------------------------------------------------------ agenda del maestro (CU-16)
 // Sus próximas visitas programadas, desde el inicio del día de hoy (hora de Chile) en adelante:
-// la visita pagada que aún no confirma, y los trabajos que nacieron de una visita ya realizada.
+// la visita pagada que aún no confirma, los trabajos que nacieron de una visita ya realizada y
+// los de precio cerrado (que también tienen su día).
 export async function miAgenda(id) {
   const { rows } = await pool.query(
     `SELECT s.id, s.estado, s.visita_programada_en, s.tarifa_visita, s.comuna, s.descripcion_original AS descripcion,
@@ -192,7 +218,7 @@ export async function miAgenda(id) {
        JOIN usuarios u   ON u.id = s.cliente_id
        JOIN categorias cat ON cat.id = s.categoria_id      WHERE s.prestador_id = $1
         AND s.visita_programada_en IS NOT NULL
-        AND s.estado IN ('visita_pagada', 'en_diagnostico', 'cotizada', 'confirmada')
+        AND s.estado IN ('visita_pagada', 'en_diagnostico', 'cotizada', 'confirmada', 'pagada')
         AND s.visita_programada_en >= ((now() AT TIME ZONE 'America/Santiago')::date::timestamp AT TIME ZONE 'America/Santiago')
       ORDER BY s.visita_programada_en ASC
       LIMIT 50`,

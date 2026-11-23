@@ -1,0 +1,28 @@
+{
+ "fecha": "2026-11-17T04:47:17.935Z",
+ "base_origen": "delimaster",
+ "base_restaurada": "delimaster_restauracion",
+ "pasos": [
+  {
+   "paso": "1. Respaldo de la base en uso (pg_dump)",
+   "segundos": 1.5,
+   "detalle": "delimaster_2026-11-17_0147.dump (148 KB)"
+  },
+  {
+   "paso": "2. Restauración en una base nueva (pg_restore)",
+   "segundos": 3.1,
+   "detalle": "delimaster_restauracion"
+  },
+  {
+   "paso": "3. Verificación de integridad (mismos registros que el original)",
+   "segundos": 0.2,
+   "detalle": "38 usuarios, 84 solicitudes, 85 pagos, 74 movimientos del ledger, 209 eventos del ledger, 273 mensajes"
+  },
+  {
+   "paso": "4. API levantada contra la base restaurada y prueba de humo",
+   "segundos": 2.7,
+   "detalle": "/api/salud 200 (base de datos ok) · catálogo 200 (17 maestros) · 18 oficios"
+  }
+ ],
+ "total_segundos": 7.5
+}

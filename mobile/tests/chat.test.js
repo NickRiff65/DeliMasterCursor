@@ -46,7 +46,7 @@ describe('Chat con fotos', () => {
     await user.press(await screen.findByRole('button', { name: 'Enviar una foto' }));
     await user.press(screen.getByRole('button', { name: 'Galería' }));
     expect(await screen.findByRole('imagebutton', { name: 'Tu foto' })).toBeOnTheScreen();
-    expect(llamadas.find((l) => l.metodo === 'POST').cuerpo).toEqual({ imagen_base64: 'FOTO-ARBOL' });
+    expect(llamadas.find((l) => l.metodo === 'POST').cuerpo).toEqual({ imagen_base64: 'FOTO-ARBOL', metadatos: { tomada_con: 'galeria' } });
   });
 
   test('con el chat cerrado no se pueden enviar fotos', async () => {

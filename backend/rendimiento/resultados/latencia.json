@@ -1,0 +1,54 @@
+{
+ "fecha": "2026-11-17T04:46:35.974Z",
+ "filas": [
+  {
+   "destino": "Google Cloud · Santiago (southamerica-west1)",
+   "mediana_ms": 18,
+   "minimo_ms": 17,
+   "p95_ms": 20,
+   "muestras": 20
+  },
+  {
+   "destino": "Google Cloud · São Paulo (southamerica-east1)",
+   "mediana_ms": 70,
+   "minimo_ms": 68,
+   "p95_ms": 73,
+   "muestras": 20
+  },
+  {
+   "destino": "Google Cloud · Virginia (us-east4)",
+   "mediana_ms": 186,
+   "minimo_ms": 179,
+   "p95_ms": 188,
+   "muestras": 20
+  },
+  {
+   "destino": "Google Cloud · Oregón (us-west1)",
+   "mediana_ms": 147,
+   "minimo_ms": 146,
+   "p95_ms": 154,
+   "muestras": 20
+  },
+  {
+   "destino": "AWS · São Paulo (sa-east-1)",
+   "mediana_ms": 58,
+   "minimo_ms": 58,
+   "p95_ms": 59,
+   "muestras": 20
+  },
+  {
+   "destino": "AWS · Virginia (us-east-1)",
+   "mediana_ms": 153,
+   "minimo_ms": 152,
+   "p95_ms": 154,
+   "muestras": 20
+  },
+  {
+   "destino": "AWS · Oregón (us-west-2)",
+   "mediana_ms": 213,
+   "minimo_ms": 212,
+   "p95_ms": 213,
+   "muestras": 20
+  }
+ ]
+}

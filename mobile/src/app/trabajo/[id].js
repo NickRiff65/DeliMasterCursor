@@ -27,6 +27,8 @@ const ICONOS = {
   cartera: require('../../../assets/iconos/app/cartera.png'),
   protegido: require('../../../assets/iconos/app/protegido.png'),
   escribir: require('../../../assets/iconos/app/escribir.png'),
+  agenda: require('../../../assets/iconos/app/agenda.png'),
+  ubicacion: require('../../../assets/iconos/app/ubicacion.png'),
 };
 
 // "45.000" o "45000" → 45000
@@ -122,8 +124,11 @@ export default function DetalleTrabajo() {
       if (Object.keys(faltan).length) return setCampos(faltan);
       cuerpo = { aceptar, modalidad: 'visita', tarifa_visita: aPesos(tarifa), visita_programada_en: horario };
     } else if (aceptar) {
-      if (!monto) return setErrorPrecio('Indica cuánto cobrarás por el trabajo');
-      cuerpo = { aceptar, modalidad: 'precio_cerrado', precio: monto };
+      // Con precio cerrado también se indica el día en que irá a hacer el trabajo
+      if (!monto) setErrorPrecio('Indica cuánto cobrarás por el trabajo');
+      if (!horario) setCampos({ visita_programada_en: 'Elige el día y la hora en que irás' });
+      if (!monto || !horario) return undefined;
+      cuerpo = { aceptar, modalidad: 'precio_cerrado', precio: monto, visita_programada_en: horario };
     }
     setAccion(aceptar ? 'aceptar' : 'rechazar');
     try {
@@ -144,6 +149,25 @@ export default function DetalleTrabajo() {
     return error ? <View style={estilos.contenido}><Aviso mensaje={error} /></View>
       : <ActivityIndicator color={colores.primario} style={{ marginTop: espacio.xl }} />;
   }
+
+  // Código de 4 dígitos que dicta el cliente al llegar (visita pagada, o precio cerrado ya pagado).
+  // Si el cliente marcó el punto en el mapa, además se confirma que el maestro está en el lugar.
+  const formularioLlegada = (
+    <>
+      <Campo etiqueta="Código del cliente" value={codigo} onChangeText={(t) => setCodigo(t.replace(/\D/g, '').slice(0, 4))}
+        error={campos.codigo ?? campos.latitud} placeholder="0000" keyboardType="number-pad" maxLength={4} />
+      <Boton titulo="Confirmar llegada" cargando={accion === 'llegada'} deshabilitado={codigo.length !== 4 || Boolean(accion)}
+        onPress={() => ejecutar('llegada', async () => {
+          const cuerpo = { codigo };
+          if (s.latitud != null) {
+            const gps = await ubicacionActual();
+            cuerpo.latitud = gps.latitud;
+            cuerpo.longitud = gps.longitud;
+          }
+          return api.post(`/solicitudes/${id}/llegada`, cuerpo);
+        })} />
+    </>
+  );
 
   return (
     <ScrollView contentContainerStyle={estilos.contenido} keyboardShouldPersistTaps="handled">
@@ -227,13 +251,9 @@ export default function DetalleTrabajo() {
                 placeholder={s.rango_visita ? `Ej.: ${s.rango_visita.min}` : 'Ej.: 25000'}
                 keyboardType="number-pad"
                 ayuda={s.rango_visita
-                  ? `En ${s.comuna}: entre ${pesos(s.rango_visita.min)} y ${pesos(s.rango_visita.max)}. Se descuenta del total si el cliente contrata.`
-                  : 'Se descuenta del total si el cliente contrata el trabajo.'}
+                  ? `En ${s.comuna}: entre ${pesos(s.rango_visita.min)} y ${pesos(s.rango_visita.max)}. La visita es tuya y va aparte de la cotización del trabajo.`
+                  : 'La visita es tuya y va aparte de la cotización del trabajo.'}
               />
-              <SelectorHorario valor={horario} onCambio={setHorario} horario={jornada} />
-              {jornada ? <Text style={estilos.suave}>Según tu horario: {textoHorario(jornada)}. Lo cambias en tu ficha.</Text> : null}
-              {campos.visita_programada_en ? <Text style={estilos.errorCampo}>{campos.visita_programada_en}</Text> : null}
-              {horario ? <Text style={estilos.suave}>Visita: {diaYHora(horario)}</Text> : null}
             </View>
           ) : (
             <View style={{ marginTop: espacio.s }}>
@@ -248,6 +268,16 @@ export default function DetalleTrabajo() {
               />
             </View>
           )}
+          {/* El día en que irá: la visita de diagnóstico o, con precio cerrado, el trabajo */}
+          <View style={estilos.bloqueHorario}>
+            <Text style={estilos.preguntaHorario}>
+              {modalidad === 'visita' ? '¿Cuándo harás la visita?' : '¿Qué día irás a hacer el trabajo?'}
+            </Text>
+            <SelectorHorario valor={horario} onCambio={setHorario} horario={jornada} />
+            {campos.visita_programada_en ? <Text style={estilos.errorCampo}>{campos.visita_programada_en}</Text> : null}
+            {horario ? <Text style={estilos.elegido}>Visita: {diaYHora(horario)}</Text> : null}
+            {jornada ? <Text style={[estilos.suave, estilos.notaHorario]}>Según tu horario: {textoHorario(jornada)}. Lo cambias en tu ficha.</Text> : null}
+          </View>
           <Boton titulo="Aceptar trabajo" onPress={() => responder(true)} cargando={accion === 'aceptar'} deshabilitado={Boolean(accion)} />
           <View style={{ marginTop: espacio.s }}>
             <Boton titulo="Rechazar" variante="secundario" onPress={() => responder(false)}
@@ -272,18 +302,7 @@ export default function DetalleTrabajo() {
             Cuando llegues, pídele a {s.cliente.nombre} su código de 4 dígitos. Al ingresarlo, la visita ({pesos(s.tarifa_visita)}) pasa a ser tuya.
             {s.latitud != null ? ' Como dejó el punto en el mapa, también confirmamos que estás en el lugar.' : ''}
           </Text>
-          <Campo etiqueta="Código del cliente" value={codigo} onChangeText={(t) => setCodigo(t.replace(/\D/g, '').slice(0, 4))}
-            error={campos.codigo ?? campos.latitud} placeholder="0000" keyboardType="number-pad" maxLength={4} />
-          <Boton titulo="Confirmar llegada" cargando={accion === 'llegada'} deshabilitado={codigo.length !== 4 || Boolean(accion)}
-            onPress={() => ejecutar('llegada', async () => {
-              const cuerpo = { codigo };
-              if (s.latitud != null) {
-                const gps = await ubicacionActual();
-                cuerpo.latitud = gps.latitud;
-                cuerpo.longitud = gps.longitud;
-              }
-              return api.post(`/solicitudes/${id}/llegada`, cuerpo);
-            })} />
+          {formularioLlegada}
           <Text style={estilos.suave}>Si no llegas, la visita se le devuelve al cliente.</Text>
         </View>
       ) : null}
@@ -308,7 +327,7 @@ export default function DetalleTrabajo() {
           <Campo etiqueta="¿Qué incluye el trabajo?" value={detalle} onChangeText={setDetalle} error={campos.detalle}
             multiline maxLength={1000} placeholder="Ej.: cambio del tablero, 3 automáticos nuevos y certificación" />
           {aPesos(manoObra) + aPesos(materiales) > 0 ? (
-            <ResumenCotizacion
+            <ResumenCotizacion vista="maestro"
               cotizacion={{ mano_obra: aPesos(manoObra), materiales: aPesos(materiales), total: aPesos(manoObra) + aPesos(materiales) }}
               tarifaVisita={s.tarifa_visita} />
           ) : null}
@@ -322,7 +341,7 @@ export default function DetalleTrabajo() {
               return r;
             })} />
           {corrigiendo ? <Boton titulo="Cancelar" variante="secundario" onPress={() => setCorrigiendo(false)} /> : null}
-          <Text style={estilos.suave}>El total incluye la visita: el cliente solo pagará la diferencia.</Text>
+          <Text style={estilos.suave}>Cotiza solo el trabajo: la visita ya es tuya y va aparte. El cliente paga esta cotización completa.</Text>
         </View>
       ) : null}
 
@@ -332,7 +351,7 @@ export default function DetalleTrabajo() {
           {s.cotizacion.total_anterior ? (
             <ConIcono icono={ICONOS.escribir} estilo={estilos.suave}>La corregiste (antes {pesos(s.cotizacion.total_anterior)}).</ConIcono>
           ) : null}
-          <ResumenCotizacion cotizacion={s.cotizacion} tarifaVisita={s.tarifa_visita} />
+          <ResumenCotizacion vista="maestro" cotizacion={s.cotizacion} tarifaVisita={s.tarifa_visita} />
           <Text style={estilos.suave}>Si la rechaza, la visita igual queda para ti.</Text>
           {/* ¿Te equivocaste? Se puede corregir mientras el cliente no responda */}
           <View style={{ marginTop: espacio.s }}>
@@ -349,11 +368,14 @@ export default function DetalleTrabajo() {
       {s.estado === 'confirmada' ? (
         <View style={[estilos.tarjeta, estilos.confirmada]}>
           <Text style={estilos.titulo}>
-            {s.modalidad === 'visita' ? `${s.cliente.nombre} aceptó tu cotización de ${pesos(s.precio_acordado)}` : `Aceptaste por ${pesos(s.precio_acordado)}`}
+            {s.modalidad === 'visita' ? `${s.cliente.nombre} aceptó tu cotización de ${pesos(s.monto_por_pagar)}` : `Aceptaste por ${pesos(s.precio_acordado)}`}
           </Text>
+          {s.modalidad !== 'visita' && s.visita_programada_en ? (
+            <ConIcono icono={ICONOS.agenda} estilo={estilos.texto}>Irás el {diaYHora(s.visita_programada_en)}</ConIcono>
+          ) : null}
           <Text style={estilos.texto}>
             {s.modalidad === 'visita'
-              ? `Falta que pague el saldo (${pesos(s.monto_por_pagar)}). Quedará retenido en DeliMaster y se te transferirá al cerrar el trabajo.`
+              ? `Falta que la pague. Quedará retenida en DeliMaster y, al cerrar el trabajo, te transferiremos la visita y la cotización (${pesos(s.precio_acordado)}), menos la comisión.`
               : `Cuando ${s.cliente.nombre} pague, el dinero quedará retenido en DeliMaster y se te transferirá al cerrar el trabajo.`}
           </Text>
         </View>
@@ -362,12 +384,30 @@ export default function DetalleTrabajo() {
       {s.estado === 'pagada' ? (
         <View style={[estilos.tarjeta, estilos.confirmada]}>
           <ConIcono icono={ICONOS.protegido} estilo={estilos.titulo}>{s.cliente.nombre} pagó {pesos(s.precio_acordado)}</ConIcono>
+          {s.modalidad !== 'visita' && s.visita_programada_en ? (
+            <ConIcono icono={ICONOS.agenda} estilo={estilos.texto}>Trabajo agendado: {diaYHora(s.visita_programada_en)}</ConIcono>
+          ) : null}
           <Text style={estilos.texto}>
             El dinero está retenido en DeliMaster. Haz el trabajo y, cuando el cliente confirme el cierre, se te transferirá
             el monto menos la comisión de la plataforma. Ya pueden compartir datos de contacto en el chat.
           </Text>
+          {s.modalidad === 'precio_cerrado' && s.llegada_en ? (
+            <ConIcono icono={ICONOS.ubicacion} estilo={[estilos.texto, { marginTop: espacio.s }]}>
+              Llegada confirmada: {diaYHora(s.llegada_en)}
+            </ConIcono>
+          ) : null}
           <View style={{ marginTop: espacio.m, gap: espacio.s }}>
-            {confirmarFin ? (
+            {s.llegada_pendiente ? (
+              // Precio cerrado: primero confirma que llegó, con el código del cliente
+              <>
+                <ConIcono icono={ICONOS.ubicacion} estilo={estilos.titulo}>Confirma tu llegada</ConIcono>
+                <Text style={estilos.texto}>
+                  Cuando llegues, pídele a {s.cliente.nombre} su código de 4 dígitos. Sin eso no podrás marcar el trabajo como terminado.
+                  {s.latitud != null ? ' Como dejó el punto en el mapa, también confirmamos que estás en el lugar.' : ''}
+                </Text>
+                {formularioLlegada}
+              </>
+            ) : confirmarFin ? (
               <>
                 <Text style={estilos.texto}>¿Terminaste el trabajo? El cliente podrá confirmar el cierre o reportar un problema; si no responde, se cerrará automáticamente.</Text>
                 <Boton titulo="Sí, lo terminé" onPress={finalizar} cargando={accion === 'finalizar'} />
@@ -441,6 +481,11 @@ export default function DetalleTrabajo() {
           <Text style={estilos.titulo}>{s.cliente.nombre} reportó un problema</Text>
           {s.motivo_disputa ? <Text style={estilos.texto}>“{s.motivo_disputa}”</Text> : null}
           <Text style={estilos.suave}>El equipo DeliMaster revisará el caso. El pago sigue retenido mientras tanto.</Text>
+          {/* Conversación privada con el equipo para dar tu versión y más antecedentes */}
+          <View style={{ marginTop: espacio.s }}>
+            <Boton titulo="Hablar con DeliMaster sobre el reclamo" icono={require('../../../assets/iconos/app/chat.png')}
+              variante="secundario" onPress={() => router.push(`/disputa/${s.id}`)} />
+          </View>
         </View>
       ) : null}
 
@@ -496,4 +541,9 @@ const estilos = crearEstilos((colores) => ({
   opcionElegida: { borderColor: colores.primario, backgroundColor: colores.primarioSuave },
   opcionNombre: { fontSize: 15, fontWeight: '800', color: colores.texto },
   errorCampo: { color: colores.error, fontSize: 13, marginTop: espacio.xs },
+  // Día de la visita al aceptar: separado del monto de arriba y del botón de abajo
+  bloqueHorario: { marginTop: espacio.m, marginBottom: espacio.m },
+  preguntaHorario: { fontSize: 15, fontWeight: '700', color: colores.texto },
+  elegido: { fontSize: 14, fontWeight: '700', color: colores.primarioOscuro, marginTop: espacio.s },
+  notaHorario: { marginTop: espacio.m, lineHeight: 20 },
 }));

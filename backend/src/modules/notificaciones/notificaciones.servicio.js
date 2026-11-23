@@ -37,14 +37,15 @@ function avisosDe(nuevo, anterior, s) {
       return [{ para: 'cliente', titulo: `${maestro} aceptó tu solicitud`, texto: `Propone la visita de diagnóstico el ${fecha(s.visita_programada_en)}. Págala para confirmarla.` }];
     case 'confirmada':
       return anterior === 'cotizada'
-        ? [{ para: 'prestador', titulo: 'Aceptaron tu cotización', texto: `${s.cliente} aceptó tu cotización de ${pesos(s.precio_acordado)}. Falta que pague el saldo.` }]
-        : [{ para: 'cliente', titulo: `${maestro} aceptó tu solicitud`, texto: `Cobra ${pesos(s.precio_acordado)}. Paga para que comience: el dinero queda retenido hasta el cierre.` }];
+        // La cotización no incluye la visita (va aparte): se informa lo que el cliente paga ahora
+        ? [{ para: 'prestador', titulo: 'Aceptaron tu cotización', texto: `${s.cliente} aceptó tu cotización de ${pesos(s.precio_acordado - (s.tarifa_visita ?? 0))}. Falta que la pague.` }]
+        : [{ para: 'cliente', titulo: `${maestro} aceptó tu solicitud`, texto: `Cobra ${pesos(s.precio_acordado)}${s.visita_programada_en ? ` e irá el ${fecha(s.visita_programada_en)}` : ''}. Paga para que comience: el dinero queda retenido hasta el cierre.` }];
     case 'visita_pagada':
       return [{ para: 'prestador', titulo: 'Te pagaron la visita', texto: `${s.cliente} pagó la visita del ${fecha(s.visita_programada_en)}. Cuando llegues, pídele el código de llegada.`, tipo: 'pago' }];
     case 'cotizada':
       return [{ para: 'cliente', titulo: anterior === 'cotizada' ? `${maestro} corrigió la cotización` : `Recibiste la cotización de ${maestro}`, texto: `"${resumen(s)}". Revísala para aceptarla o rechazarla.` }];
     case 'pagada':
-      return [{ para: 'prestador', titulo: 'Te pagaron el trabajo', texto: `${s.cliente} pagó "${resumen(s)}". El dinero queda retenido por DeliMaster hasta el cierre.`, tipo: 'pago' }];
+      return [{ para: 'prestador', titulo: 'Te pagaron el trabajo', texto: `${s.cliente} pagó "${resumen(s)}".${s.modalidad === 'precio_cerrado' ? ' Cuando llegues, pídele el código de llegada.' : ''} El dinero queda retenido por DeliMaster hasta el cierre.`, tipo: 'pago' }];
     case 'finalizada':
       return [{ para: 'cliente', titulo: `${maestro} terminó el trabajo`, texto: 'Confírmalo y califícalo. Si algo quedó mal, repórtalo antes de confirmar.' }];
     case 'cerrada':
@@ -78,8 +79,8 @@ function avisosDe(nuevo, anterior, s) {
 // Avisa a cada parte lo que corresponde al cambio de estado. Nunca a quien hizo el cambio.
 export async function notificarCambio(db, solicitudId, nuevo, anterior, actorId = null) {
   const { rows: [s] } = await db.query(
-    `SELECT s.id, s.descripcion_original AS descripcion, s.comuna, s.precio_acordado, s.visita_programada_en,
-            s.cliente_id, s.prestador_id, split_part(cu.nombre, ' ', 1) AS cliente, pu.nombre AS prestador,
+    `SELECT s.id, s.descripcion_original AS descripcion, s.comuna, s.precio_acordado, s.visita_programada_en, s.tarifa_visita,
+            s.modalidad, s.cliente_id, s.prestador_id, split_part(cu.nombre, ' ', 1) AS cliente, pu.nombre AS prestador,
             (SELECT detalle FROM solicitud_eventos e WHERE e.solicitud_id = s.id ORDER BY e.id DESC LIMIT 1) AS detalle,
             (SELECT COALESCE(sum(monto_neto), 0)::int FROM ledger_movimientos m
               WHERE m.solicitud_id = s.id AND m.estado IN ('liberado', 'transferido')) AS neto_liberado,

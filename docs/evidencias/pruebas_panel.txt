@@ -1,0 +1,68 @@
+﻿
+ RUN  v5.0.3 C:/dev/DeliMaster/admin
+
+ ✓ tests/api.test.js > Cliente de la API > envía el token de la sesión y devuelve los datos 21ms
+ ✓ tests/api.test.js > Cliente de la API > sin sesión no envía encabezado de autorización 2ms
+ ✓ tests/api.test.js > Cliente de la API > un error de la API llega como ApiError con su código y los campos inválidos 2ms
+ ✓ tests/api.test.js > Cliente de la API > si el backend está apagado avisa que no hay conexión 2ms
+ ✓ tests/api.test.js > Cliente de la API > un 401 con sesión abierta la cierra; un login fallido no 5ms
+ ✓ tests/resumen.test.jsx > Resumen e indicadores (HU-14) > muestra pendientes con su nota, el dinero por estado y si cada indicador cumple la meta 493ms
+ ✓ tests/resumen.test.jsx > Devoluciones que Transbank no pudo hacer > sin problemas la sección no aparece 41ms
+ ✓ tests/verificaciones.test.jsx > Verificaciones (HU-11, HU-17) > rechazar sin observación no envía nada y señala el campo 619ms
+ ✓ tests/contabilidad.test.jsx > Panel contable (HU-09 / HU-14) > muestra los totales por estado y un movimiento con cliente, prestador y montos 670ms
+ ✓ tests/verificaciones.test.jsx > Verificaciones (HU-11, HU-17) > un error del servidor se muestra junto al campo que lo causa 129ms
+ ✓ tests/resumen.test.jsx > Devoluciones que Transbank no pudo hacer > muestra cliente, monto e intentos, y permite marcarla como devuelta a mano 235ms
+ ✓ tests/liquidaciones.test.jsx > Transferencias a prestadores (HU-13) > pide confirmar a quién y cuánto, y el comprobante se genera solo 825ms
+ ✓ tests/contabilidad.test.jsx > Panel contable (HU-09 / HU-14) > muestra los gastos con su boleta y la lectura del OCR 136ms
+ ✓ tests/resumen.test.jsx > Devoluciones que Transbank no pudo hacer > si no confirma, no se marca 110ms
+ ✓ tests/resumen.test.jsx > Gráfico de servicios cerrados por mes > usa un eje con números redondos y escala cada columna 17ms
+ ✓ tests/resumen.test.jsx > Gráfico de servicios cerrados por mes > muestra el detalle al pasar el mouse y ofrece la misma información como tabla 94ms
+ ✓ tests/resumen.test.jsx > Gráfico de servicios cerrados por mes > sin servicios cerrados el eje llega a 4 y no se divide por cero 6ms
+ ✓ tests/resumen.test.jsx > Formato de montos y fechas > montos en pesos chilenos 0ms
+ ✓ tests/resumen.test.jsx > Formato de montos y fechas > días hasta una fecha y fechas sin hora 3ms
+ ✓ tests/liquidaciones.test.jsx > Transferencias a prestadores (HU-13) > cancelar la confirmación no registra nada 196ms
+ ✓ tests/liquidaciones.test.jsx > Transferencias a prestadores (HU-13) > sin datos bancarios no se puede registrar y se indica a quién escribir 41ms
+ ✓ tests/sesion.test.jsx > Sesión del panel > una cuenta de cliente no puede entrar al panel 910ms
+ ✓ tests/moderacion.test.jsx > Moderación del chat (HU-04) > desactivar una cuenta exige un motivo y lo envía 989ms
+ ✓ tests/moderacion.test.jsx > Moderación del chat (HU-04) > una cuenta desactivada se puede reactivar 68ms
+ ✓ tests/moderacion.test.jsx > Moderación del chat (HU-04) > una cuenta que su titular eliminó no ofrece reactivarla 15ms
+ ✓ tests/moderacion.test.jsx > Moderación del chat (HU-04) > sin bloqueos se muestra el estado vacío 20ms
+ ✓ tests/contabilidad.test.jsx > Panel contable (HU-09 / HU-14) > al filtrar vuelve a pedir la contabilidad con las fechas elegidas 304ms
+ ✓ tests/disputa.test.jsx > Disputa: conversación del equipo con cada parte > muestra las dos conversaciones por separado y escribe a una parte 1158ms
+ ✓ tests/disputa.test.jsx > Disputa: conversación del equipo con cada parte > la lista de disputas avisa cuando una parte respondió al equipo 26ms
+ ✓ tests/disputa.test.jsx > Disputa: evidencia y resolución (HU-16) > muestra la evidencia: partes, pago retenido, chat con bloqueos y fotos de ambas partes 84ms
+ ✓ tests/sesion.test.jsx > Sesión del panel > credenciales incorrectas muestran el mensaje de la API 431ms
+ ✓ tests/verificaciones.test.jsx > Verificaciones (HU-11, HU-17) > aprobar con vencimiento envía la fecha, recarga la lista y actualiza los contadores 747ms
+ ✓ tests/contabilidad.test.jsx > Panel contable (HU-09 / HU-14) > muestra las cifras del período y los gráficos, con su tabla para leer los números 472ms
+ ✓ tests/contabilidad.test.jsx > Panel contable (HU-09 / HU-14) > un rango largo agrupa lo cobrado por semana o por mes 103ms
+ ✓ tests/contabilidad.test.jsx > Panel contable (HU-09 / HU-14) > sin datos en el período muestra los estados vacíos 46ms
+ ✓ tests/verificaciones.test.jsx > Verificaciones (HU-11, HU-17) > el botón +90 días pone el vencimiento sin abrir el calendario y se aprueba con esa fecha 170ms
+ ✓ tests/verificaciones.test.jsx > Verificaciones (HU-11, HU-17) > revisar de a uno: la tecla 9 pone 90 días y la A aprueba 38ms
+ ✓ tests/verificaciones.test.jsx > Verificaciones (HU-11, HU-17) > una excepción muestra el RUT, los apellidos y por qué llegó al panel 28ms
+ ✓ tests/verificaciones.test.jsx > Verificaciones (HU-11, HU-17) > una aprobación automática se identifica como tal 72ms
+ ✓ tests/verificaciones.test.jsx > Verificaciones (HU-11, HU-17) > en las aprobadas se ve cuánto falta para que venza cada certificado 66ms
+ ✓ tests/verificaciones.test.jsx > Verificaciones (HU-11, HU-17) > revisar de a uno: la tecla A aprueba y la siguiente verificación ocupa su lugar 55ms
+ ✓ tests/disputa.test.jsx > Disputa: evidencia y resolución (HU-16) > no se puede continuar sin elegir una decisión y fundamentarla 620ms
+ ✓ tests/verificaciones.test.jsx > Verificaciones (HU-11, HU-17) > revisar de a uno: sin fecha SEC, la tecla A no envía nada y lleva al campo de fecha 30ms
+ ✓ tests/verificaciones.test.jsx > Verificaciones (HU-11, HU-17) > revisar de a uno: la tecla S pasa a la siguiente sin decidir nada 46ms
+ ✓ tests/sesion.test.jsx > Sesión del panel > el administrador entra, ve los pendientes en el menú y la sesión queda solo en la pestaña 558ms
+ ✓ tests/sesion.test.jsx > Sesión del panel > al recargar la página la sesión de la pestaña se recupera 57ms
+ ✓ tests/sesion.test.jsx > Sesión del panel > si la sesión vence (401) vuelve al ingreso y borra la sesión guardada 41ms
+ ✓ tests/sesion.test.jsx > Sesión del panel > la apariencia oscura se elige en el menú, se aplica al instante y queda guardada 187ms
+ ✓ tests/sesion.test.jsx > Sesión del panel > cerrar sesión vuelve a la pantalla de ingreso 84ms
+ ✓ tests/verificaciones.test.jsx > Verificaciones (HU-11, HU-17) > en lote, el botón solo se activa con la fecha SEC de cada certificado y la confirmación 415ms
+ ✓ tests/verificaciones.test.jsx > Verificaciones (HU-11, HU-17) > en lote, un fallo no impide aprobar las demás y queda informado y seleccionado 391ms
+ ✓ tests/disputa.test.jsx > Disputa: evidencia y resolución (HU-16) > reembolsar pide confirmación, envía la decisión y muestra la solicitud ya resuelta 932ms
+ ✓ tests/verificaciones.test.jsx > Verificaciones (HU-11, HU-17) > en lote, +90 días llena solo las seleccionadas sin fecha y respeta las escritas a mano 393ms
+ ✓ tests/disputa.test.jsx > Disputa: evidencia y resolución (HU-16) > si la resolución falla se muestra el motivo y se puede reintentar 680ms
+ ✓ tests/verificaciones.test.jsx > Verificaciones (HU-11, HU-17) > en lote, no se puede elegir más de 50 verificaciones a la vez 645ms
+ ✓ tests/disputa.test.jsx > Disputa: evidencia y resolución (HU-16) > devolver una parte: sugiere los gastos sin boleta, valida el monto y envía la decisión 1033ms
+ ✓ tests/disputa.test.jsx > Foto sospechosa en la evidencia > una foto con sospechosa=true muestra la insignia y la explicación, y la otra foto no 61ms
+ ✓ tests/disputa.test.jsx > Foto sospechosa en la evidencia > cada foto muestra si quedó verificada y, si no, por qué, con la fecha, el equipo y la distancia 42ms
+ ✓ tests/disputa.test.jsx > Foto sospechosa en la evidencia > sin fotos sospechosas no se muestra la marca ni la explicación 55ms
+
+ Test Files  8 passed (8)
+      Tests  59 passed (59)
+   Start at  03:29:40
+   Duration  13.48s (environment 59%, tests 20%, setup 13%, import 5%, transform 3%)
+

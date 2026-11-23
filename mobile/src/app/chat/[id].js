@@ -22,6 +22,7 @@ const MOTIVOS = {
   contacto_externo: 'contacto por otra aplicación',
   enlace: 'enlace',
   pago_externo: 'acuerdo de pago por fuera de DeliMaster',
+  groseria: 'groserías o insultos',
 };
 
 // HU-04: chat de una solicitud (Lite y Pro). Los mensajes se envían por la API, que aplica
@@ -88,7 +89,7 @@ export default function Chat() {
       const foto = await elegirFoto(desdeCamara);
       if (!foto) return;
       setSubiendoFoto(true);
-      const r = await api.post(`/solicitudes/${id}/mensajes/foto`, { imagen_base64: foto.base64 });
+      const r = await api.post(`/solicitudes/${id}/mensajes/foto`, { imagen_base64: foto.base64, metadatos: foto.metadatos ?? {} });
       agregar(r.mensaje);
     } catch (e) {
       setError(e.message);

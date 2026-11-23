@@ -1,6 +1,6 @@
-# Evaluación con usuarios · Sprint 6
+# Evaluación con usuarios · Semana 13
 
-Material para cumplir **OE1** (validar requerimientos con 5 clientes y 5 prestadores) y **OE6** (prueba de usabilidad con puntaje SUS ≥ 68).
+Material para cumplir **OE1** (validar requerimientos con 5 clientes y 5 prestadores) y **OE4** (prueba de usabilidad con puntaje SUS ≥ 68).
 
 | Archivo | Para qué sirve |
 |---|---|
@@ -10,7 +10,7 @@ Material para cumplir **OE1** (validar requerimientos con 5 clientes y 5 prestad
 ## Pasos
 
 1. Cargar los datos de demostración (`npm.cmd run db:demo`) y levantar la API, las apps y el panel (sección 3 del kit).
-2. Invitar a 5 clientes y 5 prestadores de Ñuble, al menos 2 de sector rural por perfil.
+2. Invitar a 5 clientes y 5 prestadores de Chillán y Coihueco, al menos 2 de sector rural por perfil.
 3. En cada sesión, completar la hoja de observación y el cuestionario SUS, y traspasarlos a la planilla con el código del participante (U01–U10).
 4. Ejecutar los casos de la hoja **Pruebas funcionales** y registrar su estado.
 5. Corregir los hallazgos de severidad alta y redactar el informe de evaluación con los resultados de la hoja **Resumen**.

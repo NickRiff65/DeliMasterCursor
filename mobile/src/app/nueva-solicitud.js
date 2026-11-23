@@ -9,6 +9,7 @@ import { Aviso } from '../components/Aviso';
 import { Boton } from '../components/Boton';
 import { BotonesFoto } from '../components/BotonesFoto';
 import { elegirFoto } from '../lib/fotos';
+import { tomarPendiente, guardarPendiente } from '../lib/trabajosPendientes';
 import { ubicacionActual } from '../lib/ubicacion';
 import { Campo } from '../components/Campo';
 import { SeleccionMultiple } from '../components/SeleccionMultiple';
@@ -17,6 +18,8 @@ import { ConIcono } from '../components/ConIcono';
 import { colores, crearEstilos, espacio, radio } from '../theme';
 
 const UBICACION = require('../../assets/iconos/app/ubicacion.png');
+const DESTELLOS = require('../../assets/iconos/app/destellos.png');
+const ADVERTENCIA = require('../../assets/iconos/app/advertencia.png');
 import { useTema } from '../context/tema';
 
 const EJEMPLOS = [
@@ -24,34 +27,44 @@ const EJEMPLOS = [
   'Se me quedaron las llaves adentro de la casa',
   'Se me quemó un enchufe y saltó el automático',
 ];
-const MAX_FOTOS = 2;
+const MAX_FOTOS = 3;
 
 // HU-08: el cliente describe su necesidad con sus palabras; la app muestra lo que entendió
-// para confirmarlo o corregirlo antes de publicar la solicitud. Puede adjuntar hasta 2 fotos
-// del problema (cámara o galería), que viajan en el campo «fotos» al crear la solicitud,
-// para que el maestro cotice con más exactitud.
+// para confirmarlo o corregirlo antes de publicar la solicitud. Puede adjuntar hasta 3 fotos
+// del problema (cámara o galería), que viajan en el campo «fotos» al crear la solicitud, cada una
+// con los datos de su cámara (fecha, equipo) para verificar que es real y se tomó en el momento.
 // Si viene desde el perfil de un maestro (?prestador=id), al publicar se le asigna directamente.
+// Con fotos y sin escribir nada, la IA puede detectar el problema (servicio y descripción): el cliente
+// revisa lo que propone antes de publicar. El botón aparece solo si el servidor tiene la IA activa.
 export default function NuevaSolicitud() {
   useTema();   // vuelve a dibujarse al cambiar entre modo claro y oscuro
   const { usuario } = useSesion();
-  const { prestador: prestadorId } = useLocalSearchParams();
-  const [paso, setPaso] = useState('escribir');
-  const [texto, setTexto] = useState('');
+  const { prestador: prestadorId, pendiente: desdePendiente } = useLocalSearchParams();
+  // ¿Viene a pedir otro trabajo que la IA encontró en las mismas fotos? Llega con todo listo
+  const [pendiente] = useState(() => (desdePendiente ? tomarPendiente() : null));
+  const trabajoPendiente = pendiente?.trabajos[0] ?? null;
+  const [paso, setPaso] = useState(trabajoPendiente ? 'revisar' : 'escribir');
+  const [texto, setTexto] = useState(trabajoPendiente?.descripcion ?? '');
   const [opciones, setOpciones] = useState([]);       // categorías que se pueden elegir
   const [prestador, setPrestador] = useState(null);
   const [comunas, setComunas] = useState([]);
-  const [elegidas, setElegidas] = useState([]);
-  const [comuna, setComuna] = useState(usuario?.comuna ?? null);
+  const [elegidas, setElegidas] = useState(trabajoPendiente ? [trabajoPendiente.categoria.slug] : []);
+  const [comuna, setComuna] = useState(pendiente?.lugar.comuna ?? usuario?.comuna ?? null);
   const [noDisponibles, setNoDisponibles] = useState([]);
   const [fueraDeCobertura, setFueraDeCobertura] = useState(null);   // comuna mencionada donde aún no operamos
   const [error, setError] = useState(null);
   const [cargando, setCargando] = useState(false);
   const [sinConexion, setSinConexion] = useState(false);
-  const [fotos, setFotos] = useState([]);              // { base64, uri }: se suben al publicar
+  const [fotos, setFotos] = useState(trabajoPendiente?.fotos ?? []);   // { base64, uri, metadatos }: se suben al publicar
+  const [iaDisponible, setIaDisponible] = useState(false);   // detección del problema por foto
+  const [analizando, setAnalizando] = useState(false);
+  const [analisis, setAnalisis] = useState(null);      // lo que propuso la IA para las fotos actuales
+  // Trabajos de otros oficios en las mismas fotos: se piden después, cada uno en su solicitud
+  const [otrosTrabajos, setOtrosTrabajos] = useState([]);
   // Dónde es el trabajo: dirección exacta (obligatoria), referencia y, si quiere, su ubicación GPS
-  const [direccion, setDireccion] = useState('');
-  const [referencia, setReferencia] = useState('');
-  const [gps, setGps] = useState(null);                 // { latitud, longitud, precision }
+  const [direccion, setDireccion] = useState(pendiente?.lugar.direccion ?? '');
+  const [referencia, setReferencia] = useState(pendiente?.lugar.referencia ?? '');
+  const [gps, setGps] = useState(pendiente?.lugar.gps ?? null);   // { latitud, longitud, precision }
   const [buscandoGps, setBuscandoGps] = useState(false);
   const [errorDireccion, setErrorDireccion] = useState(null);
   const { encolar } = useCola();
@@ -74,6 +87,55 @@ export default function NuevaSolicitud() {
       })
       .catch((e) => setError(e.message));
   }, [prestadorId]);
+
+  // ¿El servidor tiene activa la detección por foto? Si no responde, simplemente no se ofrece
+  useEffect(() => {
+    api.get('/solicitudes/analizar-fotos').then((r) => setIaDisponible(Boolean(r.disponible))).catch(() => setIaDisponible(false));
+  }, []);
+
+  // El cliente ya había escrito algo y prefiere la descripción de la IA: se usa junto con el servicio detectado
+  function usarSugerencia(a) {
+    setTexto(a.descripcion);
+    if (a.categoria && opciones.some((o) => o.slug === a.categoria.slug) && a.descripcion.length >= 8) {
+      setElegidas([a.categoria.slug]);
+      setPaso('revisar');
+    } else {
+      setPaso('escribir');
+    }
+  }
+
+  // La IA mira las fotos y propone el servicio y la descripción. Si el cliente no había escrito nada,
+  // se rellena la descripción y, con el servicio identificado, pasa directo a revisar y elegir el lugar.
+  async function detectarConFoto() {
+    setError(null);
+    setAnalizando(true);
+    try {
+      const { analisis: a } = await api.post('/solicitudes/analizar-fotos', { fotos: fotos.map((f) => f.base64) });
+      setAnalisis(a);
+      const otros = (a.otros ?? [])
+        .map((o) => ({ categoria: o.categoria, descripcion: o.descripcion, fotos: o.fotos.map((i) => fotos[i]).filter(Boolean) }))
+        .filter((o) => o.fotos.length);
+      setOtrosTrabajos(otros);
+      if (otros.length) {
+        const principales = (a.fotos ?? []).map((i) => fotos[i]).filter(Boolean);
+        if (principales.length) setFotos(principales);
+      }
+      const descripcion = texto.trim() || a.descripcion;
+      if (!texto.trim() && a.descripcion) setTexto(a.descripcion);
+      const ofrecido = a.categoria && opciones.some((o) => o.slug === a.categoria.slug);
+      if (ofrecido && descripcion.length >= 8) {
+        setElegidas([a.categoria.slug]);
+        setNoDisponibles([]);
+        setFueraDeCobertura(null);
+        setPaso('revisar');
+      }
+    } catch (e) {
+      if (e.codigo === 'SIN_CONEXION') setSinConexion(true);
+      else setError(e.message);
+    } finally {
+      setAnalizando(false);
+    }
+  }
 
   async function revisar() {
     setError(null);
@@ -121,7 +183,11 @@ export default function NuevaSolicitud() {
     setError(null);
     try {
       const foto = await elegirFoto(desdeCamara);
-      if (foto) setFotos((f) => [...f, foto].slice(0, MAX_FOTOS));
+      if (foto) {
+        setFotos((f) => [...f, foto].slice(0, MAX_FOTOS));
+        setAnalisis(null);
+        setOtrosTrabajos([]);
+      }
     } catch (e) {
       setError(e.message);
     }
@@ -143,10 +209,19 @@ export default function NuevaSolicitud() {
         categorias: elegidas,
         comuna,
         ...lugar(),
-        // Hasta 2 fotos del problema: viajan con la creación y quedan en la solicitud
-        ...(fotos.length ? { fotos: fotos.map((f) => f.base64) } : {}),
+        // Hasta 3 fotos del problema: viajan con la creación y quedan en la solicitud, con los datos
+        // de su cámara para que el servidor verifique que son reales y actuales
+        ...(fotos.length ? { fotos: fotos.map((f) => ({ imagen_base64: f.base64, metadatos: f.metadatos ?? {} })) } : {}),
+        ...(pendiente ? { separada_de: pendiente.separadaDe } : {}),
         creado_en_dispositivo: new Date().toISOString(),
       });
+      const publicada = r.solicitudes[0].id;
+      if (pendiente) {
+        // Este trabajo ya se pidió: si quedan otros de las mismas fotos, se ofrecen en la pantalla de este
+        guardarPendiente({ ...pendiente, ultima: publicada, trabajos: pendiente.trabajos.slice(1) });
+      } else if (otrosTrabajos.length) {
+        guardarPendiente({ separadaDe: publicada, ultima: publicada, lugar: { comuna, direccion: direccion.trim(), referencia: referencia.trim(), gps }, trabajos: otrosTrabajos });
+      }
       if (prestador) {
         await api.post(`/solicitudes/${r.solicitudes[0].id}/asignar`, { prestador_id: prestador.id });
       }
@@ -198,6 +273,15 @@ export default function NuevaSolicitud() {
           </View>
         ) : null}
 
+        {trabajoPendiente ? (
+          <View style={estilos.pendiente}>
+            <ConIcono icono={DESTELLOS} estilo={estilos.pendienteTitulo}>
+              Trabajo de {trabajoPendiente.categoria.nombre.toLowerCase()} que encontramos en tus fotos
+            </ConIcono>
+            <Text style={estilos.pendienteTexto}>Dejamos listas su foto, la descripción y la misma dirección. Revísalas y publica.</Text>
+          </View>
+        ) : null}
+
         <Text style={estilos.titulo}>¿Qué necesitas?</Text>
         <Text style={estilos.ayuda}>Escríbelo con tus palabras. Nosotros identificamos el servicio.</Text>
 
@@ -230,12 +314,15 @@ export default function NuevaSolicitud() {
             <Text style={estilos.fotosContador}>{fotos.length}/{MAX_FOTOS}</Text>
           </View>
           <Text style={estilos.fotosAyuda}>Adjunta hasta {MAX_FOTOS} fotos del problema: la falla, el árbol o el lugar ayuda al maestro a cotizar con más exactitud.</Text>
+          <ConIcono icono={require('../../assets/iconos/perfil/verificaciones.png')} estilo={estilos.fotosAyuda}>
+            Tómalas ahora con la cámara: así quedan verificadas como fotos reales y actuales.
+          </ConIcono>
           {fotos.length ? (
             <View style={estilos.grilla}>
               {fotos.map((f, i) => (
                 <View key={f.uri ?? i}>
                   <Image source={{ uri: f.uri }} style={estilos.miniatura} accessibilityLabel={`Foto ${i + 1}`} />
-                  <Pressable onPress={() => setFotos((todas) => todas.filter((_, j) => j !== i))} style={estilos.quitar}
+                  <Pressable onPress={() => { setFotos((todas) => todas.filter((_, j) => j !== i)); setAnalisis(null); setOtrosTrabajos([]); }} style={estilos.quitar}
                     accessibilityRole="button" accessibilityLabel={`Quitar foto ${i + 1}`} hitSlop={6}>
                     <Text style={estilos.quitarTexto}>✕</Text>
                   </Pressable>
@@ -246,6 +333,62 @@ export default function NuevaSolicitud() {
           {fotos.length < MAX_FOTOS ? <BotonesFoto onElegir={agregarFoto} /> : (
             <Text style={estilos.fotosAyuda}>Ya adjuntaste las {MAX_FOTOS} fotos permitidas al pedir el servicio; después podrás sumar más en la solicitud o por el chat.</Text>
           )}
+
+          {/* Detección del problema con IA: propone el servicio y la descripción a partir de las fotos */}
+          {iaDisponible && fotos.length && !analisis ? (
+            <View style={estilos.ia}>
+              <Boton titulo="Detectar el problema con la foto" icono={DESTELLOS} onPress={detectarConFoto}
+                cargando={analizando} deshabilitado={analizando} />
+              <Text style={estilos.fotosAyuda}>
+                {texto.trim() ? 'La IA revisa tus fotos y te sugiere el servicio.' : '¿No sabes cómo explicarlo? La IA mira tus fotos y lo describe por ti.'}
+                {' '}Las fotos se envían a un servicio de inteligencia artificial, sin tu nombre ni tus datos. Evita que salgan personas o documentos.
+              </Text>
+            </View>
+          ) : null}
+          {analisis ? (
+            <View style={estilos.ia} accessibilityLabel="Resultado de la detección por foto">
+              <ConIcono icono={DESTELLOS} estilo={estilos.iaTitulo}>
+                {analisis.categoria
+                  ? `Nuestro equipo detectó: Trabajo de ${analisis.categoria.nombre.toLowerCase()}${analisis.confianza === 'media' ? ' (revisa que sea correcto)' : ''}`
+                  : 'No pudimos identificar el servicio con seguridad'}
+              </ConIcono>
+              {analisis.categoria && otrosTrabajos.length ? (
+                <View style={estilos.varios}>
+                  <Text style={estilos.variosTitulo}>
+                    Encontramos {otrosTrabajos.length + 1} trabajos distintos en tus fotos:{' '}
+                    {[analisis.categoria, ...otrosTrabajos.map((o) => o.categoria)].map((c) => c.nombre.toLowerCase()).join(' y ')}.
+                  </Text>
+                  <Text style={estilos.variosTexto}>
+                    Cada solicitud es para un solo trabajo, así cada maestro recibe solo lo suyo. Empecemos con el de{' '}
+                    {analisis.categoria.nombre.toLowerCase()}: al publicarla te dejamos lista la de{' '}
+                    {otrosTrabajos.map((o) => o.categoria.nombre.toLowerCase()).join(' y ')}, con su foto y descripción.
+                  </Text>
+                </View>
+              ) : null}
+              {analisis.categoria && !opciones.some((o) => o.slug === analisis.categoria.slug) ? (
+                <Text style={estilos.noDisponible}>Este maestro no ofrece ese servicio: elige otro maestro o el servicio que corresponda.</Text>
+              ) : null}
+              {!analisis.categoria ? (
+                <Text style={estilos.fotosAyuda}>Escribe con tus palabras qué necesitas o elige el servicio al continuar.</Text>
+              ) : null}
+              {analisis.peligro ? (
+                <View style={estilos.peligro}>
+                  <ConIcono icono={ADVERTENCIA} estilo={estilos.peligroTexto}>{analisis.peligro}</ConIcono>
+                </View>
+              ) : null}
+              {analisis.pregunta ? (
+                <Text style={estilos.fotosAyuda}>El maestro querrá saber: <Text style={{ fontWeight: '700' }}>{analisis.pregunta}</Text> Si lo sabes, agrégalo a la descripción.</Text>
+              ) : null}
+              {analisis.descripcion && texto.trim() !== analisis.descripcion ? (
+                <View style={{ gap: espacio.m }}>
+                  <Text style={estilos.fotosAyuda}>Sugerencia: «{analisis.descripcion}»</Text>
+                  <Boton titulo="Usar esta descripción" variante="secundario" onPress={() => usarSugerencia(analisis)} />
+                </View>
+              ) : (
+                <Text style={estilos.fotosAyuda}>La descripción la redactó una IA: revísala y corrígela si algo no calza.</Text>
+              )}
+            </View>
+          ) : null}
         </View>
 
         {/* Al revisar, el error se muestra en la hoja inferior: ahí está el botón que lo provocó */}
@@ -378,6 +521,16 @@ const estilos = crearEstilos((colores) => ({
   },
   quitarTexto: { color: colores.superficie, fontSize: 12, fontWeight: '800' },
   gps: { gap: espacio.xs, marginTop: espacio.xs },
+  ia: { gap: espacio.s, marginTop: espacio.m, paddingTop: espacio.m, borderTopWidth: 1, borderTopColor: colores.borde },
+  iaTitulo: { fontSize: 15, fontWeight: '700', color: colores.texto },
+  varios: { backgroundColor: colores.primarioSuave, borderRadius: radio.s, padding: espacio.s, gap: espacio.xs },
+  variosTitulo: { fontSize: 14, fontWeight: '700', color: colores.primarioOscuro },
+  variosTexto: { fontSize: 14, color: colores.primarioOscuro, lineHeight: 20 },
+  pendiente: { backgroundColor: colores.primarioSuave, borderRadius: radio.m, padding: espacio.m, marginBottom: espacio.m, gap: espacio.xs },
+  pendienteTitulo: { fontSize: 15, fontWeight: '700', color: colores.primarioOscuro },
+  pendienteTexto: { fontSize: 14, color: colores.primarioOscuro },
+  peligro: { backgroundColor: colores.avisoFondo, borderWidth: 1, borderColor: colores.avisoBorde, borderRadius: radio.s, padding: espacio.s },
+  peligroTexto: { fontSize: 14, fontWeight: '600', color: colores.avisoTexto },
   gpsTexto: { fontSize: 14, color: colores.exitoTexto, fontWeight: '600' },
   gpsQuitar: { color: colores.primario, fontWeight: '700', textDecorationLine: 'underline' },
   gpsAyuda: { fontSize: 13, color: colores.textoSuave, lineHeight: 18 },

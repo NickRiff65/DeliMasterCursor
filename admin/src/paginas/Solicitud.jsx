@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { api } from '../api.js';
 import { useDatos, Cargando, Aviso, Insignia } from '../componentes/comunes.jsx';
@@ -25,6 +25,9 @@ export default function Solicitud() {
       </header>
 
       {s.estado === 'en_disputa' ? <Resolver solicitud={s} alResolver={() => { recargar(); avisarCambio(); }} /> : null}
+      {s.estado === 'en_disputa' || s.motivo_disputa ? (
+        <ChatsDisputa solicitudId={s.id} cliente={s.cliente?.nombre} prestador={s.prestador?.nombre} />
+      ) : null}
 
       <section className="dos-columnas">
         <div className="tarjeta">
@@ -159,12 +162,7 @@ export default function Solicitud() {
                   <figcaption className="pequeno suave">
                     {f.rol === 'cliente' ? 'Cliente' : 'Prestador'} · {fechaHora(f.creado_en)}
                     {f.descripcion ? <span className="bloque">{f.descripcion}</span> : null}
-                    {f.sospechosa ? (
-                      <span className="bloque">
-                        <Insignia tono="alerta">⚠ Sospechosa</Insignia>
-                        <span className="bloque">Sin datos de cámara: podría ser una captura o una imagen descargada</span>
-                      </span>
-                    ) : null}
+                    <VerificacionFoto f={f} />
                   </figcaption>
                 </figure>
               ))}
@@ -173,6 +171,121 @@ export default function Solicitud() {
         </div>
       </section>
     </>
+  );
+}
+
+// HU-16 · Conversaciones de la disputa: el equipo pide antecedentes al cliente y al maestro por
+// separado (cada uno ve solo la suya). Se actualizan solas cada 15 segundos.
+function ChatsDisputa({ solicitudId, cliente, prestador }) {
+  const { datos, error, recargar } = useDatos(`/admin/solicitudes/${solicitudId}/disputa`);
+  useEffect(() => {
+    const t = setInterval(recargar, 15_000);
+    return () => clearInterval(t);
+  }, [recargar]);
+  if (!datos) return error ? <Aviso mensaje={error} /> : null;
+  return (
+    <section className="tarjeta">
+      <h2>Conversación con las partes</h2>
+      <p className="suave">
+        Cada conversación es privada: el cliente no ve la del maestro ni el maestro la del cliente.
+        Pide aquí los antecedentes que falten; las fotos las suben en la sección «Fotos» de su app.
+      </p>
+      <div className="dos-columnas">
+        <Conversacion solicitudId={solicitudId} parte="cliente" titulo={`Con el cliente${cliente ? ` · ${cliente}` : ''}`}
+          mensajes={datos.cliente} puedeEscribir={datos.puede_escribir} alEnviar={recargar} />
+        {prestador ? (
+          <Conversacion solicitudId={solicitudId} parte="prestador" titulo={`Con el maestro · ${prestador}`}
+            mensajes={datos.prestador} puedeEscribir={datos.puede_escribir} alEnviar={recargar} />
+        ) : null}
+      </div>
+    </section>
+  );
+}
+
+function Conversacion({ solicitudId, parte, titulo, mensajes, puedeEscribir, alEnviar }) {
+  const [texto, setTexto] = useState('');
+  const [enviando, setEnviando] = useState(false);
+  const [error, setError] = useState(null);
+  const quien = parte === 'cliente' ? 'cliente' : 'maestro';
+
+  async function enviar(e) {
+    e.preventDefault();
+    if (!texto.trim()) return;
+    setEnviando(true);
+    setError(null);
+    try {
+      await api.post(`/admin/solicitudes/${solicitudId}/disputa`, { parte, contenido: texto.trim() });
+      setTexto('');
+      alEnviar();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setEnviando(false);
+    }
+  }
+
+  return (
+    <div className="conversacion" aria-label={titulo}>
+      <h3>{titulo}</h3>
+      <div className="chat">
+        {mensajes.length ? mensajes.map((m) => (
+          <div key={m.id} className={`burbuja ${m.de_equipo ? 'equipo' : ''}`}>
+            <p>{m.contenido}</p>
+            <span className="pequeno suave">{m.de_equipo ? 'Equipo DeliMaster' : quien[0].toUpperCase() + quien.slice(1)} · {fechaHora(m.creado_en)}</span>
+          </div>
+        )) : <p className="suave pequeno">Sin mensajes todavía.</p>}
+      </div>
+      {puedeEscribir ? (
+        <form className="formulario-chat" onSubmit={enviar}>
+          <label>
+            Escribir al {quien}
+            <textarea rows={2} value={texto} onChange={(e) => setTexto(e.target.value)} maxLength={1000}
+              placeholder={parte === 'cliente' ? 'Ej.: ¿Puedes subir una foto de cómo quedó el patio?' : 'Ej.: ¿Por qué quedaron las ramas en el patio?'} />
+          </label>
+          <button className="boton" type="submit" disabled={enviando || !texto.trim()}>{enviando ? 'Enviando…' : 'Enviar'}</button>
+        </form>
+      ) : <p className="suave pequeno">La disputa ya se resolvió: la conversación quedó cerrada.</p>}
+      <Aviso mensaje={error} />
+    </div>
+  );
+}
+
+// ¿La foto es real y se tomó en el momento? Lo que dicen los datos de la cámara (EXIF)
+const MOTIVOS_FOTO = {
+  sin_datos: 'Sin datos de cámara: podría ser una captura o una imagen descargada',
+  sin_fecha: 'No trae la fecha en que se tomó',
+  antigua: 'Foto antigua: se tomó más de un día antes de subirla',
+  fecha_futura: 'La fecha de la foto es posterior a la subida (reloj alterado)',
+  editada: 'Editada con un programa',
+  lejos: 'Se tomó lejos del punto del trabajo',
+};
+const TOMADA_CON = { camara: 'con la cámara de la app', galeria: 'desde la galería', web: 'desde la versión web' };
+
+function VerificacionFoto({ f }) {
+  const estado = f.verificacion ?? (f.sospechosa ? 'sin_datos' : null);
+  if (!estado) return null;
+  const motivos = f.verificacion_motivos ?? (estado === 'sin_datos' ? ['sin_datos'] : []);
+  const minutos = f.minutos_antes;
+  const antes = minutos == null ? '' : minutos < 60 ? `${minutos} min antes de subirla`
+    : minutos < 1440 ? `${Math.round(minutos / 60)} h antes de subirla` : `${Math.round(minutos / 1440)} días antes de subirla`;
+  return (
+    <span className="bloque verificacion-foto">
+      {estado === 'verificada' ? <Insignia tono="ok">✓ Verificada</Insignia>
+        : estado === 'revisar' ? <Insignia tono="alerta">Revisar</Insignia>
+          : <Insignia tono="alerta">⚠ Sin datos de cámara</Insignia>}
+      {motivos.map((m) => (
+        <span key={m} className="bloque">{MOTIVOS_FOTO[m] ?? m}</span>
+      ))}
+      {f.exif_fecha ? <span className="bloque">Tomada el {fechaHora(`${f.exif_fecha}`)}{antes ? ` (${antes})` : ''}</span> : null}
+      {f.exif_dispositivo ? <span className="bloque">Equipo: {f.exif_dispositivo}</span> : null}
+      {f.exif_software ? <span className="bloque">Programa: {f.exif_software}</span> : null}
+      {f.distancia_m != null ? <span className="bloque">A {f.distancia_m >= 1000 ? `${(f.distancia_m / 1000).toFixed(1).replace('.', ',')} km` : `${f.distancia_m} m`} del punto del trabajo</span> : null}
+      {f.tomada_con || f.metadatos_origen ? (
+        <span className="bloque">
+          Subida {TOMADA_CON[f.tomada_con] ?? ''}{f.metadatos_origen === 'app' ? ' · datos leídos por la app' : f.metadatos_origen === 'archivo' ? ' · datos del archivo' : ''}
+        </span>
+      ) : null}
+    </span>
   );
 }
 

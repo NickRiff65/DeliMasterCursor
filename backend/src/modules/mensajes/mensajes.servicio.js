@@ -109,12 +109,12 @@ async function avisarPorBloqueos(usuario, solicitudId) {
 // Enviar una foto por el chat (por ejemplo, del árbol o de la falla) para cotizar con más exactitud.
 // Queda también entre las fotos de la solicitud. La imagen no pasa por el filtro de texto: el equipo
 // puede revisarla si hay una disputa.
-export async function enviarFoto(usuario, solicitudId, base64, urlApi) {
+export async function enviarFoto(usuario, solicitudId, base64, urlApi, metadatos) {
   const s = await solicitudDelChat(usuario, solicitudId);
   if (!ESTADOS_CON_CHAT.includes(s.estado)) {
     throw new AppError('El chat de esta solicitud está cerrado', 409, 'CHAT_CERRADO');
   }
-  const fotoId = await guardarFoto(usuario, solicitudId, base64, 'Enviada por el chat');
+  const fotoId = await guardarFoto(usuario, solicitudId, base64, 'Enviada por el chat', metadatos);
   const { rows: [{ id }] } = await pool.query(
     `INSERT INTO mensajes (solicitud_id, emisor_id, contenido, foto_id) VALUES ($1, $2, '📷 Foto', $3) RETURNING id`,
     [solicitudId, usuario.id, fotoId]);

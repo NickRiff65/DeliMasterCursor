@@ -34,7 +34,7 @@ export function FotosEvidencia({ solicitudId, titulo, ayuda }) {
       const foto = await elegirFoto(desdeCamara);
       if (!foto) return;
       setSubiendo(true);
-      setDatos(await api.post(`/solicitudes/${solicitudId}/fotos`, { imagen_base64: foto.base64 }));
+      setDatos(await api.post(`/solicitudes/${solicitudId}/fotos`, { imagen_base64: foto.base64, metadatos: foto.metadatos ?? {} }));
     } catch (e) {
       setError(e.message);
     } finally {
@@ -57,9 +57,10 @@ export function FotosEvidencia({ solicitudId, titulo, ayuda }) {
         <View style={estilos.grilla}>
           {datos.fotos.map((f) => (
             <Pressable key={f.id} onPress={() => setAmpliada(f)} accessibilityRole="imagebutton"
-              accessibilityLabel={`Foto de ${f.propia ? 'ti' : AUTOR[f.rol].toLowerCase()}`}>
+              accessibilityLabel={`Foto de ${f.propia ? 'ti' : AUTOR[f.rol].toLowerCase()}${f.verificacion ? `. ${f.verificacion.texto}` : ''}`}>
               <Image source={{ uri: f.url }} style={estilos.miniatura} />
               <Text style={estilos.autor}>{f.propia ? 'Tú' : AUTOR[f.rol]}</Text>
+              <Verificacion v={f.verificacion} />
             </Pressable>
           ))}
         </View>
@@ -83,6 +84,7 @@ export function FotosEvidencia({ solicitudId, titulo, ayuda }) {
                 {ampliada.propia ? 'Tu foto' : `Foto del ${AUTOR[ampliada.rol].toLowerCase()}`} · {fechaCorta(ampliada.creado_en)}
                 {ampliada.descripcion ? ` · ${ampliada.descripcion}` : ''}
               </Text>
+              {ampliada.verificacion ? <Text style={estilos.pieModal}>{ampliada.verificacion.texto}</Text> : null}
               <Text style={estilos.pieModal}>Toca para cerrar</Text>
             </>
           ) : null}
@@ -92,7 +94,28 @@ export function FotosEvidencia({ solicitudId, titulo, ayuda }) {
   );
 }
 
+// ¿La foto es real y se tomó en el momento? (lo decide el servidor con los datos de la cámara)
+const VERIFICACION = {
+  verificada: { texto: 'Verificada', icono: require('../../assets/iconos/perfil/verificaciones.png'), color: 'verificado' },
+  revisar: { texto: 'Revisar', icono: require('../../assets/iconos/app/advertencia.png'), color: 'avisoTexto' },
+  sin_datos: { texto: 'Sin datos', icono: require('../../assets/iconos/app/advertencia.png'), color: 'textoSuave' },
+};
+
+function Verificacion({ v }) {
+  const e = v ? VERIFICACION[v.estado] : null;
+  if (!e) return null;
+  return (
+    <View style={estilos.verificacion}>
+      <Image source={e.icono} tintColor={colores[e.color]} accessibilityIgnoresInvertColors style={estilos.verificacionIcono} />
+      <Text style={[estilos.verificacionTexto, { color: colores[e.color] }]}>{e.texto}</Text>
+    </View>
+  );
+}
+
 const estilos = crearEstilos((colores) => ({
+  verificacion: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 3, marginTop: 2, maxWidth: 88 },
+  verificacionIcono: { width: 12, height: 12 },
+  verificacionTexto: { fontSize: 11, fontWeight: '700' },
   tarjeta: {
     backgroundColor: colores.superficie, boxShadow: colores.sombra, borderRadius: radio.m, padding: espacio.m,
     marginBottom: espacio.m, borderWidth: 1, borderColor: colores.bordeTarjeta,

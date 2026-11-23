@@ -33,11 +33,11 @@ export function TarjetaSolicitud({ solicitud: s }) {
         </View>
       ) : null}
       {enCurso ? <ProgresoSolicitud estado={s.estado} /> : null}
-      {/* Sin respuesta en 1 día hábil: el cliente puede elegir a otro maestro en el detalle */}
+      {/* Sin respuesta en 1 día: el cliente puede elegir a otro maestro en el detalle */}
       {s.estado === 'creada' && s.sin_respuesta ? (
         <View style={estilos.sinRespuesta}>
           <ConIcono icono={require('../../assets/iconos/app/reloj.png')} estilo={estilos.sinRespuestaTexto}>
-            El maestro no respondió en 1 día hábil
+            El maestro no respondió en 1 día
           </ConIcono>
           <Pressable onPress={() => router.push(`/solicitud/${s.id}`)} accessibilityRole="button"
             accessibilityLabel="Elegir otro maestro" hitSlop={6}>

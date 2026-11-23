@@ -35,10 +35,10 @@ async function abrirComoPrestador(solicitud, extra = {}) {
 }
 
 describe('Cliente (Lite)', () => {
-  test('con la visita por pagar, ofrece pagar la tarifa y explica que se descuenta del total', async () => {
+  test('con la visita por pagar, ofrece pagar la tarifa y explica que va aparte de la cotización', async () => {
     await abrirComoCliente({ ...base, estado: 'visita_por_pagar' });
     expect(await screen.findByRole('button', { name: 'Pagar visita $25.000 con Webpay' })).toBeOnTheScreen();
-    expect(screen.getByText(/la visita se descuenta del total/)).toBeOnTheScreen();
+    expect(screen.getByText(/La visita se paga aparte: si contratas el trabajo, pagarás la cotización completa/)).toBeOnTheScreen();
   });
 
   test('con la visita pagada muestra el código de llegada dígito por dígito', async () => {
@@ -57,19 +57,27 @@ describe('Cliente (Lite)', () => {
     expect(llamadas.some((l) => l.ruta === `/solicitudes/${ID}/no-llego`)).toBe(true);
   });
 
-  test('revisa la cotización con el saldo descontado y la acepta', async () => {
-    const llamadas = await abrirComoCliente({ ...base, estado: 'cotizada', cotizacion }, {
+  test('revisa la cotización (solo el trabajo, la visita va aparte) y la acepta pagándola completa', async () => {
+    const nueva = { ...cotizacion, incluye_visita: false, por_pagar: 120_000 };
+    const llamadas = await abrirComoCliente({ ...base, estado: 'cotizada', cotizacion: nueva }, {
       [`POST /solicitudes/${ID}/cotizacion/respuesta`]: {
-        solicitud: { ...base, estado: 'confirmada', precio_acordado: 120_000, monto_por_pagar: 95_000, cotizacion: { ...cotizacion, estado: 'aceptada' } },
+        solicitud: { ...base, estado: 'confirmada', precio_acordado: 145_000, monto_por_pagar: 120_000, cotizacion: { ...nueva, estado: 'aceptada' } },
       },
     });
+    expect(await screen.findByText('Por pagar')).toBeOnTheScreen();
+    expect(screen.getByText('$120.000')).toBeOnTheScreen();
+    expect(screen.getByText(/La visita \(\$25\.000\) ya está pagada aparte y no se descuenta/)).toBeOnTheScreen();
+
+    await userEvent.setup().press(screen.getByRole('button', { name: 'Aceptar y pagar $120.000' }));
+    expect(await screen.findByRole('button', { name: 'Pagar $120.000 con Webpay' })).toBeOnTheScreen();
+    expect(llamadas.find((l) => l.metodo === 'POST').cuerpo).toEqual({ aceptar: true, cotizacion_id: 'q1' });
+  });
+
+  test('una cotización antigua (que incluía la visita) se muestra con el saldo descontado', async () => {
+    await abrirComoCliente({ ...base, estado: 'cotizada', cotizacion: { ...cotizacion, incluye_visita: true, por_pagar: 95_000 } });
     expect(await screen.findByText('Saldo por pagar')).toBeOnTheScreen();
     expect(screen.getByText('−$25.000')).toBeOnTheScreen();
-    expect(screen.getByText('$95.000')).toBeOnTheScreen();
-
-    await userEvent.setup().press(screen.getByRole('button', { name: 'Aceptar y pagar $95.000' }));
-    expect(await screen.findByRole('button', { name: 'Pagar $95.000 con Webpay' })).toBeOnTheScreen();
-    expect(llamadas.find((l) => l.metodo === 'POST').cuerpo).toEqual({ aceptar: true, cotizacion_id: 'q1' });
+    expect(screen.getByRole('button', { name: 'Aceptar y pagar $95.000' })).toBeOnTheScreen();
   });
 
   test('si el maestro corrigió la cotización, lo muestra con el monto anterior', async () => {
@@ -88,9 +96,9 @@ describe('Cliente (Lite)', () => {
         return errorApi(409, 'COTIZACION_CAMBIO', 'El maestro corrigió la cotización: ahora es de $100.000. Revísala antes de responder.');
       },
     });
-    await userEvent.setup().press(await screen.findByRole('button', { name: 'Aceptar y pagar $95.000' }));
+    await userEvent.setup().press(await screen.findByRole('button', { name: 'Aceptar y pagar $120.000' }));
     expect(await screen.findByText(/El maestro corrigió la cotización: ahora es de \$100\.000/)).toBeOnTheScreen();
-    expect(await screen.findByRole('button', { name: 'Aceptar y pagar $75.000' })).toBeOnTheScreen();
+    expect(await screen.findByRole('button', { name: 'Aceptar y pagar $100.000' })).toBeOnTheScreen();
   });
 
   test('con la disputa resuelta en parte, cuenta cuánto se le devolvió', async () => {
@@ -112,6 +120,27 @@ describe('Cliente (Lite)', () => {
 });
 
 describe('Prestador (Pro)', () => {
+  test('con precio cerrado también pide el día en que irá, con la nota del horario aparte', async () => {
+    const llamadas = await abrirComoPrestador(
+      { ...base, modalidad: 'precio_cerrado', tarifa_visita: null, estado: 'asignada', responder_antes_de: '2099-01-01T00:00:00Z' },
+      { [`POST /solicitudes/${ID}/responder`]: { solicitud: { ...base, modalidad: 'precio_cerrado', estado: 'confirmada', precio_acordado: 45_000 } } });
+    const user = userEvent.setup();
+    await user.press(await screen.findByRole('radio', { name: 'Precio cerrado' }));
+    expect(screen.getByText('¿Qué día irás a hacer el trabajo?')).toBeOnTheScreen();
+    await user.type(screen.getByLabelText('¿Cuánto cobrarás? (CLP)'), '45000');
+    await user.press(screen.getByRole('button', { name: 'Aceptar trabajo' }));
+    expect(screen.getByText('Elige el día y la hora en que irás')).toBeOnTheScreen();
+    expect(llamadas.some((l) => l.metodo === 'POST')).toBe(false);
+
+    await user.press(screen.getByRole('button', { name: 'Mañana' }));
+    await user.press(screen.getByRole('button', { name: '10:00' }));
+    await user.press(screen.getByRole('button', { name: 'Aceptar trabajo' }));
+    expect(await screen.findByText(/Aceptaste por \$45\.000/)).toBeOnTheScreen();
+    const cuerpo = llamadas.find((l) => l.metodo === 'POST').cuerpo;
+    expect(cuerpo).toMatchObject({ aceptar: true, modalidad: 'precio_cerrado', precio: 45_000 });
+    expect(new Date(cuerpo.visita_programada_en).getHours()).toBe(10);
+  }, 15_000);
+
   test('al aceptar con visita exige tarifa y horario, y envía la modalidad elegida', async () => {
     const llamadas = await abrirComoPrestador(
       { ...base, modalidad: 'precio_cerrado', tarifa_visita: null, estado: 'asignada',
@@ -164,13 +193,13 @@ describe('Prestador (Pro)', () => {
     await user.type(await screen.findByLabelText('Código del cliente'), '4821');
     expect(screen.getByText(/confirmamos que estás en el lugar/)).toBeOnTheScreen();
     await user.press(screen.getByRole('button', { name: 'Confirmar llegada' }));
-    expect(await screen.findByText(/ya es tuya/)).toBeOnTheScreen();
+    expect(await screen.findByText(/la visita \(\$25\.000\) ya es tuya/)).toBeOnTheScreen();
     expect(llamadas.find((l) => l.metodo === 'POST').cuerpo).toEqual({
       codigo: '4821', latitud: -36.6066, longitud: -72.1034,
     });
   });
 
-  test('arma la cotización viendo el saldo que pagará el cliente y la envía', async () => {
+  test('arma la cotización (solo el trabajo) viendo lo que recibirá con la visita, y la envía', async () => {
     const llamadas = await abrirComoPrestador({ ...base, estado: 'en_diagnostico' }, {
       [`POST /solicitudes/${ID}/cotizacion`]: { solicitud: { ...base, estado: 'cotizada', cotizacion } },
     });
@@ -178,7 +207,8 @@ describe('Prestador (Pro)', () => {
     await user.type(await screen.findByLabelText('Mano de obra (CLP)'), '100000');
     await user.type(screen.getByLabelText('Materiales (CLP, opcional)'), '20.000');
     await user.type(screen.getByLabelText('¿Qué incluye el trabajo?'), 'Cambio de tablero y dos automáticos');
-    expect(screen.getByText('$95.000')).toBeOnTheScreen();    // 120.000 − 25.000 de visita
+    expect(screen.getByText('$120.000')).toBeOnTheScreen();   // la cotización: la visita va aparte
+    expect(screen.getByText(/al cierre te transferimos ambas \(\$145\.000\)/)).toBeOnTheScreen();
     await user.press(screen.getByRole('button', { name: 'Enviar cotización' }));
 
     expect(await screen.findByText(/Cotización enviada · esperando a Valentina/)).toBeOnTheScreen();

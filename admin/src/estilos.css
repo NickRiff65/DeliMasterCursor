@@ -216,6 +216,13 @@ input[aria-invalid='true'], textarea[aria-invalid='true'] { border-color: var(--
 .burbuja { max-width: 85%; border-radius: 10px; padding: 0.45rem 0.7rem; background: var(--fondo); }
 .burbuja.prestador { align-self: flex-end; background: var(--primario-suave); }
 .burbuja.bloqueado { background: var(--peligro-suave); }
+/* Conversaciones de la disputa: el equipo a la derecha */
+.burbuja.equipo { align-self: flex-end; background: var(--primario-suave); }
+.conversacion { display: flex; flex-direction: column; gap: 0.6rem; min-width: 0; }
+.conversacion h3 { margin: 0; color: var(--texto); }
+.conversacion .chat { max-height: 320px; border: 1px solid var(--borde); border-radius: 8px; padding: 0.6rem; }
+.formulario-chat { display: flex; flex-direction: column; gap: 0.5rem; }
+.formulario-chat .boton { align-self: flex-end; }
 .burbuja p { margin: 0.15rem 0; }
 .linea-tiempo { margin: 0.4rem 0 0; padding-left: 1.1rem; display: flex; flex-direction: column; gap: 0.4rem; }
 .parte { border-bottom: 1px solid var(--borde); padding-bottom: 0.5rem; }

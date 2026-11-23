@@ -113,7 +113,7 @@ describe('Ayudantía · EXIF antifraude (parser)', () => {
 
   test('sin EXIF no hay datos de cámara y la foto es sospechosa', () => {
     const exif = extraerExif(Buffer.from(JPEG_SIN_EXIF_B64, 'base64'));
-    assert.deepEqual(exif, { fechaOriginal: null, lat: null, lng: null, dispositivo: null });
+    assert.deepEqual(exif, { fechaOriginal: null, lat: null, lng: null, dispositivo: null, software: null });
     assert.equal(esSospechosa(exif), true);
     assert.equal(esSospechosa(null), true);
   });

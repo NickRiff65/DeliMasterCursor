@@ -107,7 +107,8 @@ describe('Pago con tarjeta guardada (Webpay Oneclick)', { skip: !hayBaseDeDatos 
     // Segundo pago: con un toque, sin salir de la app
     const saldo = await pagar('tarjeta_guardada');
     assert.equal(saldo.status, 201, JSON.stringify(saldo.body));
-    assert.deepEqual([saldo.body.resultado, saldo.body.concepto, saldo.body.monto], ['aprobado', 'saldo', 75_000]);
+    // La cotización va aparte de la visita: se paga completa
+    assert.deepEqual([saldo.body.resultado, saldo.body.concepto, saldo.body.monto], ['aprobado', 'saldo', 100_000]);
     assert.equal(saldo.body.url_pago, undefined);
     assert.equal(tb.cobros.length, 2);
     assert.equal((await ver()).estado, 'pagada');

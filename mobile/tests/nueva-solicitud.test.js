@@ -155,36 +155,45 @@ describe('Pedir un servicio', () => {
     expect(almacenCola.__todos()[0].datos).toMatchObject({ categorias: ['electricidad'], comuna: 'Chillán' });
   });
 
-  test('se pueden adjuntar hasta 2 fotos del problema y viajan en el campo «fotos» al publicar', async () => {
+  test('se pueden adjuntar hasta 3 fotos del problema y viajan con los datos de su cámara al publicar', async () => {
     const llamadas = simularApi({
       ...base,
       'POST /solicitudes/interpretar': { categorias: [{ slug: 'poda-altura' }], no_disponibles: [], comuna: null },
       'POST /solicitudes': (cuerpo) => ({ solicitudes: [{ id: cuerpo.id, estado: 'creada' }] }),
     });
+    // La primera trae el EXIF que entrega expo-image-picker en Android (plano)
+    const exif = { DateTimeOriginal: '2026:11:20 11:30:00', Make: 'samsung', Model: 'SM-A515F' };
     ImagePicker.launchImageLibraryAsync
-      .mockResolvedValueOnce({ canceled: false, assets: [{ base64: 'FOTO-ARBOL', uri: 'file://arbol.jpg' }] })
+      .mockResolvedValueOnce({ canceled: false, assets: [{ base64: 'FOTO-ARBOL', uri: 'file://arbol.jpg', exif }] })
       .mockResolvedValueOnce({ canceled: false, assets: [{ base64: 'FOTO-TECHO', uri: 'file://techo.jpg' }] })
-      .mockResolvedValueOnce({ canceled: false, assets: [{ base64: 'FOTO-RAMAS', uri: 'file://ramas.jpg' }] });
+      .mockResolvedValueOnce({ canceled: false, assets: [{ base64: 'FOTO-RAMAS', uri: 'file://ramas.jpg' }] })
+      .mockResolvedValueOnce({ canceled: false, assets: [{ base64: 'FOTO-PATIO', uri: 'file://patio.jpg' }] });
     const app = await abrirApp({ ruta: '/nueva-solicitud', pantallas: { 'nueva-solicitud': NuevaSolicitud } });
     const user = userEvent.setup();
     await user.type(await screen.findByLabelText('Describe lo que necesitas'), 'Necesito podar un árbol alto');
-    expect(screen.getByText('0/2')).toBeOnTheScreen();
-    for (let i = 0; i < 2; i++) await user.press(screen.getByRole('button', { name: 'Galería' }));
-    expect(await screen.findByLabelText('Foto 2')).toBeOnTheScreen();
-    expect(screen.getByText('2/2')).toBeOnTheScreen();
+    expect(screen.getByText('0/3')).toBeOnTheScreen();
+    expect(screen.getByText(/así quedan verificadas como fotos reales y actuales/)).toBeOnTheScreen();
+    for (let i = 0; i < 3; i++) await user.press(screen.getByRole('button', { name: 'Galería' }));
+    expect(await screen.findByLabelText('Foto 3')).toBeOnTheScreen();
+    expect(screen.getByText('3/3')).toBeOnTheScreen();
     // Con el máximo adjunto ya no se ofrece agregar más
     expect(screen.queryByRole('button', { name: 'Galería' })).not.toBeOnTheScreen();
     await user.press(screen.getByRole('button', { name: 'Quitar foto 2' }));
-    expect(screen.getByText('1/2')).toBeOnTheScreen();
+    expect(screen.getByText('2/3')).toBeOnTheScreen();
     await user.press(screen.getByRole('button', { name: 'Galería' }));
-    expect(await screen.findByLabelText('Foto 2')).toBeOnTheScreen();
+    expect(await screen.findByLabelText('Foto 3')).toBeOnTheScreen();
 
     await user.press(screen.getByRole('button', { name: 'Continuar' }));
     await completarDireccion(user);
     await user.press(await screen.findByRole('button', { name: 'Publicar solicitud' }));
     expect(await screen.findByText('Pantalla solicitud/[id]')).toBeOnTheScreen();
     const publicada = llamadas.find((l) => l.ruta === '/solicitudes').cuerpo;
-    expect(publicada.fotos).toEqual(['FOTO-ARBOL', 'FOTO-RAMAS']);
+    expect(publicada.fotos).toEqual([
+      { imagen_base64: 'FOTO-ARBOL', metadatos: { tomada_con: 'galeria', fecha_original: '2026-11-20T11:30:00', dispositivo: 'samsung SM-A515F' } },
+      { imagen_base64: 'FOTO-RAMAS', metadatos: { tomada_con: 'galeria' } },
+      { imagen_base64: 'FOTO-PATIO', metadatos: { tomada_con: 'galeria' } },
+    ]);
+    expect(ImagePicker.launchImageLibraryAsync).toHaveBeenCalledWith(expect.objectContaining({ exif: true }));
     // Ya no hay subida separada de fotos: viajaron con la creación
     expect(llamadas.some((l) => l.ruta === `/solicitudes/${publicada.id}/fotos`)).toBe(false);
     expect(app.ruta()).toBe(`/solicitud/${publicada.id}`);

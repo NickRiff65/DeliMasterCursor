@@ -230,7 +230,13 @@ export async function listarDisputas({ estado }) {
       SELECT s.id, s.descripcion_original AS descripcion, s.motivo_disputa, s.precio_acordado,
              c.nombre AS categoria, cu.nombre AS cliente, pu.nombre AS prestador,
              e.creado_en AS abierta_en, lm.estado AS estado_pago,
-             (SELECT count(*) FROM mensajes m WHERE m.solicitud_id = s.id)::int AS mensajes
+             (SELECT count(*) FROM mensajes m WHERE m.solicitud_id = s.id)::int AS mensajes,
+             -- Alguna parte respondió en el chat de la disputa después del último mensaje del equipo
+             EXISTS (SELECT 1 FROM mensajes_disputa d
+                      WHERE d.solicitud_id = s.id AND NOT d.de_equipo
+                        AND d.creado_en > COALESCE((SELECT max(x.creado_en) FROM mensajes_disputa x
+                                                     WHERE x.solicitud_id = s.id AND x.parte = d.parte AND x.de_equipo),
+                                                   '-infinity'::timestamptz)) AS respuesta_pendiente
         FROM solicitudes s
         JOIN categorias c ON c.id = s.categoria_id
         JOIN usuarios cu ON cu.id = s.cliente_id
@@ -297,7 +303,13 @@ export async function detalleSolicitud(admin, id, urlApi) {
                           FROM ledger_eventos le LEFT JOIN usuarios u ON u.id = le.actor_id
                          WHERE le.movimiento_id = lm.id), '[]') AS eventos
          FROM ledger_movimientos lm WHERE lm.solicitud_id = $1`, [id]),
-    pool.query('SELECT id, rol, descripcion, creado_en, sospechosa FROM evidencias WHERE solicitud_id = $1 ORDER BY creado_en, id', [id]),
+    // El equipo ve el detalle de la verificación de cada foto: fecha y equipo de la cámara, cómo se
+    // subió y a qué distancia del trabajo se tomó (las partes solo ven si quedó verificada)
+    pool.query(
+      `SELECT id, rol, descripcion, creado_en, sospechosa, verificacion, verificacion_motivos,
+              to_char(exif_fecha, 'YYYY-MM-DD"T"HH24:MI:SS') AS exif_fecha, exif_dispositivo, exif_software,
+              tomada_con, metadatos_origen, minutos_antes, distancia_m
+         FROM evidencias WHERE solicitud_id = $1 ORDER BY creado_en, id`, [id]),
     // Gastos en materiales del maestro: el equipo ve cuáles tienen boleta (los sin boleta se pueden devolver)
     pool.query(
       `SELECT id, monto, descripcion, boleta_id, creado_en, rechazado_en IS NOT NULL AS rechazado

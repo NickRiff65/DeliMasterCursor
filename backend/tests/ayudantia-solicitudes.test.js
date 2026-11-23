@@ -16,7 +16,7 @@ const FOTO = Buffer.concat([Buffer.from([0xff, 0xd8, 0xff, 0xe0]), Buffer.alloc(
 // (2) hasta 2 fotos al solicitar, que quedan como evidencias,
 // (3) precio cerrado mínimo de $5.000,
 // (4) plazo de respuesta del maestro de 1 día hábil (respuesta_vence_en / sin_respuesta).
-describe('Ayudantía: límites, fotos, precio mínimo y plazo de 1 día hábil', { skip: !hayBaseDeDatos && motivoOmision }, () => {
+describe('Ayudantía: límites, fotos, precio mínimo y plazo de 1 día', { skip: !hayBaseDeDatos && motivoOmision }, () => {
   let app, pool;
   let vencimientoRespuesta, liberarVencidas;
   let n = 0;
@@ -41,6 +41,8 @@ describe('Ayudantía: límites, fotos, precio mínimo y plazo de 1 día hábil',
     .send({ direccion: 'Av. Libertad 1234', id: randomUUID(), ...cuerpo });
   const PODA = { descripcion: 'Necesito podar un árbol alto' };
   const ELECTRICIDAD = { descripcion: 'Se me quemó un enchufe' };
+  const GASFITERIA = { descripcion: 'Se rompió una cañería y sale agua' };
+  const CERRAJERIA = { descripcion: 'Necesito un cerrajero para la chapa de la puerta' };
 
   beforeEach(async () => {
     await limpiarBase(pool);
@@ -79,6 +81,48 @@ describe('Ayudantía: límites, fotos, precio mínimo y plazo de 1 día hábil',
     assert.equal(reintento.body.solicitudes[0].categoria, 'electricidad');
   });
 
+  test('límite diario: si el trabajo pedido hoy ya se cerró, puede pedir otro el mismo día', async () => {
+    const primera = await crear(cliente, PODA);
+    assert.equal(primera.status, 201);
+    const idPrimera = primera.body.solicitudes[0].id;
+    assert.equal((await crear(cliente, ELECTRICIDAD)).status, 409);
+
+    // El trabajo de hoy terminó (cerrado y calificado): ya no ocupa el cupo del día
+    const cerrar = (id) => pool.query("UPDATE solicitudes SET estado = 'cerrada', prestador_id = $2 WHERE id = $1", [id, prestador.id]);
+    await cerrar(idPrimera);
+    const otra = await crear(cliente, ELECTRICIDAD);
+    assert.equal(otra.status, 201, JSON.stringify(otra.body));
+    // Y también puede volver a pedir el mismo servicio que ya se cerró
+    await cerrar(otra.body.solicitudes[0].id);
+    assert.equal((await crear(cliente, PODA)).status, 201);
+  });
+
+  test('límite diario: los trabajos separados de las mismas fotos cuentan como un pedido (hasta 3)', async () => {
+    const primera = await crear(cliente, PODA);
+    const idPrimera = primera.body.solicitudes[0].id;
+    // Sin indicar de dónde viene, la segunda del día choca con el límite
+    assert.equal((await crear(cliente, ELECTRICIDAD)).status, 409);
+    // Separada de la primera (mismas fotos, otro oficio): pasa
+    const separada = await crear(cliente, { ...ELECTRICIDAD, separada_de: idPrimera });
+    assert.equal(separada.status, 201, JSON.stringify(separada.body));
+    // La tercera también, pero una cuarta ya no (una por foto)
+    assert.equal((await crear(cliente, { ...GASFITERIA, separada_de: idPrimera })).status, 201);
+    const cuarta = await crear(cliente, { ...CERRAJERIA, separada_de: idPrimera });
+    assert.equal(cuarta.status, 409);
+    assert.equal(cuarta.body.error.codigo, 'LIMITE_SOLICITUDES_DIA');
+  });
+
+  test('límite diario: separada_de de otro cliente o de otro día no da la excepción', async () => {
+    const otro = await registrar('cliente', 'Otra Persona');
+    const ajena = (await crear(otro, PODA)).body.solicitudes[0].id;
+    const propia = (await crear(cliente, PODA)).body.solicitudes[0].id;
+    assert.equal((await crear(cliente, { ...ELECTRICIDAD, separada_de: ajena })).status, 409);
+    await pool.query("UPDATE solicitudes SET creado_en = now() - interval '2 days' WHERE id = $1", [propia]);
+    // La de hace dos días ya no cuenta para hoy: la de hoy pasa sola, y una más no usa la excepción
+    assert.equal((await crear(cliente, ELECTRICIDAD)).status, 201);
+    assert.equal((await crear(cliente, { ...GASFITERIA, separada_de: propia })).status, 409);
+  });
+
   test('duplicada: no puede haber dos activas de la misma categoría; otra categoría sí pasa', async () => {
     const primera = await crear(cliente, PODA);
     assert.equal(primera.status, 201);
@@ -105,23 +149,23 @@ describe('Ayudantía: límites, fotos, precio mínimo y plazo de 1 día hábil',
   });
 
   // ---------------------------------------------------------- (2) fotos al solicitar
-  test('fotos al crear: 2 fotos quedan como evidencias y 3 son error de validación', async () => {
-    const conFotos = await crear(cliente, { ...PODA, fotos: [FOTO, FOTO] });
+  test('fotos al crear: 3 fotos quedan como evidencias y 4 son error de validación', async () => {
+    const conFotos = await crear(cliente, { ...PODA, fotos: [FOTO, FOTO, FOTO] });
     assert.equal(conFotos.status, 201, JSON.stringify(conFotos.body));
     const id = conFotos.body.solicitudes[0].id;
 
     const { rows } = await pool.query(
       'SELECT descripcion FROM evidencias WHERE solicitud_id = $1 ORDER BY creado_en, id', [id]);
-    assert.equal(rows.length, 2);
+    assert.equal(rows.length, 3);
     assert.ok(rows.every((r) => r.descripcion === 'Foto al solicitar'));
     const lista = await como(cliente)(request(app).get(`/api/solicitudes/${id}/fotos`));
-    assert.equal(lista.body.fotos.length, 2);
+    assert.equal(lista.body.fotos.length, 3);
 
-    // Tres fotos superan el máximo del esquema (antes de cualquier límite de negocio)
+    // Cuatro fotos superan el máximo del esquema (antes de cualquier límite de negocio)
     const otro = await registrar('cliente', 'Otra Cliente');
-    const tres = await crear(otro, { ...PODA, fotos: [FOTO, FOTO, FOTO] });
-    assert.equal(tres.status, 422);
-    assert.match(tres.body.error.campos.fotos, /Puedes adjuntar hasta 2 fotos al solicitar/);
+    const cuatro = await crear(otro, { ...PODA, fotos: [FOTO, FOTO, FOTO, FOTO] });
+    assert.equal(cuatro.status, 422);
+    assert.match(cuatro.body.error.campos.fotos, /Puedes adjuntar hasta 3 fotos al solicitar/);
     assert.equal((await pool.query('SELECT 1 FROM solicitudes WHERE cliente_id = $1', [otro.id])).rowCount, 0);
   });
 
@@ -140,20 +184,17 @@ describe('Ayudantía: límites, fotos, precio mínimo y plazo de 1 día hábil',
     assert.equal(justo.body.solicitud.precio_acordado, 5000);
   });
 
-  // ---------------------------------------------------------- (4) plazo de 1 día hábil
-  test('vencimientoRespuesta: viernes → lunes y día hábil → día hábil siguiente (hora de Chile)', () => {
-    // Noviembre 2026: Chile en horario de verano (UTC-3); 13:00 UTC = 10:00 en Chile
+  // ---------------------------------------------------------- (4) plazo de 1 día (24 horas)
+  test('vencimientoRespuesta: 24 horas corridas, también en fin de semana (decisión del equipo)', () => {
     const viernes = new Date('2026-11-13T13:00:00Z');
-    assert.equal(vencimientoRespuesta(viernes).toISOString(), '2026-11-16T13:00:00.000Z'); // lunes
-    const jueves = new Date('2026-11-12T13:00:00Z');
-    assert.equal(vencimientoRespuesta(jueves).toISOString(), '2026-11-13T13:00:00.000Z'); // viernes
-    const sabado = new Date('2026-11-14T13:00:00Z');
-    assert.equal(vencimientoRespuesta(sabado).toISOString(), '2026-11-16T13:00:00.000Z'); // lunes
+    assert.equal(vencimientoRespuesta(viernes).toISOString(), '2026-11-14T13:00:00.000Z'); // sábado
+    const sabado = new Date('2026-11-14T22:30:00Z');
+    assert.equal(vencimientoRespuesta(sabado).toISOString(), '2026-11-15T22:30:00.000Z'); // domingo
   });
 
   test('liberarVencidas: la asignada vencida vuelve a creada con sin_respuesta y aviso; la vigente no', async () => {
     const vencidaId = await solicitudAsignada(cliente);
-    // Al asignar quedó fijado el vencimiento a 1 día hábil
+    // Al asignar quedó fijado el vencimiento a 1 día
     const asignada = await como(cliente)(request(app).get(`/api/solicitudes/${vencidaId}`));
     assert.ok(asignada.body.solicitud.respuesta_vence_en);
     assert.ok(new Date(asignada.body.solicitud.respuesta_vence_en) > new Date());
@@ -174,10 +215,10 @@ describe('Ayudantía: límites, fotos, precio mínimo y plazo de 1 día hábil',
     assert.equal(liberada.body.solicitud.veces_sin_respuesta, 1);
     assert.match(liberada.body.solicitud.eventos.at(-1).detalle, /no respondió/);
 
-    // Aviso explícito al cliente: no respondió en 1 día hábil y puede elegir otro maestro
+    // Aviso explícito al cliente: no respondió en 1 día y puede elegir otro maestro
     const { rows: avisos } = await pool.query(
       'SELECT titulo, texto FROM notificaciones WHERE usuario_id = $1 AND solicitud_id = $2', [cliente.id, vencidaId]);
-    assert.ok(avisos.some((a) => /1 día hábil/.test(a.texto) && /elegir otro maestro/.test(a.texto)),
+    assert.ok(avisos.some((a) => /en 1 día\./.test(a.texto) && /elegir otro maestro/.test(a.texto)),
       JSON.stringify(avisos));
 
     const vigente = await como(otroCliente)(request(app).get(`/api/solicitudes/${vigenteId}`));

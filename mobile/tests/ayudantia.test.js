@@ -10,7 +10,7 @@ import DetalleSolicitud from '../src/app/solicitud/[id]';
 import { abrirApp, simularApi, errorApi, sesionGuardada, usarVariante, cliente, prestador } from './ayudas';
 
 // Mejoras de ayudantía: fotos al pedir (máx. 2, en el campo «fotos»), portafolio del maestro,
-// chip «Nuevos» en el catálogo y aviso de solicitud sin respuesta en 1 día hábil
+// chip «Nuevos» en el catálogo y aviso de solicitud sin respuesta en 1 día
 beforeEach(() => sesionGuardada());
 
 const baseSolicitud = {
@@ -29,8 +29,8 @@ async function hastaPublicar() {
   return user;
 }
 
-describe('Pedir servicio: fotos del problema (máx. 2)', () => {
-  test('envía hasta 2 fotos en el campo «fotos» al crear, con el contador a la vista', async () => {
+describe('Pedir servicio: fotos del problema (máx. 3)', () => {
+  test('envía hasta 3 fotos en el campo «fotos» al crear, con el contador a la vista', async () => {
     const llamadas = simularApi({
       ...baseSolicitud,
       'POST /solicitudes/interpretar': { categorias: [{ slug: 'electricidad' }], no_disponibles: [], comuna: null },
@@ -38,22 +38,24 @@ describe('Pedir servicio: fotos del problema (máx. 2)', () => {
     });
     ImagePicker.launchImageLibraryAsync
       .mockResolvedValueOnce({ canceled: false, assets: [{ base64: 'FOTO-UNO', uri: 'file://uno.jpg' }] })
-      .mockResolvedValueOnce({ canceled: false, assets: [{ base64: 'FOTO-DOS', uri: 'file://dos.jpg' }] });
+      .mockResolvedValueOnce({ canceled: false, assets: [{ base64: 'FOTO-DOS', uri: 'file://dos.jpg' }] })
+      .mockResolvedValueOnce({ canceled: false, assets: [{ base64: 'FOTO-TRES', uri: 'file://tres.jpg' }] });
     await abrirApp({ ruta: '/nueva-solicitud', pantallas: { 'nueva-solicitud': NuevaSolicitud } });
     const user = userEvent.setup();
     await user.type(await screen.findByLabelText('Describe lo que necesitas'), TEXTO);
-    expect(screen.getByText('0/2')).toBeOnTheScreen();
-    await user.press(screen.getByRole('button', { name: 'Galería' }));
-    expect(await screen.findByText('1/2')).toBeOnTheScreen();
-    await user.press(screen.getByRole('button', { name: 'Galería' }));
-    expect(await screen.findByText('2/2')).toBeOnTheScreen();
+    expect(screen.getByText('0/3')).toBeOnTheScreen();
+    for (const contador of ['1/3', '2/3', '3/3']) {
+      await user.press(screen.getByRole('button', { name: 'Galería' }));
+      expect(await screen.findByText(contador)).toBeOnTheScreen();
+    }
     expect(screen.queryByRole('button', { name: 'Galería' })).not.toBeOnTheScreen();
 
     await user.press(screen.getByRole('button', { name: 'Continuar' }));
     await user.type(await screen.findByLabelText('Dirección exacta'), 'Av. Libertad 1234');
     await user.press(await screen.findByRole('button', { name: 'Publicar solicitud' }));
     expect(await screen.findByText('Pantalla solicitud/[id]')).toBeOnTheScreen();
-    expect(llamadas.find((l) => l.ruta === '/solicitudes').cuerpo.fotos).toEqual(['FOTO-UNO', 'FOTO-DOS']);
+    expect(llamadas.find((l) => l.ruta === '/solicitudes').cuerpo.fotos.map((f) => f.imagen_base64))
+      .toEqual(['FOTO-UNO', 'FOTO-DOS', 'FOTO-TRES']);
   });
 
   test('muestra tal cual el error de solicitud duplicada de la misma categoría (409)', async () => {
@@ -185,7 +187,7 @@ describe('Mi portafolio (Pro)', () => {
   });
 });
 
-describe('Solicitud sin respuesta en 1 día hábil', () => {
+describe('Solicitud sin respuesta en 1 día', () => {
   const vencida = {
     id: 's1', estado: 'creada', categoria: 'electricidad', categoria_nombre: 'Electricidad',
     descripcion: 'Se quemó un enchufe', comuna: 'Chillán', direccion: 'Av. Libertad 1234',
@@ -212,7 +214,7 @@ describe('Solicitud sin respuesta en 1 día hábil', () => {
     });
     await abrirApp({ ruta: '/solicitud/s1', pantallas: { 'solicitud/[id]': DetalleSolicitud } });
 
-    expect(await screen.findByText(/El maestro no respondió en 1 día hábil/)).toBeOnTheScreen();
+    expect(await screen.findByText(/El maestro no respondió en 1 día/)).toBeOnTheScreen();
     expect(screen.getByRole('button', { name: 'Elegir otro maestro' })).toBeOnTheScreen();
     expect(await screen.findByText('Elige quién lo hará')).toBeOnTheScreen();
 
@@ -230,7 +232,7 @@ describe('Solicitud sin respuesta en 1 día hábil', () => {
     const app = await abrirApp({
       ruta: '/', pantallas: { index: Inicio, 'solicitud/[id]': DetalleSolicitud },
     });
-    expect(await screen.findByText(/El maestro no respondió en 1 día hábil/)).toBeOnTheScreen();
+    expect(await screen.findByText(/El maestro no respondió en 1 día/)).toBeOnTheScreen();
     await userEvent.setup().press(screen.getByRole('button', { name: 'Elegir otro maestro' }));
     expect(await screen.findByText('Elige quién lo hará')).toBeOnTheScreen();
     expect(app.ruta()).toBe('/solicitud/s1');

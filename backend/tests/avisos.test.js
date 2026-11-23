@@ -103,6 +103,11 @@ describe('Avisos por correo de cada etapa de una solicitud', { skip: !hayBaseDeD
     const [, , pagado] = await esperarCorreos(3);
     assert.equal(pagado.para, prestador.email);
     assert.equal(pagado.asunto, 'DeliMaster · El cliente pagó el trabajo');
+    // Precio cerrado: el correo le recuerda pedir el código de llegada (sin él no puede terminar)
+    assert.match(pagado.texto, /código de llegada/);
+    const { body: { solicitud } } = await como(cliente)(request(app).get(`/api/solicitudes/${solicitudId}`));
+    const llegada = await post(prestador, '/llegada', { codigo: solicitud.codigo_llegada });
+    assert.equal(llegada.status, 200, JSON.stringify(llegada.body));
 
     await post(prestador, '/finalizar');
     const terminado = (await esperarCorreos(4))[3];

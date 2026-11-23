@@ -3,13 +3,15 @@ import { clave } from '../../utils/comunas.js';
 
 // Reglas de la modalidad "visita + cotización".
 // El cliente paga la visita al contratar; el prestador la recibe al llegar (código de llegada),
-// cotiza en terreno y, si el cliente acepta, se paga el saldo (total − visita) con garantía.
+// cotiza el trabajo en terreno y, si el cliente acepta, paga la cotización completa con garantía.
+// La visita y la cotización son valores independientes (decisión del equipo, noviembre 2026: sumar
+// la visita a la cotización confundía al maestro); al maestro se le transfieren ambos.
 
 // Tarifa de visita: DeliMaster fija un rango por zona y cada prestador elige dentro de él.
-// La zona urbana (Chillán) tiene un rango; la rural (Coihueco) suma el traslado.
+// Mínimo $5.000 en ambas zonas; la rural (Coihueco) admite un máximo mayor por el traslado.
 export const RANGOS_VISITA = {
-  urbano: { min: 15_000, max: 35_000, comunas: ['Chillán'] },
-  rural: { min: 20_000, max: 45_000 },
+  urbano: { min: 5_000, max: 35_000, comunas: ['Chillán'] },
+  rural: { min: 5_000, max: 45_000 },
 };
 
 export function rangoVisita(comuna) {

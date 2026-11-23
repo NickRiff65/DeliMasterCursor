@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { validar } from '../../middlewares/validar.js';
 import { autenticar, autorizar } from '../../middlewares/autenticacion.js';
 import { urlApi } from '../../utils/seguridad.js';
+import { esquemaMetadatosFoto } from '../../utils/verificacionFoto.js';
 import { AppError } from '../../utils/AppError.js';
 import * as servicio from './mensajes.servicio.js';
 import { limiteMensajes, limiteFotos } from '../../middlewares/limites.js';
@@ -35,7 +36,7 @@ rutasMensajes.post('/', limiteMensajes, validar(esquemaMensaje), async (req, res
 export const rutasFotoChat = Router({ mergeParams: true });
 rutasFotoChat.post('/', autenticar, autorizar('cliente', 'prestador'), limiteFotos,
   express.json({ limit: '9mb' }),
-  validar(z.object({ imagen_base64: z.string().min(100, 'Falta la foto') })),
+  validar(z.object({ imagen_base64: z.string().min(100, 'Falta la foto'), metadatos: esquemaMetadatosFoto })),
   async (req, res) => {
-    res.status(201).json(await servicio.enviarFoto(req.usuario, idValido(req), req.body.imagen_base64, urlApi(req)));
+    res.status(201).json(await servicio.enviarFoto(req.usuario, idValido(req), req.body.imagen_base64, urlApi(req), req.body.metadatos));
   });

@@ -27,6 +27,11 @@ rutasPrestadores.get('/yo/agenda', autenticar, autorizar('prestador'), async (re
   res.json({ agenda: await servicio.miAgenda(req.usuario.id) });
 });
 
+// Reseñas que los clientes le dejaron al propio maestro (todas, las más recientes primero)
+rutasPrestadores.get('/yo/resenas', autenticar, autorizar('prestador'), async (req, res) => {
+  res.json(await servicio.misResenas(req.usuario.id));
+});
+
 // Portafolio del maestro: fotos de sus trabajos anteriores (máximo 12)
 rutasPrestadores.get('/yo/fotos', autenticar, autorizar('prestador'), async (req, res) => {
   res.json(await servicio.misFotos(req.usuario.id, urlApi(req)));

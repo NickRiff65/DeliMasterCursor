@@ -17,10 +17,13 @@ import { OpcionesDePago } from '../../components/OpcionesDePago';
 import { MaterialesDelTrabajo } from '../../components/MaterialesDelTrabajo';
 import { Campo } from '../../components/Campo';
 import { ResumenCotizacion } from '../../components/ResumenCotizacion';
+import { tomarPendiente, descartarPendiente } from '../../lib/trabajosPendientes';
 import { colores, crearEstilos, espacio, radio } from '../../theme';
 import { useTema } from '../../context/tema';
 
 const PROTEGIDO = require('../../../assets/iconos/app/protegido.png');
+const AGENDA = require('../../../assets/iconos/app/agenda.png');
+const DESTELLOS = require('../../../assets/iconos/app/destellos.png');
 
 const RESULTADOS = {
   aprobado: { texto: '✔ Pago aprobado. Tu dinero quedó protegido.', fondo: 'exitoFondo', borde: 'exitoBorde', color: 'exitoTexto' },
@@ -48,6 +51,8 @@ function nombreEvento(e) {
 export default function DetalleSolicitud() {
   useTema();   // vuelve a dibujarse al cambiar entre modo claro y oscuro
   const { id, pago: resultadoPagoUrl, fotos: fotosUrl } = useLocalSearchParams();
+  // Otro trabajo que la IA encontró en las mismas fotos: se ofrece en la pantalla de la última solicitud publicada
+  const [pendiente, setPendiente] = useState(() => tomarPendiente());
   const [resultadoPago, setResultadoPago] = useState(resultadoPagoUrl ?? null);
   const [s, setS] = useState(null);
   const [error, setError] = useState(null);
@@ -56,6 +61,7 @@ export default function DetalleSolicitud() {
   const [accion, setAccion] = useState(null);       // id del botón en curso
   const [confirmarCancelar, setConfirmarCancelar] = useState(false);
   const [confirmarCambio, setConfirmarCambio] = useState(false);   // cambiar de maestro (mientras no responde)
+  const [confirmarNoLlego, setConfirmarNoLlego] = useState(false);  // precio cerrado: pedir la devolución
   const [reportando, setReportando] = useState(false);
   const [motivo, setMotivo] = useState('');
   const [estrellas, setEstrellas] = useState(0);
@@ -75,11 +81,12 @@ export default function DetalleSolicitud() {
   useFocusEffect(useCallback(() => { cargar(); }, [cargar]));
 
   // Mientras espera algo del prestador (respuesta, llegada o cotización), se revisa cada 10 segundos
+  const esperaLlegada = Boolean(s?.llegada_pendiente);
   useEffect(() => {
-    if (!['asignada', 'visita_pagada', 'en_diagnostico'].includes(s?.estado)) return undefined;
+    if (!['asignada', 'visita_pagada', 'en_diagnostico'].includes(s?.estado) && !esperaLlegada) return undefined;
     const t = setInterval(cargar, 10000);
     return () => clearInterval(t);
-  }, [s?.estado, cargar]);
+  }, [s?.estado, esperaLlegada, cargar]);
 
   // Tarjeta guardada: se consulta cuando hay algo que pagar
   const porPagar = ['visita_por_pagar', 'confirmada'].includes(s?.estado);
@@ -128,7 +135,8 @@ export default function DetalleSolicitud() {
   // Cancelar una visita pagada con menos de 2 horas de anticipación: la visita queda para el prestador
   const cancelaSobreLaHora = s.estado === 'visita_pagada'
     && new Date(s.visita_programada_en).getTime() - Date.now() < 2 * 3_600_000;
-  const puedeReclamar = s.estado === 'visita_pagada' && Date.now() >= new Date(s.reclamo_no_llego_desde).getTime();
+  // El maestro no llegó (visita pagada, o precio cerrado sin llegada confirmada): el servidor indica desde cuándo
+  const puedeReclamar = s.reclamo_no_llego_desde != null && Date.now() >= new Date(s.reclamo_no_llego_desde).getTime();
 
   // medio: tarjeta_guardada (un toque), guardar_tarjeta (la registra y paga) o webpay (sin guardarla)
   async function pagar(medio) {
@@ -184,6 +192,22 @@ export default function DetalleSolicitud() {
         </View>
       ) : null}
 
+      {pendiente?.ultima === s.id ? (
+        <View style={[estilos.tarjeta, estilos.otroTrabajo]}>
+          <ConIcono icono={DESTELLOS} estilo={estilos.subtitulo}>
+            También encontramos en tus fotos: Trabajo de {pendiente.trabajos[0].categoria.nombre.toLowerCase()}
+          </ConIcono>
+          <Text style={estilos.texto}>
+            Ya dejamos lista esa solicitud con su foto, la descripción y la misma dirección. Solo falta publicarla y elegir al maestro.
+          </Text>
+          <View style={{ gap: espacio.s, marginTop: espacio.s }}>
+            <Boton titulo={`Pedir ahora el trabajo de ${pendiente.trabajos[0].categoria.nombre.toLowerCase()}`}
+              onPress={() => router.push('/nueva-solicitud?pendiente=1')} />
+            <Boton titulo="Ahora no" variante="secundario" onPress={() => { descartarPendiente(); setPendiente(null); }} />
+          </View>
+        </View>
+      ) : null}
+
       <Aviso mensaje={error} />
       {fotosUrl === 'fallidas' ? (
         <Aviso mensaje="Tu solicitud se publicó, pero no pudimos subir alguna foto. Puedes agregarla de nuevo en «Fotos»." />
@@ -192,12 +216,12 @@ export default function DetalleSolicitud() {
       {/* creada: elegir prestador */}
       {s.estado === 'creada' ? (
         <View onLayout={(e) => { yElegirRef.current = e.nativeEvent.layout.y; }}>
-          {/* Sin respuesta en 1 día hábil: se libera al cliente para elegir a otro maestro,
+          {/* Sin respuesta en 1 día: se libera al cliente para elegir a otro maestro,
               con la misma asignación de siempre (POST /solicitudes/:id/asignar) */}
           {s.sin_respuesta ? (
             <View style={[estilos.tarjeta, estilos.esperando]}>
               <ConIcono icono={require('../../../assets/iconos/app/reloj.png')} estilo={estilos.nombre}>
-                El maestro no respondió en 1 día hábil
+                El maestro no respondió en 1 día
               </ConIcono>
               <Text style={estilos.texto}>
                 Su plazo para responder ya venció{s.respuesta_vence_en ? ` (${fechaCorta(s.respuesta_vence_en)})` : ''}.
@@ -262,7 +286,7 @@ export default function DetalleSolicitud() {
             <View style={[estilos.tarjeta, estilos.esperando, { marginTop: espacio.s }]}>
               <Text style={estilos.nombre}>¿Cambiar de maestro?</Text>
               <Text style={estilos.texto}>
-                {s.prestador.nombre} dejará de ver tu solicitud. Vas a elegir a otro maestro y ese tendrá su propio plazo de 1 día hábil para responder. No se crea una solicitud nueva.
+                {s.prestador.nombre} dejará de ver tu solicitud. Vas a elegir a otro maestro y ese tendrá su propio plazo de 1 día para responder. No se crea una solicitud nueva.
               </Text>
               <View style={{ marginTop: espacio.s }}>
                 <Boton titulo="Sí, cambiar de maestro" cargando={accion === 'cambiar'} deshabilitado={Boolean(accion)}
@@ -295,7 +319,7 @@ export default function DetalleSolicitud() {
           <OpcionesDePago monto={s.tarifa_visita} etiqueta="Pagar visita" tarjeta={tarjeta} onPagar={pagar}
             cargando={accion} guardarPorDefecto />
           <ConIcono icono={PROTEGIDO} estilo={estilos.suave}>
-            Si contratas el trabajo, la visita se descuenta del total. Si {primerNombre} no llega, te la devolvemos.
+            La visita se paga aparte: si contratas el trabajo, pagarás la cotización completa. Si {primerNombre} no llega, te la devolvemos.
           </ConIcono>
         </View>
       ) : null}
@@ -305,11 +329,7 @@ export default function DetalleSolicitud() {
         <View style={[estilos.tarjeta, estilos.codigoTarjeta]}>
           <Text style={estilos.nombre}>Visita: {diaYHora(s.visita_programada_en)}</Text>
           <Text style={estilos.texto}>Cuando {primerNombre} llegue, díctale este código para confirmar la visita:</Text>
-          <View style={estilos.codigoFila} accessible accessibilityLabel={`Código de llegada ${s.codigo_llegada?.split('').join(' ')}`}>
-            {(s.codigo_llegada ?? '····').split('').map((d, i) => (
-              <View key={i} style={estilos.digito}><Text style={estilos.digitoTexto}>{d}</Text></View>
-            ))}
-          </View>
+          <DigitosCodigo codigo={s.codigo_llegada} />
           <Text style={estilos.suave}>No lo compartas antes de que llegue: es lo que libera el pago de la visita.</Text>
           {puedeReclamar ? (
             <View style={{ marginTop: espacio.s }}>
@@ -343,7 +363,7 @@ export default function DetalleSolicitud() {
           ) : null}
           <ResumenCotizacion cotizacion={s.cotizacion} tarifaVisita={s.tarifa_visita} />
           {/* Se envía la cotización que el cliente ve: si el maestro la corrigió entretanto, el servidor avisa */}
-          <Boton titulo={`Aceptar y pagar ${pesos(s.cotizacion.total - s.tarifa_visita)}`} cargando={accion === 'aceptar'}
+          <Boton titulo={`Aceptar y pagar ${pesos(s.cotizacion.por_pagar ?? s.cotizacion.total)}`} cargando={accion === 'aceptar'}
             deshabilitado={Boolean(accion)}
             onPress={() => ejecutar('aceptar', () => api.post(`/solicitudes/${s.id}/cotizacion/respuesta`,
               { aceptar: true, cotizacion_id: s.cotizacion.id }))} />
@@ -367,7 +387,10 @@ export default function DetalleSolicitud() {
           <Text style={estilos.nombre}>{conVisita ? 'Aceptaste la cotización' : `${s.prestador.nombre} aceptó el trabajo`}</Text>
           <Text style={estilos.precio}>{pesos(s.monto_por_pagar)}</Text>
           {conVisita ? (
-            <Text style={estilos.suave}>Total {pesos(s.precio_acordado)} menos la visita ya pagada ({pesos(s.tarifa_visita)}).</Text>
+            <Text style={estilos.suave}>Es la cotización del trabajo. La visita ({pesos(s.tarifa_visita)}) ya está pagada aparte.</Text>
+          ) : null}
+          {!conVisita && s.visita_programada_en ? (
+            <ConIcono icono={AGENDA} estilo={estilos.texto}>{primerNombre} irá el {diaYHora(s.visita_programada_en)}</ConIcono>
           ) : null}
           <OpcionesDePago monto={s.monto_por_pagar} tarjeta={tarjeta} onPagar={pagar} cargando={accion} />
           <ConIcono icono={PROTEGIDO} estilo={estilos.suave}>
@@ -381,9 +404,44 @@ export default function DetalleSolicitud() {
         <View style={[estilos.tarjeta, estilos.confirmada]}>
           <ConIcono icono={PROTEGIDO} estilo={estilos.nombre}>Pago protegido</ConIcono>
           <Text style={estilos.precio}>{pesos(s.precio_acordado)}</Text>
+          {!conVisita && s.visita_programada_en ? (
+            <ConIcono icono={AGENDA} estilo={estilos.texto}>{primerNombre} irá el {diaYHora(s.visita_programada_en)}</ConIcono>
+          ) : null}
           <Text style={estilos.texto}>
             DeliMaster retiene tu pago. {s.prestador.nombre.split(' ')[0]} lo recibirá cuando el trabajo termine y tú confirmes el cierre.
           </Text>
+          {/* Precio cerrado: el maestro confirma su llegada con este código antes de poder terminar */}
+          {s.llegada_pendiente && s.codigo_llegada ? (
+            <View style={{ marginTop: espacio.m, gap: espacio.xs }}>
+              <Text style={estilos.texto}>Cuando {primerNombre} llegue, díctale este código para confirmar que llegó:</Text>
+              <DigitosCodigo codigo={s.codigo_llegada} />
+              <Text style={estilos.suave}>No lo compartas antes de que llegue: sin este código no puede marcar el trabajo como terminado.</Text>
+              {/* Si no llega: pasada la tolerancia, el cliente recupera el pago completo y el trabajo se cancela */}
+              {!s.reclamo_no_llego_desde ? null : puedeReclamar ? (
+                <View style={{ marginTop: espacio.s, gap: espacio.s }}>
+                  {confirmarNoLlego ? (
+                    <>
+                      <Text style={estilos.texto}>
+                        ¿{primerNombre} no llegó? Cancelamos el trabajo y te devolvemos {pesos(s.precio_acordado)} a la tarjeta con que pagaste.
+                      </Text>
+                      <Boton titulo="Sí, devolverme el pago" cargando={accion === 'no-llego'} deshabilitado={Boolean(accion)}
+                        onPress={() => ejecutar('no-llego', () => api.post(`/solicitudes/${s.id}/no-llego`, {}))} />
+                      <Boton titulo="Todavía no" variante="secundario" onPress={() => setConfirmarNoLlego(false)} />
+                    </>
+                  ) : (
+                    <Boton titulo="No llegó: devolverme el pago" variante="secundario" onPress={() => setConfirmarNoLlego(true)} />
+                  )}
+                </View>
+              ) : (
+                <Text style={estilos.suave}>
+                  Si no llega, desde el {diaYHora(s.reclamo_no_llego_desde)} podrás pedir que te devolvamos el pago.
+                </Text>
+              )}
+            </View>
+          ) : null}
+          {!conVisita && s.llegada_en ? (
+            <Text style={[estilos.texto, { marginTop: espacio.s }]}>✔ {primerNombre} confirmó su llegada el {diaYHora(s.llegada_en)}.</Text>
+          ) : null}
         </View>
       ) : null}
 
@@ -450,6 +508,11 @@ export default function DetalleSolicitud() {
           <Text style={estilos.nombre}>Reportaste un problema</Text>
           {s.motivo_disputa ? <Text style={estilos.texto}>“{s.motivo_disputa}”</Text> : null}
           <Text style={estilos.suave}>El equipo DeliMaster lo revisará. Tu pago sigue retenido mientras tanto.</Text>
+          {/* Conversación privada con el equipo para aportar más antecedentes */}
+          <View style={{ marginTop: espacio.s }}>
+            <Boton titulo="Hablar con DeliMaster sobre el reclamo" icono={require('../../../assets/iconos/app/chat.png')}
+              variante="secundario" onPress={() => router.push(`/disputa/${s.id}`)} />
+          </View>
         </View>
       ) : null}
 
@@ -538,6 +601,17 @@ export default function DetalleSolicitud() {
   );
 }
 
+// Los 4 dígitos del código de llegada, grandes para dictarlos con facilidad
+function DigitosCodigo({ codigo }) {
+  return (
+    <View style={estilos.codigoFila} accessible accessibilityLabel={`Código de llegada ${codigo?.split('').join(' ')}`}>
+      {(codigo ?? '····').split('').map((d, i) => (
+        <View key={i} style={estilos.digito}><Text style={estilos.digitoTexto}>{d}</Text></View>
+      ))}
+    </View>
+  );
+}
+
 const estilos = crearEstilos((colores) => ({
   contenido: { padding: espacio.m, paddingBottom: espacio.xl, maxWidth: 720, width: '100%', alignSelf: 'center' },
   tarjeta: {
@@ -545,6 +619,7 @@ const estilos = crearEstilos((colores) => ({
     marginBottom: espacio.m, borderWidth: 1, borderColor: colores.bordeTarjeta,
   },
   fila: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: espacio.s },
+  otroTrabajo: { backgroundColor: colores.primarioSuave, borderColor: colores.primario },
   categoria: { fontSize: 18, fontWeight: '800', color: colores.texto, flex: 1 },
   descripcion: { fontSize: 15, color: colores.texto, marginVertical: espacio.s, fontStyle: 'italic' },
   subtitulo: { fontSize: 17, fontWeight: '700', color: colores.texto, marginVertical: espacio.s },

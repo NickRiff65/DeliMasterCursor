@@ -1,0 +1,309 @@
+﻿npx.cmd : PASS tests/terminos-por-app.test.js (14.203 s)
+En línea: 1 Carácter: 341
++ ... DeliMaster\mobile; npx.cmd jest --maxWorkers=2 --verbose 2>&1 | Out-F ...
++                        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (PASS tests/term...t.js (14.203 s):String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+  Textos legales por app
+    √ cada párrafo se resuelve por app y ninguna sección queda vacía (30 ms)
+    √ la app de clientes explica que la IA le propone la descripción (496 ms)
+    √ la app de maestros explica que la descripción puede venir de la IA y que revise las fotos (54 ms)
+    √ la privacidad del maestro no habla de sus fotos enviadas a la IA (44 ms)
+    √ el resumen al aceptar una versión nueva es distinto en cada app (49 ms)
+    √ el maestro ve en el resumen lo suyo: responder, llegar con el código y cobrar (44 ms)
+
+PASS tests/nueva-solicitud.test.js (19.122 s)
+  Pedir un servicio
+    √ la app muestra lo que entendió y publica la solicitud con un id generado en el celular (1147 ms)
+    √ con varios servicios detectados marca solo el que mejor describe el trabajo (369 ms)
+    √ marcar otro servicio reemplaza al anterior, y no se puede quedar sin ninguno (503 ms)
+    √ si menciona una comuna donde aún no operamos, lo avisa y pide elegir Chillán o Coihueco (599 ms)
+    √ si no ofrecemos el servicio lo avisa y pide elegir uno antes de publicar (343 ms)
+    √ sin señal ofrece guardarla en el celular y se envía sola después (447 ms)
+    √ si se corta la señal al publicar, se guarda con el servicio ya elegido (515 ms)
+    √ se pueden adjuntar hasta 3 fotos del problema y viajan con los datos de su cámara al publicar (430 ms)
+    √ si el servidor rechaza la creación, muestra su mensaje tal cual y se queda en la pantalla (537 ms)
+    √ pide la dirección exacta y puede guardar la ubicación del celular (671 ms)
+
+PASS tests/cuentas.test.js (6.443 s)
+  Registro (términos obligatorios)
+    √ no se puede crear la cuenta sin aceptar los términos (412 ms)
+    √ envía el rol de la app, la aceptación y omite los campos opcionales vacíos (311 ms)
+    √ el apellido va en su propio campo y es obligatorio (237 ms)
+    √ la comuna se elige con un toque entre Chillán y Coihueco (y se puede desmarcar) (282 ms)
+    √ los errores de la API se muestran junto a cada campo (436 ms)
+    √ DeliMaster Pro registra maestros con sus días y horario de trabajo (1234 ms)
+    √ sin días elegidos no se puede crear la cuenta de maestro (310 ms)
+  Recuperar la contraseña
+    √ el código acepta solo 6 dígitos y las contraseñas deben coincidir (207 ms)
+    √ con el código correcto cambia la contraseña y entra a la app (237 ms)
+    √ un código incorrecto muestra el error y permite pedir otro (212 ms)
+
+PASS tests/ayudantia.test.js (5.609 s)
+  Pedir servicio: fotos del problema (máx. 3)
+    √ envía hasta 3 fotos en el campo «fotos» al crear, con el contador a la vista (818 ms)
+    √ muestra tal cual el error de solicitud duplicada de la misma categoría (409) (665 ms)
+    √ muestra tal cual el error de límite de solicitudes por día (409) (500 ms)
+  Catálogo: maestros nuevos
+    √ el chip «Nuevos» agrega nuevos=true y la tarjeta del nuevo muestra el distintivo «Nuevo» (339 ms)
+  Mi portafolio (Pro)
+    √ lista las fotos con el contador, permite subir una y borrar otra con confirmación (127 ms)
+    √ sin fotos muestra el estado vacío y el contador en cero (56 ms)
+    √ desde Perfil, «Mi portafolio» abre la pantalla (136 ms)
+  Solicitud sin respuesta en 1 día
+    √ en el detalle avisa y «Elegir» asigna a otro maestro con el flujo de siempre (171 ms)
+    √ en la lista del inicio la tarjeta avisa y su acción lleva al detalle para asignar (164 ms)
+
+PASS tests/visita.test.js (5.264 s)
+  Cliente (Lite)
+    √ con la visita por pagar, ofrece pagar la tarifa y explica que va aparte de la cotización (205 ms)
+    √ con la visita pagada muestra el código de llegada dígito por dígito (58 ms)
+    √ pasada la tolerancia, puede pedir que le devuelvan la visita (69 ms)
+    √ revisa la cotización (solo el trabajo, la visita va aparte) y la acepta pagándola completa (84 ms)
+    √ una cotización antigua (que incluía la visita) se muestra con el saldo descontado (61 ms)
+    √ si el maestro corrigió la cotización, lo muestra con el monto anterior (57 ms)
+    √ si la cotización cambió mientras la miraba, no la acepta a ciegas y muestra la nueva (78 ms)
+    √ con la disputa resuelta en parte, cuenta cuánto se le devolvió (67 ms)
+    √ rechazar la cotización pide confirmación y avisa que la visita queda para el prestador (89 ms)
+  Prestador (Pro)
+    √ con precio cerrado también pide el día en que irá, con la nota del horario aparte (389 ms)
+    √ al aceptar con visita exige tarifa y horario, y envía la modalidad elegida (360 ms)
+    √ ingresa el código del cliente para confirmar la llegada; un código incorrecto se explica junto al campo (141 ms)
+    √ si el cliente dejó el punto, la llegada envía la ubicación del maestro (130 ms)
+    √ arma la cotización (solo el trabajo) viendo lo que recibirá con la visita, y la envía (568 ms)
+    √ corrige la cotización enviada mientras el cliente no responde (220 ms)
+    √ con la disputa resuelta en parte, explica cuánto recibe (67 ms)
+
+PASS tests/ia-fotos.test.js
+  Detección del problema por foto
+    √ sin escribir nada, la IA rellena la descripción, elige el servicio y pasa a revisar el lugar (500 ms)
+    √ si el cliente ya escribió, no le borra el texto: le ofrece la sugerencia (346 ms)
+    √ si la IA no identifica el servicio, lo dice y el cliente sigue como siempre (95 ms)
+    √ si el análisis falla, muestra el mensaje y deja describirlo a mano (96 ms)
+    √ sin la IA activa en el servidor no se ofrece el botón (69 ms)
+  Fotos con trabajos de oficios distintos
+    √ publica uno por solicitud: primero el principal y luego el otro, ya listo y con la misma dirección (568 ms)
+    √ «Ahora no» descarta el otro trabajo (65 ms)
+
+PASS tests/navegacion.test.js
+  Navegación según la sesión
+    √ sin sesión cualquier ruta privada lleva al inicio de sesión (174 ms)
+    √ los términos y la privacidad se pueden leer sin iniciar sesión (36 ms)
+    √ con una sesión guardada se entra directo al catálogo (35 ms)
+    √ un token vencido se descarta y se pide iniciar sesión (42 ms)
+    √ quien tiene términos pendientes solo puede aceptarlos o cerrar sesión (89 ms)
+    √ DeliMaster Pro abre el panel del prestador (43 ms)
+  Inicio de sesión
+    √ pide correo y contraseña antes de llamar a la API (172 ms)
+    √ una cuenta de prestador no entra a Lite y su token no se guarda (200 ms)
+    √ una cuenta de cliente no entra a Pro (226 ms)
+    √ con credenciales correctas guarda el token cifrado y abre el catálogo (287 ms)
+    √ credenciales incorrectas muestran el mensaje de la API (208 ms)
+
+PASS tests/gastos.test.js
+  Gastos del trabajo (maestro)
+    √ primero solo ofrece ingresar el gasto; la boleta se adjunta dentro, con la advertencia (211 ms)
+    √ antes de abrir el formulario no muestra los botones de la boleta (15 ms)
+    √ con la boleta adjunta propone el total leído y guarda el gasto con ella (516 ms)
+    √ un gasto sin boleta queda marcado y se le puede adjuntar después (345 ms)
+  Gastos del trabajo terminado (maestro)
+    √ ya no ofrece ingresar ni modificar gastos (8 ms)
+  Gastos en materiales (cliente)
+    √ muestra cuáles tienen boleta y permite apelar los que no (414 ms)
+    √ antes del pago informa, pero aún no ofrece apelar (5 ms)
+    √ sin gastos registrados no se muestra (2 ms)
+  Gastos rechazados por la administración
+    √ el maestro ve el gasto rechazado: se devolvió al cliente y no cuenta como gasto (9 ms)
+    √ el cliente lo ve como devuelto y no le ofrece apelarlo (4 ms)
+
+PASS tests/llegada-y-resenas.test.js
+  Precio cerrado: código de llegada
+    √ el cliente ve su código para dictarlo cuando llegue el maestro (155 ms)
+    √ si el maestro no llega, pasada la hora el cliente pide que le devuelvan el pago (con confirmación) (102 ms)
+    √ antes de la hora acordada solo explica desde cuándo podrá pedir la devolución (54 ms)
+    √ el maestro confirma su llegada con el código y recién entonces puede marcar el trabajo terminado (158 ms)
+  Pro: reputación como maestro y reseñas
+    √ Mi cuenta muestra la reputación como maestro (no como cliente) y lleva a sus reseñas (128 ms)
+    √ desde el perfil, la tarjeta de reputación abre sus reseñas (126 ms)
+    √ Mis reseñas lista cada reseña con quién la dejó, el servicio y el comentario (63 ms)
+    √ sin reseñas explica cómo llegarán (46 ms)
+
+PASS tests/verificaciones.test.js
+  Verificaciones (Pro)
+    √ ya verificado: lo dice con su vigencia y no ofrece verificarse de nuevo en ese oficio (176 ms)
+    √ con la solicitud en revisión, avisa que se está revisando (55 ms)
+    √ cuando su certificado está por vencer, ofrece renovarlo (61 ms)
+    verificación automática con la SEC
+      √ envía RUT y apellidos, y si la SEC lo confirma dice que quedó verificado (313 ms)
+      √ si queda en revisión, avisa que el equipo la revisará (301 ms)
+
+PASS tests/fotos.test.js
+  Fotos de evidencia
+    √ muestra las fotos de ambas partes con su autor y los botones para agregar (147 ms)
+    √ toma una foto con la cámara y la sube (174 ms)
+    √ cada foto dice si quedó verificada como real y actual; al ampliarla se ve el detalle (155 ms)
+    √ sin permiso de cámara lo explica y no sube nada; si se cancela tampoco (332 ms)
+    √ con 6 fotos propias ya no ofrece subir más (7 ms)
+    √ cuando ya no se pueden subir y no hay fotos, no ocupa espacio en la pantalla (2 ms)
+    √ al tocar una foto se amplía con su autor y descripción (174 ms)
+
+PASS tests/avisos.test.js
+  Avisos dentro de la app
+    √ la campana muestra los no leídos; al abrir la lista quedan leídos (267 ms)
+    √ un aviso que llega con la app abierta aparece arriba y suma a la campana (88 ms)
+    √ cada aviso lleva un ícono según de qué trata, en vez de un emoji (2 ms)
+  DeliMaster Pro
+    √ el panel muestra cuánto dinero tiene retenido, por transferir y ya recibido (143 ms)
+    √ antes del pago el maestro solo ve la comuna; después, la dirección exacta y el mapa (55 ms)
+    √ al cerrar el trabajo, el maestro califica al cliente (calificación bilateral) (117 ms)
+    √ con el pago asegurado ve la dirección, la referencia y la abre en el mapa (73 ms)
+
+PASS tests/inicio.test.js
+  Inicio del cliente
+    √ muestra sus solicitudes, cuántas están en curso y el acceso a los maestros disponibles (356 ms)
+    √ sin solicitudes explica qué verá ahí (76 ms)
+  Volver al inicio
+    √ desde una solicitud abierta directo (por ejemplo, al volver de Webpay) el botón Inicio lleva al inicio (78 ms)
+  Maestros disponibles
+    √ lista los maestros con su horario y abre el perfil (113 ms)
+    √ al venir desde una solicitud, Contratar le asigna esa misma solicitud (79 ms)
+
+PASS tests/disputa.test.js
+  Chat del reclamo
+    √ desde la solicitud en disputa se abre la conversación con el equipo (177 ms)
+    √ muestra los mensajes del equipo y envía la respuesta (213 ms)
+    √ resuelta la disputa, la conversación queda cerrada (49 ms)
+  Inicio del maestro: trabajo en curso
+    √ muestra el trabajo que espera una acción suya, con lo que sigue (149 ms)
+
+PASS tests/cambiar-maestro-app.test.js
+  Elegir maestro al pedir un servicio
+    √ cada maestro se muestra con lo importante de su perfil, no con su descripción completa (166 ms)
+  Cambiar de maestro mientras no responde
+    √ pide confirmación con el nombre del maestro y no crea otra solicitud (75 ms)
+    √ al confirmar, vuelve a mostrar la lista para elegir otro maestro (88 ms)
+
+PASS tests/letra-grande.test.js
+  Tamaño de letra según la app
+    √ en la app de maestros crecen la letra, el interlineado y la altura de botones y campos (2 ms)
+    √ en la app de clientes crecen un poco menos (2 ms)
+  Barra inferior de la app de maestros
+    √ queda despegada del borde de abajo y con letra grande (227 ms)
+
+PASS tests/brechas.test.js
+  Mi cuenta: reputación como cliente
+    √ muestra las estrellas y el total cuando los maestros ya lo calificaron (179 ms)
+    √ sin calificaciones explica que aparecerán al cerrar su primer trabajo (58 ms)
+  Catálogo: horario y orden
+    √ al activar «solo en horario» y cambiar el orden, la consulta lleva los parámetros nuevos (197 ms)
+  Agenda del maestro (Pro)
+    √ lista la visita con fecha, cliente y tarifa, y al tocarla abre el trabajo (104 ms)
+    √ sin visitas lo dice en pantalla (50 ms)
+
+PASS tests/rediseno.test.js
+  Progreso de una solicitud
+    √ la barra dice en qué etapa va la solicitud, en lenguaje del cliente (7 ms)
+    √ una solicitud cerrada llega a la última etapa (3 ms)
+    √ una solicitud cancelada no muestra progreso (1 ms)
+  Portada del cliente según su solicitud en curso
+    √ con una solicitud en curso, la portada muestra cuál es el siguiente paso (210 ms)
+    √ sin solicitudes en curso, la portada invita a pedir el primer servicio (117 ms)
+
+PASS tests/tarjeta.test.js
+  Pagar con la tarjeta guardada
+    √ con una tarjeta guardada, el saldo se paga con un toque y sin salir de la app (191 ms)
+    √ puede cambiar la tarjeta (la registra en Transbank y paga) o pagar con otra sin guardarla (128 ms)
+    √ sin tarjeta guardada, al pagar la visita ofrece guardarla (marcado) y se puede desmarcar (106 ms)
+  Mi cuenta: tarjeta guardada
+    √ muestra la tarjeta y permite quitarla (98 ms)
+    √ guardar una tarjeta lleva a Transbank y vuelve con la tarjeta guardada (80 ms)
+
+PASS tests/chat.test.js
+  Chat con fotos
+    √ muestra las fotos del historial como imágenes (219 ms)
+    √ envía una foto de la galería y aparece en la conversación (81 ms)
+    √ con el chat cerrado no se pueden enviar fotos (47 ms)
+
+PASS tests/cola.test.js
+  Cola sin conexión (HU-12)
+    √ sin señal la solicitud queda guardada y se envía sola al volver la conexión, con el mismo id (30 ms)
+    √ si se pidió desde el perfil de un prestador, al crearla se le asigna (6 ms)
+    √ si el servidor rechaza una, queda para revisar y se siguen enviando las demás (6 ms)
+    √ si se corta la señal a mitad del envío se detiene y conserva el orden (4 ms)
+    √ con el servidor caído (500) no se marca como error: se reintenta después (5 ms)
+    √ una solicitud corregida (eligiendo el servicio) se reintenta con los cambios (5 ms)
+    √ descartar la quita del celular sin enviarla (4 ms)
+    √ mientras haya pendientes se reintenta cada 30 segundos, aunque no llegue aviso de la red (5 ms)
+    √ cada persona ve solo sus pendientes, y DeliMaster Pro no envía solicitudes (4 ms)
+
+PASS tests/eliminar-cuenta.test.js
+  Eliminar mi cuenta
+    √ explica qué se borra, pide la contraseña y la confirmación, y cierra la sesión (356 ms)
+    √ si tiene algo pendiente, lo explica y no ofrece eliminar (70 ms)
+    √ en DeliMaster Pro menciona la ficha y los datos bancarios (73 ms)
+
+PASS tests/tema.test.js
+  √ las dos paletas tienen los mismos colores definidos (1 ms)
+  Modo claro y oscuro
+    √ por defecto la app se ve oscura, aunque el teléfono esté en claro (184 ms)
+    √ en automático, con el teléfono en claro la app se ve clara (85 ms)
+    √ elegir "Claro" cambia los colores de inmediato y queda guardado en el dispositivo (113 ms)
+    √ la preferencia guardada se respeta al volver a abrir la app, aunque el teléfono esté en oscuro (58 ms)
+
+PASS tests/horario.test.js
+  Horario de atención
+    √ se describe en palabras (11 ms)
+    √ días de la semana y horas de inicio dentro de la jornada (2 ms)
+    √ la visita solo se puede agendar en los días y horas en que atiende el maestro (284 ms)
+
+PASS tests/utilidades.test.js
+  Cuenta regresiva del plazo de respuesta (HU-05)
+    √ muestra minutos y segundos, se pone roja en los últimos 5 minutos y avisa una sola vez al vencer (107 ms)
+  Cliente de la API de las apps
+    √ arma la consulta omitiendo filtros vacíos y codificando tildes (1 ms)
+    √ sin internet entrega un error claro con el código SIN_CONEXION (1 ms)
+    √ montos en pesos chilenos (1 ms)
+  Almacenamiento en el celular
+    √ Lite y Pro guardan su sesión con claves distintas (se pueden usar en el mismo equipo) (5 ms)
+    √ en el navegador la cola se guarda por persona y en orden de creación (10 ms)
+
+PASS tests/barra.test.js
+  Secciones de la barra
+    √ cada sección tiene su pantalla raíz y las que se abren desde ella (3 ms)
+  Barra inferior en la app de maestros
+    √ la portada muestra las cuatro secciones y marca Inicio (193 ms)
+    √ tocar Dinero abre esa sección y la barra la marca (126 ms)
+    √ Perfil reúne la ficha, el portafolio, las verificaciones y la cuenta (90 ms)
+    √ en un detalle, como un trabajo, no hay barra (39 ms)
+
+PASS tests/cuenta-regresiva.test.js
+  Formato del tiempo que queda
+    √ más de una hora se lee en horas y minutos, no en minutos totales (10 ms)
+    √ menos de una hora se cuenta en minutos y segundos
+    √ un día o más se lee en días y horas
+    √ sin tiempo queda en cero (1 ms)
+  Cuenta regresiva en pantalla
+    √ muestra el plazo restante con el formato nuevo (93 ms)
+
+PASS tests/instalar.test.js
+  Aviso para instalar en el iPhone
+    √ aparece en Safari del iPhone y del iPad, mientras no esté instalada (9 ms)
+    √ no aparece si ya se abrió desde la pantalla de inicio (1 ms)
+    √ no aparece en Android, en el computador ni en las APK (3 ms)
+
+PASS tests/exif.test.js
+  EXIF que entrega expo-image-picker
+    √ Android: viene plano, con la ubicación en grados decimales (15 ms)
+    √ iOS: viene con sub-diccionarios {Exif}, {TIFF} y {GPS} (1 ms)
+    √ sin EXIF (captura o imagen descargada) no informa nada (1 ms)
+  EXIF desde los bytes del archivo (versión web)
+    √ lee fecha, equipo y ubicación de un JPEG con EXIF (1 ms)
+    √ un archivo sin EXIF o que no es JPEG no informa nada (1 ms)
+    √ convierte el base64 del archivo a bytes
+
+Test Suites: 29 passed, 29 total
+Tests:       184 passed, 184 total
+Snapshots:   0 total
+Time:        58.687 s
+Ran all test suites.

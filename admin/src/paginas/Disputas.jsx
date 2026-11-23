@@ -24,7 +24,13 @@ export default function Disputas() {
               <div className="fila-titulo">
                 <h2>{d.categoria} · {pesos(d.precio_acordado)}</h2>
                 {estado === 'abiertas'
-                  ? <Insignia tono="alerta">Abierta desde el {fecha(d.abierta_en)}</Insignia>
+                  ? (
+                    <span className="chips">
+                      {/* Una parte respondió en la conversación de la disputa y espera al equipo */}
+                      {d.respuesta_pendiente ? <Insignia tono="info">Respuesta nueva</Insignia> : null}
+                      <Insignia tono="alerta">Abierta desde el {fecha(d.abierta_en)}</Insignia>
+                    </span>
+                  )
                   : d.resultado === 'cerrada'
                     ? <Insignia tono="ok">Pago liberado al prestador</Insignia>
                     : <Insignia tono="info">Reembolsado al cliente</Insignia>}

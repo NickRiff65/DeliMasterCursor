@@ -14,7 +14,9 @@ import {
   rutasBoletas, rutasGastosTrabajo, rutasGastos, rutasImagenBoleta, rutasFinanzas, rutasMaterialesCliente, rutasDinero,
 } from './modules/gastos/gastos.rutas.js';
 import { rutasAdmin } from './modules/admin/admin.rutas.js';
+import { rutasDisputaParte, rutasDisputaAdmin } from './modules/disputas/disputas.rutas.js';
 import { rutasFotosSolicitud, rutasImagenEvidencia } from './modules/evidencias/evidencias.rutas.js';
+import { autenticar } from './middlewares/autenticacion.js';
 import { rutaNoEncontrada, manejadorErrores } from './middlewares/errores.js';
 import { limiteGeneral } from './middlewares/limites.js';
 import { config } from './config/env.js';
@@ -43,6 +45,10 @@ export function crearApp() {
   app.use('/api/solicitudes/:id/boletas', rutasBoletas);
   app.use('/api/solicitudes/:id/fotos', rutasFotosSolicitud);
   app.use('/api/solicitudes/:id/mensajes/foto', rutasFotoChat);
+  // Crear una solicitud puede traer hasta 3 fotos del problema: ese cuerpo se acepta más grande,
+  // recién después de verificar la sesión (la ruta de solicitudes valida todo lo demás)
+  app.post('/api/solicitudes', autenticar, express.json({ limit: '20mb' }), (_req, _res, siguiente) => siguiente());
+  app.post('/api/solicitudes/analizar-fotos', autenticar, express.json({ limit: '20mb' }), (_req, _res, siguiente) => siguiente());
   app.use(express.json({ limit: '1mb' }));
 
   // Índice de la API: útil en desarrollo; en producción no se publica el inventario de rutas (OWASP API9)
@@ -81,6 +87,7 @@ export function crearApp() {
         'GET /api/admin/moderacion': 'Usuarios con mensajes bloqueados por el filtro (admin)',
         'PATCH /api/admin/usuarios/:id': 'Activar o desactivar una cuenta (admin)',
         'POST /api/solicitudes/interpretar': 'Vista previa de lo que entendió el sistema (HU-08)',
+        'POST /api/solicitudes/analizar-fotos': 'La IA propone el servicio y la descripción a partir de 1 a 3 fotos',
         'POST /api/solicitudes': 'Crear solicitud en lenguaje natural; idempotente por id (HU-08, HU-12)',
         'GET /api/solicitudes': 'Mis solicitudes (cliente o prestador)',
         'GET /api/solicitudes/:id': 'Detalle e historial de una solicitud',
@@ -107,7 +114,7 @@ export function crearApp() {
         'POST /api/solicitudes/:id/llegada': 'El prestador confirma la llegada con el código y, si hay punto, su GPS',
         'POST /api/solicitudes/:id/cotizacion': 'Cotización después del diagnóstico',
         'POST /api/solicitudes/:id/cotizacion/respuesta': 'El cliente acepta o rechaza la cotización',
-        'POST /api/solicitudes/:id/no-llego': 'El cliente pide la devolución de la visita',
+        'POST /api/solicitudes/:id/no-llego': 'El cliente pide la devolución de la visita o del precio cerrado si el maestro no llegó',
         'POST /api/solicitudes/:id/mensajes/foto': 'Foto en el chat',
         'GET /api/notificaciones': 'Avisos de la persona y cuántos no ha leído',
         'POST /api/notificaciones/leidas': 'Marca los avisos como leídos',
@@ -132,8 +139,10 @@ export function crearApp() {
   app.use('/api/prestadores/yo/dinero', rutasDinero);
   app.use('/api/prestadores', rutasPrestadores);
   app.use('/api/admin/verificaciones', rutasVerificacionAdmin);
+  app.use('/api/admin/solicitudes/:id/disputa', rutasDisputaAdmin);
   app.use('/api/admin', rutasAdmin);
   app.use('/api/solicitudes/:id/mensajes', rutasMensajes);
+  app.use('/api/solicitudes/:id/disputa', rutasDisputaParte);
   app.use('/api/solicitudes/:id/pago', rutasPagoSolicitud);
   app.use('/api/pagos/webpay', rutasWebpay);
   app.use('/api/pagos/oneclick', rutasOneclick);

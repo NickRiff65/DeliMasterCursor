@@ -154,6 +154,22 @@ describe('Cierre del trabajo y reseñas (HU-06, HU-07)', { skip: !hayBaseDeDatos
     assert.equal(perfil.body.prestador.resenas[0].cliente, 'Ana');   // solo el primer nombre
   });
 
+  test('el maestro ve su reputación como maestro y todas sus reseñas', async () => {
+    for (const estrellas of [5, 3]) {
+      const id = await solicitudCerrada();
+      await accion(cliente, id, 'resena', { estrellas, comentario: `Nota ${estrellas}` });
+    }
+    const res = await como(prestador)(request(app).get('/api/prestadores/yo/resenas'));
+    assert.equal(res.status, 200, JSON.stringify(res.body));
+    assert.equal(res.body.calificacion_promedio, 4);
+    assert.equal(res.body.total_resenas, 2);
+    assert.equal(res.body.trabajos_cerrados, 2);
+    assert.deepEqual(res.body.resenas.map((r) => [r.estrellas, r.comentario, r.cliente]), [[3, 'Nota 3', 'Ana'], [5, 'Nota 5', 'Ana']]);
+    assert.ok(res.body.resenas[0].categoria);
+    // Solo para maestros: un cliente no tiene esta sección
+    assert.equal((await como(cliente)(request(app).get('/api/prestadores/yo/resenas'))).status, 403);
+  });
+
   test('HU-07: las reseñas cambian el orden del catálogo', async () => {
     const antes = await request(app).get('/api/prestadores?categoria=poda-altura');
     assert.equal(antes.body.prestadores.length, 2);

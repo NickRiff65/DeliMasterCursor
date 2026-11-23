@@ -1,0 +1,390 @@
+{
+    "root_group": {
+        "name": "",
+        "path": "",
+        "id": "d41d8cd98f00b204e9800998ecf8427e",
+        "groups": {},
+        "checks": {
+            "inicio de sesión 200": {
+                "name": "inicio de sesión 200",
+                "path": "::inicio de sesión 200",
+                "id": "bc10f08a4214b97cdafc56827247b263",
+                "passes": 300,
+                "fails": 0
+            },
+            "categorias 200": {
+                "name": "categorias 200",
+                "path": "::categorias 200",
+                "id": "b6508a922df41fbd17d9c21434986c7c",
+                "passes": 300,
+                "fails": 0
+            },
+            "comunas 200": {
+                "name": "comunas 200",
+                "path": "::comunas 200",
+                "id": "df58ddcc0e821769e687d0feb52f6d45",
+                "passes": 300,
+                "fails": 0
+            },
+            "mis_solicitudes 200": {
+                "path": "::mis_solicitudes 200",
+                "id": "8f860f510d9b96aa3e5a61b8bd5d6850",
+                "passes": 12576,
+                "fails": 0,
+                "name": "mis_solicitudes 200"
+            },
+            "avisos 200": {
+                "passes": 16766,
+                "fails": 0,
+                "name": "avisos 200",
+                "path": "::avisos 200",
+                "id": "323837e906549c259c481d4f119cc4e9"
+            },
+            "panel_maestro 200": {
+                "path": "::panel_maestro 200",
+                "id": "c3c1dce92b06f6266587a3db9d0a5431",
+                "passes": 4190,
+                "fails": 0,
+                "name": "panel_maestro 200"
+            },
+            "recibidas 200": {
+                "name": "recibidas 200",
+                "path": "::recibidas 200",
+                "id": "366e4dd83d640b52abed702d0ccdad5f",
+                "passes": 4190,
+                "fails": 0
+            },
+            "catalogo 200": {
+                "name": "catalogo 200",
+                "path": "::catalogo 200",
+                "id": "9719ca227f67452b51e8ce12484e34aa",
+                "passes": 12576,
+                "fails": 0
+            },
+            "dinero_maestro 200": {
+                "passes": 4190,
+                "fails": 0,
+                "name": "dinero_maestro 200",
+                "path": "::dinero_maestro 200",
+                "id": "be28ae906d533fabbab75d3729cfadc2"
+            },
+            "agenda_maestro 200": {
+                "name": "agenda_maestro 200",
+                "path": "::agenda_maestro 200",
+                "id": "c010821bd2962e5a3b450a66784b5ffa",
+                "passes": 4190,
+                "fails": 0
+            },
+            "perfil_maestro 200": {
+                "name": "perfil_maestro 200",
+                "path": "::perfil_maestro 200",
+                "id": "d9452ea04ded87855751e1ba21fc05cc",
+                "passes": 12576,
+                "fails": 0
+            },
+            "interpretar 200": {
+                "path": "::interpretar 200",
+                "id": "47842943d9e2c349d97daf702696da9f",
+                "passes": 240,
+                "fails": 0,
+                "name": "interpretar 200"
+            },
+            "crear solicitud 201": {
+                "passes": 240,
+                "fails": 0,
+                "name": "crear solicitud 201",
+                "path": "::crear solicitud 201",
+                "id": "6fa0882de96ae6041637dfa6f5a47739"
+            },
+            "detalle_solicitud 200": {
+                "passes": 12336,
+                "fails": 0,
+                "name": "detalle_solicitud 200",
+                "path": "::detalle_solicitud 200",
+                "id": "77dd354c3ec8b2ec5e710958555decb9"
+            }
+        }
+    },
+    "metrics": {
+        "http_reqs": {
+            "count": 85271,
+            "rate": 115.14601716318532
+        },
+        "http_req_failed": {
+            "passes": 0,
+            "fails": 85271,
+            "thresholds": {
+                "rate<1": false
+            },
+            "value": 0
+        },
+        "http_req_duration{punto:interpretar}": {
+            "avg": 39.54281458333334,
+            "med": 2.06205,
+            "p(90)": 149.22187999999997,
+            "p(95)": 197.43747,
+            "p(99)": 242.00292499999995,
+            "max": 249.223,
+            "thresholds": {
+                "p(95)<60000": false
+            }
+        },
+        "http_req_duration{punto:perfil_maestro}": {
+            "avg": 10.406039805979622,
+            "med": 2.0531,
+            "p(90)": 2.9303,
+            "p(95)": 66.338025,
+            "p(99)": 203.17305,
+            "max": 300.0248,
+            "thresholds": {
+                "p(95)<60000": false
+            }
+        },
+        "http_req_connecting": {
+            "avg": 0.0022565420834750375,
+            "med": 0,
+            "p(90)": 0,
+            "p(95)": 0,
+            "p(99)": 0,
+            "max": 4.4917
+        },
+        "http_req_duration{punto:agenda_maestro}": {
+            "max": 243.1515,
+            "avg": 2.038880954653932,
+            "med": 1.5127,
+            "p(90)": 2.6188499999999997,
+            "p(95)": 6.5442899999999895,
+            "p(99)": 10.659860999999978,
+            "thresholds": {
+                "p(95)<60000": false
+            }
+        },
+        "http_req_duration{punto:dinero_maestro}": {
+            "p(99)": 210.89809899999977,
+            "max": 343.9282,
+            "avg": 10.765672052505975,
+            "med": 1.5554000000000001,
+            "p(90)": 2.43175,
+            "p(95)": 79.52024499999956,
+            "thresholds": {
+                "p(95)<60000": false
+            }
+        },
+        "iteration_duration": {
+            "med": 7643.323350000001,
+            "p(90)": 9437.33415,
+            "p(95)": 9903.044849999998,
+            "p(99)": 10798.252984999994,
+            "max": 13108.8973,
+            "avg": 7580.759598651979
+        },
+        "http_req_duration{punto:categorias}": {
+            "avg": 4.310291666666667,
+            "med": 3.7297000000000002,
+            "p(90)": 8.816230000000001,
+            "p(95)": 9.783655000000001,
+            "p(99)": 11.242512999999999,
+            "max": 13.4058,
+            "thresholds": {
+                "p(95)<60000": false
+            }
+        },
+        "data_received": {
+            "count": 194048638,
+            "rate": 262034.31180167623
+        },
+        "http_req_waiting": {
+            "p(99)": 232.19038000000026,
+            "max": 360.6415,
+            "avg": 10.167473049453985,
+            "med": 1.8602,
+            "p(90)": 4.9679,
+            "p(95)": 43.3957
+        },
+        "http_req_duration{punto:catalogo}": {
+            "med": 2.0609,
+            "p(90)": 3.07285,
+            "p(95)": 79.35445,
+            "p(99)": 207.33679999999998,
+            "max": 282.3734,
+            "avg": 10.859089670801522,
+            "thresholds": {
+                "p(95)<60000": false
+            }
+        },
+        "checks": {
+            "passes": 84970,
+            "fails": 0,
+            "value": 1
+        },
+        "http_req_duration{punto:avisos}": {
+            "max": 254.859,
+            "avg": 1.72102749015865,
+            "med": 1.3896,
+            "p(90)": 2.1628,
+            "p(95)": 3.1958,
+            "p(99)": 8.544869999999941,
+            "thresholds": {
+                "p(95)<60000": false
+            }
+        },
+        "http_req_duration{punto:mis_solicitudes}": {
+            "p(90)": 6.56325,
+            "p(95)": 69.664475,
+            "p(99)": 213.55125,
+            "max": 281.9959,
+            "avg": 12.984824141221356,
+            "med": 4.4066,
+            "thresholds": {
+                "p(95)<60000": false
+            }
+        },
+        "http_req_receiving": {
+            "avg": 0.2861724408063702,
+            "med": 0,
+            "p(90)": 0.8542,
+            "p(95)": 0.9502,
+            "p(99)": 1.0095300000000003,
+            "max": 14.0661
+        },
+        "http_req_duration": {
+            "avg": 10.456238435106803,
+            "med": 2.2492,
+            "p(90)": 5.2348,
+            "p(95)": 43.5574,
+            "p(99)": 232.27943000000008,
+            "max": 360.6415
+        },
+        "http_req_duration{expected_response:true}": {
+            "max": 360.6415,
+            "avg": 10.456238435106803,
+            "med": 2.2492,
+            "p(90)": 5.2348,
+            "p(95)": 43.5574,
+            "p(99)": 232.27943000000008
+        },
+        "http_req_tls_handshaking": {
+            "p(99)": 0,
+            "max": 0,
+            "avg": 0,
+            "med": 0,
+            "p(90)": 0,
+            "p(95)": 0
+        },
+        "http_req_duration{punto:crear_solicitud}": {
+            "max": 270.7402,
+            "avg": 52.808407916666674,
+            "med": 13.86,
+            "p(90)": 190.54482999999993,
+            "p(95)": 239.83095499999996,
+            "p(99)": 266.53230799999994,
+            "thresholds": {
+                "p(95)<60000": false
+            }
+        },
+        "vus": {
+            "value": 1,
+            "min": 0,
+            "max": 300
+        },
+        "http_req_duration{punto:panel_maestro}": {
+            "med": 1.89725,
+            "p(90)": 2.7897699999999985,
+            "p(95)": 54.04259499999998,
+            "p(99)": 209.902381,
+            "max": 318.5482,
+            "avg": 9.836263794749403,
+            "thresholds": {
+                "p(95)<60000": false
+            }
+        },
+        "http_req_duration{punto:inicio_sesion}": {
+            "avg": 207.86116633333336,
+            "med": 241.93115,
+            "p(90)": 248.85357000000002,
+            "p(95)": 252.65272000000002,
+            "p(99)": 268.8459539999999,
+            "max": 360.6415,
+            "thresholds": {
+                "p(95)<60000": false
+            }
+        },
+        "vus_max": {
+            "value": 300,
+            "min": 300,
+            "max": 300
+        },
+        "http_req_duration{punto:recibidas}": {
+            "med": 3.93805,
+            "p(90)": 5.57379,
+            "p(95)": 12.610829999999979,
+            "p(99)": 24.320213999999957,
+            "max": 264.9524,
+            "avg": 5.3024869928400875,
+            "thresholds": {
+                "p(95)<60000": false
+            }
+        },
+        "http_req_duration{punto:comunas}": {
+            "p(95)": 2.56643,
+            "p(99)": 3.1870519999999973,
+            "max": 7.1186,
+            "avg": 1.1632626666666672,
+            "med": 1.1191,
+            "p(90)": 2.0954100000000007,
+            "thresholds": {
+                "p(95)<60000": false
+            }
+        },
+        "http_req_duration{punto:detalle_solicitud}": {
+            "p(95)": 65.66197500000001,
+            "p(99)": 220.69802499999972,
+            "max": 338.9854,
+            "avg": 12.601913124189291,
+            "med": 4.06605,
+            "p(90)": 5.49385,
+            "thresholds": {
+                "p(95)<60000": false
+            }
+        },
+        "http_req_blocked": {
+            "p(99)": 0,
+            "max": 11.5041,
+            "avg": 0.0032039544511029525,
+            "med": 0,
+            "p(90)": 0,
+            "p(95)": 0
+        },
+        "iterations": {
+            "count": 16766,
+            "rate": 22.6400314732789
+        },
+        "data_sent": {
+            "count": 34181252,
+            "rate": 46156.78283884512
+        },
+        "http_req_sending": {
+            "avg": 0.0025929448464307907,
+            "med": 0,
+            "p(90)": 0,
+            "p(95)": 0,
+            "p(99)": 0,
+            "max": 3.0103
+        }
+    },
+    "setup_data": {
+        "maestros": [
+            "99f3017c-9329-4431-8e1b-07386127df11",
+            "aed55cd7-c4fb-4928-8662-01f05a0e0ded",
+            "123a3e35-3258-4b40-9f76-307f680c4d07",
+            "19893e24-1b4a-4c50-a4c5-ec0e5cbb8c6f",
+            "9d78cb88-05e8-46b4-87fe-a686677de589",
+            "56cc81b8-46a7-4be8-82b1-090837b5de4c",
+            "953445ea-0835-4e3e-a134-5f0b8803f7c0",
+            "8a6019dd-b5e6-4360-b8f3-a2de714cf30f",
+            "9ee869eb-a75f-4cb0-8aa0-1a812b055ab5",
+            "a71b0073-e07a-4058-b67e-5345e5dea14d",
+            "4c1f6d25-30a0-4c1f-946f-a88316437152"
+        ]
+    }
+}

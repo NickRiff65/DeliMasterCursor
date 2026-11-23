@@ -12,3 +12,6 @@ backend/.cache/
 backend/uploads/
 backend/respaldos/
 backend/rendimiento/resultados/
+
+# Fotos reales para medir la detección por foto con IA (pueden mostrar casas de personas): no se suben
+fotos-ia/

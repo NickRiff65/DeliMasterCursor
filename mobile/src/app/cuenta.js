@@ -25,7 +25,7 @@ export default function Cuenta() {
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <ScrollView contentContainerStyle={estilos.contenido} keyboardShouldPersistTaps="handled">
         <MisDatos usuario={usuario} alGuardar={actualizarUsuario} />
-        <ReputacionCliente usuario={usuario} />
+        {ES_PRO ? <ReputacionMaestro /> : <ReputacionCliente usuario={usuario} />}
         <Apariencia />
         {ES_PRO ? null : <TarjetaGuardada />}
         <CambiarPassword alCambiar={abrirSesion} />
@@ -62,6 +62,39 @@ function ReputacionCliente({ usuario }) {
         <Text style={estilos.ayudaTema}>
           Aún no tienes calificaciones como cliente: cuando un maestro cierre un trabajo contigo, podrá calificarte, y otros maestros verán esa reputación antes de aceptar.
         </Text>
+      )}
+    </View>
+  );
+}
+
+// Pro: la reputación del maestro (la que ven los clientes en el catálogo), con acceso a todas sus reseñas
+function ReputacionMaestro() {
+  const [datos, setDatos] = useState(null);
+  const [error, setError] = useState(null);
+  useEffect(() => {
+    api.get('/prestadores/yo/resenas').then(setDatos).catch((e) => setError(e.message));
+  }, []);
+  return (
+    <View style={estilos.tarjeta}>
+      <ConIcono icono={require('../../assets/iconos/app/reputacion.png')} estilo={estilos.titulo}>
+        Tu reputación como maestro
+      </ConIcono>
+      {!datos ? (
+        error ? <Aviso mensaje={error} /> : <ActivityIndicator color={colores.primario} />
+      ) : (
+        <>
+          <Estrellas promedio={datos.calificacion_promedio} total={datos.total_resenas} tamano={16} />
+          <Text style={estilos.ayudaTema}>
+            {datos.total_resenas > 0
+              ? 'Es el promedio de las calificaciones que te dejaron los clientes al cerrar tus trabajos. Los clientes la ven en el catálogo.'
+              : 'Aún no tienes reseñas: cuando cierres un trabajo en DeliMaster, el cliente podrá calificarte.'}
+          </Text>
+          {datos.total_resenas > 0 ? (
+            <View style={{ marginTop: espacio.s }}>
+              <Boton titulo={`Ver mis reseñas (${datos.total_resenas})`} variante="secundario" onPress={() => router.push('/resenas')} />
+            </View>
+          ) : null}
+        </>
       )}
     </View>
   );

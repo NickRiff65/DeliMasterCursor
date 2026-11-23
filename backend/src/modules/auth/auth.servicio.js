@@ -16,7 +16,7 @@ const HASH_FICTICIO = bcrypt.hashSync('contraseña-ficticia-para-tiempos', COSTO
 
 // Versión vigente de los Términos de uso y la Política de privacidad. Al publicar una nueva,
 // las apps vuelven a pedir la aceptación a cada persona.
-export const VERSION_TERMINOS = '1.6';   // 1.5: tope de $25.000 en la comisión; 1.6: sin el detalle de la tarjeta guardada
+export const VERSION_TERMINOS = '2.0';   // 1.7: datos de cámara de las fotos; 1.8: plazo de 1 día, cotización aparte de la visita, groserías y chat del reclamo; 1.9: código de llegada y devolución si no llega, también con precio cerrado; 2.0: detección del problema por foto con IA
 
 // Recuperación de contraseña: código de 6 dígitos, 15 minutos de vigencia y 5 intentos
 const MINUTOS_CODIGO = 15;

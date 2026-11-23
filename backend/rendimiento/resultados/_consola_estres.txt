@@ -1,0 +1,105 @@
+
+
+  █ THRESHOLDS 
+
+    http_req_duration{punto:agenda_maestro}
+    ✓ 'p(95)<60000' p(95)=6.54ms
+
+    http_req_duration{punto:avisos}
+    ✓ 'p(95)<60000' p(95)=3.19ms
+
+    http_req_duration{punto:catalogo}
+    ✓ 'p(95)<60000' p(95)=79.35ms
+
+    http_req_duration{punto:categorias}
+    ✓ 'p(95)<60000' p(95)=9.78ms
+
+    http_req_duration{punto:comunas}
+    ✓ 'p(95)<60000' p(95)=2.56ms
+
+    http_req_duration{punto:crear_solicitud}
+    ✓ 'p(95)<60000' p(95)=239.83ms
+
+    http_req_duration{punto:detalle_solicitud}
+    ✓ 'p(95)<60000' p(95)=65.66ms
+
+    http_req_duration{punto:dinero_maestro}
+    ✓ 'p(95)<60000' p(95)=79.52ms
+
+    http_req_duration{punto:inicio_sesion}
+    ✓ 'p(95)<60000' p(95)=252.65ms
+
+    http_req_duration{punto:interpretar}
+    ✓ 'p(95)<60000' p(95)=197.43ms
+
+    http_req_duration{punto:mis_solicitudes}
+    ✓ 'p(95)<60000' p(95)=69.66ms
+
+    http_req_duration{punto:panel_maestro}
+    ✓ 'p(95)<60000' p(95)=54.04ms
+
+    http_req_duration{punto:perfil_maestro}
+    ✓ 'p(95)<60000' p(95)=66.33ms
+
+    http_req_duration{punto:recibidas}
+    ✓ 'p(95)<60000' p(95)=12.61ms
+
+    http_req_failed
+    ✓ 'rate<1' rate=0.00%
+
+
+  █ TOTAL RESULTS 
+
+    checks_total.......: 84970   114.739561/s
+    checks_succeeded...: 100.00% 84970 out of 84970
+    checks_failed......: 0.00%   0 out of 84970
+
+    ✓ inicio de sesión 200
+    ✓ categorias 200
+    ✓ comunas 200
+    ✓ mis_solicitudes 200
+    ✓ avisos 200
+    ✓ panel_maestro 200
+    ✓ recibidas 200
+    ✓ catalogo 200
+    ✓ dinero_maestro 200
+    ✓ agenda_maestro 200
+    ✓ perfil_maestro 200
+    ✓ interpretar 200
+    ✓ crear solicitud 201
+    ✓ detalle_solicitud 200
+
+    HTTP
+    http_req_duration...............: avg=10.45ms  med=2.24ms   p(90)=5.23ms   p(95)=43.55ms  p(99)=232.27ms max=360.64ms
+      { expected_response:true }....: avg=10.45ms  med=2.24ms   p(90)=5.23ms   p(95)=43.55ms  p(99)=232.27ms max=360.64ms
+      { punto:agenda_maestro }......: avg=2.03ms   med=1.51ms   p(90)=2.61ms   p(95)=6.54ms   p(99)=10.65ms  max=243.15ms
+      { punto:avisos }..............: avg=1.72ms   med=1.38ms   p(90)=2.16ms   p(95)=3.19ms   p(99)=8.54ms   max=254.85ms
+      { punto:catalogo }............: avg=10.85ms  med=2.06ms   p(90)=3.07ms   p(95)=79.35ms  p(99)=207.33ms max=282.37ms
+      { punto:categorias }..........: avg=4.31ms   med=3.72ms   p(90)=8.81ms   p(95)=9.78ms   p(99)=11.24ms  max=13.4ms  
+      { punto:comunas }.............: avg=1.16ms   med=1.11ms   p(90)=2.09ms   p(95)=2.56ms   p(99)=3.18ms   max=7.11ms  
+      { punto:crear_solicitud }.....: avg=52.8ms   med=13.86ms  p(90)=190.54ms p(95)=239.83ms p(99)=266.53ms max=270.74ms
+      { punto:detalle_solicitud }...: avg=12.6ms   med=4.06ms   p(90)=5.49ms   p(95)=65.66ms  p(99)=220.69ms max=338.98ms
+      { punto:dinero_maestro }......: avg=10.76ms  med=1.55ms   p(90)=2.43ms   p(95)=79.52ms  p(99)=210.89ms max=343.92ms
+      { punto:inicio_sesion }.......: avg=207.86ms med=241.93ms p(90)=248.85ms p(95)=252.65ms p(99)=268.84ms max=360.64ms
+      { punto:interpretar }.........: avg=39.54ms  med=2.06ms   p(90)=149.22ms p(95)=197.43ms p(99)=242ms    max=249.22ms
+      { punto:mis_solicitudes }.....: avg=12.98ms  med=4.4ms    p(90)=6.56ms   p(95)=69.66ms  p(99)=213.55ms max=281.99ms
+      { punto:panel_maestro }.......: avg=9.83ms   med=1.89ms   p(90)=2.78ms   p(95)=54.04ms  p(99)=209.9ms  max=318.54ms
+      { punto:perfil_maestro }......: avg=10.4ms   med=2.05ms   p(90)=2.93ms   p(95)=66.33ms  p(99)=203.17ms max=300.02ms
+      { punto:recibidas }...........: avg=5.3ms    med=3.93ms   p(90)=5.57ms   p(95)=12.61ms  p(99)=24.32ms  max=264.95ms
+    http_req_failed.................: 0.00%  0 out of 85271
+    http_reqs.......................: 85271  115.146017/s
+
+    EXECUTION
+    iteration_duration..............: avg=7.58s    med=7.64s    p(90)=9.43s    p(95)=9.9s     p(99)=10.79s   max=13.1s   
+    iterations......................: 16766  22.640031/s
+    vus.............................: 1      min=0          max=300
+    vus_max.........................: 300    min=300        max=300
+
+    NETWORK
+    data_received...................: 194 MB 262 kB/s
+    data_sent.......................: 34 MB  46 kB/s
+
+
+
+
+Resumen guardado en C:\dev\DeliMaster\backend\rendimiento\resultados\estres_2026-11-16-19-51.txt y .json

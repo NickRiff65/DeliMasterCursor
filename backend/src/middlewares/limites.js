@@ -41,6 +41,8 @@ export const limiteLoginCuenta = crear({
 export const limiteBoletas = crear({ minutos: 10, maximo: 20, nombre: 'ocr_boletas' });      // el OCR usa mucha CPU
 export const limiteMensajes = crear({ minutos: 1, maximo: 30, nombre: 'mensajes' });
 export const limiteSolicitudes = crear({ minutos: 60, maximo: 30, nombre: 'solicitudes' });  // crear e interpretar
+// Cada análisis de fotos con IA tiene un costo por uso: un tope por cuenta evita gastos por abuso
+export const limiteIaFotos = crear({ minutos: 60, maximo: 15, nombre: 'ia_fotos' });
 export const limitePagos = crear({ minutos: 10, maximo: 10, nombre: 'iniciar_pago' });
 
 // Cuentas: cambiar la contraseña (5 intentos fallidos) y recuperar el acceso (por correo)

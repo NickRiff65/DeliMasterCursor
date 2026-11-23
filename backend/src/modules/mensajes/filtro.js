@@ -77,7 +77,42 @@ const MENSAJES = {
   contacto_externo: 'contactos por otras aplicaciones',
   enlace: 'enlaces',
   pago_externo: 'acuerdos de pago por fuera de la plataforma',
+  groseria: 'groserías ni insultos',
 };
+
+// ------------------------------------------------------------------ groserías y garabatos chilenos
+// Siempre activo (también después del pago): el chat es un espacio de trato respetuoso.
+// Se normaliza lo típico para esquivar filtros: números por letras (w3on, put4), letras repetidas
+// (weoooon) y signos. Se evitan palabras que en un oficio tienen otro sentido: «pico» (de una llave,
+// «y pico»), «paja» (de jardín), «raja», «perra» (una mascota), «gil» (apellido).
+const GARABATOS = [
+  /\bconch\w*\s+(?:de\s+|e\s+)?(?:tu|su)\s+ma(?:d)?re\b/,               // concha de tu madre
+  /\bconch[ae](?:tu|su)ma(?:d)?re\b/,                                  // conchetumare, conchesumadre
+  /\b(?:ctm|csm|ctmr|ctmre|csmre|ql|qlo|qlia|qliao)\b/,                 // abreviaturas
+  /\bculia(?:o|do|da|a|os|dos|das)?\b/,                                // culiao
+  /\b(?:a)?(?:hue|we|gue|wue)(?:v|b)?on(?:a|es|as|ao|ada|cito|cita)?\b/, // weón, huevón, aweonao
+  /\b(?:hue|we|gue)(?:v|b)?(?:a|as|ada|adas)\b/,                       // wea, hueá, huevada
+  /\bwn\b/,
+  /\bchuch(?:a|as|etumare|etumadre|esumare|esumadre)\b/,               // chucha, chuchetumare
+  /\bput(?:a|o|as|os|ita|ito|amadre)\b/,                               // puta, puto
+  /\bhij[oa]\s+(?:de|e)\s+put/, /\bhdp\b/,
+  /\bmara(?:co|ca|cos|cas|quito)\b/, /\bmaric(?:on|ona|ones|onas|a|as)\b/,
+  /\bmierd\w*/,
+  /\bpichul\w*/, /\bchup(?:alo|ala|amela|amelo|ame)\b/, /\b(?:pal|tu)\s+pico\b/,
+  /\bculo\b/, /\bzorra\b/, /\bpajer[oa]s?\b/,
+  /\bcag(?:a|ar|o|aste|ada|ado|on|ona|ones)\b/,
+  /\b(?:imbecil|idiota|estupid[oa]|tarad[oa]|pelotud[oa])s?\b/,
+];
+
+const LETRAS_POR_NUMERO = { 0: 'o', 1: 'i', 3: 'e', 4: 'a', 5: 's', 7: 't', '@': 'a', $: 's' };
+
+export function tieneGroserias(textoNormalizado) {
+  const t = textoNormalizado
+    .replace(/[013457@$]/g, (c) => LETRAS_POR_NUMERO[c])
+    .replace(/([a-z])\1+/g, '$1')          // weoooon → weon
+    .replace(/[^a-z\s]/g, ' ');
+  return GARABATOS.some((r) => r.test(t));
+}
 
 // Agrupa los dígitos del texto en secuencias: grupos de dígitos separados por hasta 3 símbolos
 // que NO sean letras ("2*1*2*3" o "21.344.451-1" son una sola secuencia; "20 minutos, 2 ayudantes" no).
@@ -109,17 +144,21 @@ function secuenciasDeDigitos(texto) {
 export const MOTIVOS_TRAS_PAGO = ['pago_externo', 'datos_bancarios'];
 
 export function analizarMensaje(texto, { trasPago = false } = {}) {
+  const normalizado = normalizar(texto);
   // Los montos con signo $ son parte normal de la conversación ("$45.000"): no cuentan como número.
-  const base = palabrasADigitos(normalizar(texto)).replace(/\$\s*[\d.,]+/g, ' ');
+  const base = palabrasADigitos(normalizado).replace(/\$\s*[\d.,]+/g, ' ');
   const reglas = trasPago ? REGLAS.filter((r) => MOTIVOS_TRAS_PAGO.includes(r.motivo)) : REGLAS;
   const motivos = [...new Set(reglas.filter((r) => r.probar(base)).map((r) => r.motivo))];
-  let aviso = null;
+  const grosero = tieneGroserias(normalizado);
+  const avisos = [];
+  if (grosero) avisos.push('Tu mensaje no se envió: en DeliMaster no se permiten groserías ni insultos. Mantengamos un trato respetuoso.');
   if (motivos.length) {
-    aviso = trasPago
+    avisos.push(trasPago
       ? 'Los trabajos y pagos con personas que conociste en DeliMaster se hacen por la app: así tu dinero queda protegido.'
-      : `Por tu seguridad, no se pueden compartir ${motivos.map((m) => MENSAJES[m]).join(', ')} hasta que el pago esté protegido en DeliMaster.`;
+      : `Por tu seguridad, no se pueden compartir ${motivos.map((m) => MENSAJES[m]).join(', ')} hasta que el pago esté protegido en DeliMaster.`);
   }
-  return { bloqueado: motivos.length > 0, motivos, aviso };
+  if (grosero) motivos.unshift('groseria');
+  return { bloqueado: motivos.length > 0, motivos, aviso: avisos.join(' ') || null };
 }
 
 // Mismo análisis, pero considerando también los mensajes recientes de la misma persona:

@@ -190,7 +190,16 @@ async function aplicarPagoAutorizado(pago, { codigo, respuesta }) {
          VALUES ($1, 'visita_por_pagar', 'visita_pagada', $2)`,
         [s.id, `${medio} · visita · autorización ${codigo}`]);
     } else {
-      await db.query("UPDATE solicitudes SET estado = 'pagada' WHERE id = $1", [s.id]);
+      // Precio cerrado (pago total): el cliente también recibe un código de llegada, que dicta cuando el
+      // maestro llega al lugar; sin esa llegada confirmada el maestro no puede marcar el trabajo terminado.
+      // (En la modalidad con visita la llegada ya se confirmó al pagar la visita.)
+      if (pago.concepto === 'total') {
+        await db.query(
+          "UPDATE solicitudes SET estado = 'pagada', codigo_llegada = $2, intentos_codigo = 0 WHERE id = $1",
+          [s.id, nuevoCodigoLlegada()]);
+      } else {
+        await db.query("UPDATE solicitudes SET estado = 'pagada' WHERE id = $1", [s.id]);
+      }
       await db.query(
         `INSERT INTO solicitud_eventos (solicitud_id, estado_anterior, estado_nuevo, detalle)
          VALUES ($1, 'confirmada', 'pagada', $2)`,

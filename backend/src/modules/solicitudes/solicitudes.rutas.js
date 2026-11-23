@@ -5,10 +5,11 @@ import { AppError } from '../../utils/AppError.js';
 import { pool } from '../../db/pool.js';
 import {
   esquemaInterpretar, esquemaCrear, esquemaAsignar, esquemaResponder, esquemaCancelar, esquemaListado,
-  esquemaReportar, esquemaResena, esquemaLlegada, esquemaCotizacion, esquemaRespuestaCotizacion,
+  esquemaReportar, esquemaResena, esquemaLlegada, esquemaCotizacion, esquemaRespuestaCotizacion, esquemaAnalizarFotos,
 } from './solicitudes.esquemas.js';
 import * as servicio from './solicitudes.servicio.js';
-import { limiteSolicitudes, limiteCodigoLlegada } from '../../middlewares/limites.js';
+import { limiteSolicitudes, limiteCodigoLlegada, limiteIaFotos } from '../../middlewares/limites.js';
+import { analizarFotos, deteccionFotosDisponible } from './interpreteFoto.js';
 
 export const rutasSolicitudes = Router();
 rutasSolicitudes.use(autenticar);
@@ -22,6 +23,15 @@ function idValido(req) {
 // HU-08: vista previa de lo que entendió el sistema, antes de crear la solicitud
 rutasSolicitudes.post('/interpretar', autorizar('cliente'), limiteSolicitudes, validar(esquemaInterpretar), async (req, res) => {
   res.json(await servicio.interpretarTexto(req.body.descripcion));
+});
+
+// Detección del problema por foto con IA: propone el servicio y la descripción (el cliente los revisa).
+// La app pregunta primero si está disponible (sin clave de la IA, no muestra el botón).
+rutasSolicitudes.get('/analizar-fotos', autorizar('cliente'), (_req, res) => {
+  res.json({ disponible: deteccionFotosDisponible() });
+});
+rutasSolicitudes.post('/analizar-fotos', autorizar('cliente'), limiteIaFotos, validar(esquemaAnalizarFotos), async (req, res) => {
+  res.json({ analisis: await analizarFotos(req.body.fotos) });
 });
 
 // HU-08 / HU-12: crear solicitud (idempotente por id)

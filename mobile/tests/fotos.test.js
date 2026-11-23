@@ -40,8 +40,24 @@ describe('Fotos de evidencia', () => {
 
     await userEvent.setup().press(screen.getByRole('button', { name: 'Cámara' }));
     expect(await screen.findByText('Tú')).toBeOnTheScreen();
-    expect(llamadas.find((l) => l.metodo === 'POST').cuerpo).toEqual({ imagen_base64: 'BASE64DELAFOTO' });
-    expect(ImagePicker.launchCameraAsync).toHaveBeenCalledWith(expect.objectContaining({ quality: 0.6, base64: true }));
+    // Viaja con los datos de su cámara: aquí, que se tomó con la cámara de la app
+    expect(llamadas.find((l) => l.metodo === 'POST').cuerpo).toEqual({ imagen_base64: 'BASE64DELAFOTO', metadatos: { tomada_con: 'camara' } });
+    expect(ImagePicker.launchCameraAsync).toHaveBeenCalledWith(expect.objectContaining({ quality: 0.6, base64: true, exif: true }));
+  });
+
+  test('cada foto dice si quedó verificada como real y actual; al ampliarla se ve el detalle', async () => {
+    simularApi({ [`GET /solicitudes/${ID}/fotos`]: lista([
+      foto('f1', 'cliente', false, { verificacion: { estado: 'verificada', texto: 'Foto tomada en el momento' } }),
+      foto('f2', 'cliente', false, { verificacion: { estado: 'revisar', texto: 'Foto antigua: se tomó el 12 nov' } }),
+      foto('f3', 'prestador', true, { verificacion: { estado: 'sin_datos', texto: 'Sin datos de cámara: puede ser una captura o una imagen descargada' } }),
+    ]) });
+    await mostrar();
+    expect(await screen.findByText('Verificada')).toBeOnTheScreen();
+    expect(screen.getByText('Revisar')).toBeOnTheScreen();
+    expect(screen.getByText('Sin datos')).toBeOnTheScreen();
+    const antigua = screen.getByRole('imagebutton', { name: 'Foto de cliente. Foto antigua: se tomó el 12 nov' });
+    await userEvent.setup().press(antigua);
+    expect(await screen.findByText('Foto antigua: se tomó el 12 nov')).toBeOnTheScreen();
   });
 
   test('sin permiso de cámara lo explica y no sube nada; si se cancela tampoco', async () => {

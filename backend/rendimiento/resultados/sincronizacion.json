@@ -1,0 +1,34 @@
+{
+ "resumen": {
+  "fecha": "2026-11-17T04:45:49.512Z",
+  "total": 300,
+  "exitosas": 300,
+  "duplicadas": 0,
+  "por_caso": {
+   "A": {
+    "cantidad": 100,
+    "exitosas": 100,
+    "respuestas": "201 ×100",
+    "mediana_ms": 85,
+    "p95_ms": 218
+   },
+   "B": {
+    "cantidad": 100,
+    "exitosas": 100,
+    "respuestas": "201,200 ×100",
+    "mediana_ms": 126,
+    "p95_ms": 276
+   },
+   "C": {
+    "cantidad": 100,
+    "exitosas": 100,
+    "respuestas": "201,200,200 ×66 · 200,201,200 ×34",
+    "mediana_ms": 139,
+    "p95_ms": 308
+   }
+  },
+  "tasa_exito": "100.00 %",
+  "p95_ms": 218
+ },
+ "fallidas": []
+}

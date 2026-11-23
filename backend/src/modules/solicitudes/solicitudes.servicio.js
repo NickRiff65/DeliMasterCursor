@@ -12,6 +12,7 @@ import { rangoVisita, REGLAS_VISITA } from './visita.js';
 import { avisar } from '../../utils/avisos.js';
 import { notificarCambio, crearNotificacion } from '../notificaciones/notificaciones.servicio.js';
 import { guardarFoto } from '../evidencias/evidencias.servicio.js';
+import { MAX_FOTOS_AL_SOLICITAR } from './solicitudes.esquemas.js';
 
 // ------------------------------------------------------------------ máquina de estados
 // Transiciones permitidas. Dos modalidades de cobro, que el prestador elige al aceptar:
@@ -48,58 +49,15 @@ async function registrarEvento(db, solicitudId, anterior, nuevo, actorId, detall
   alConfirmar(db, () => avisar(solicitudId, nuevo, anterior));
 }
 
-// ------------------------------------------------------------------ plazo de respuesta: 1 día hábil
-// Valores fijos de la ayudantía (noviembre 2026): el maestro tiene 1 día hábil para
-// responder una asignación (antes eran minutos, config.plazoRespuestaMin, que solo se
-// mantiene como compatibilidad para asignaciones antiguas sin respuesta_vence_en).
-// «Día hábil» = lunes a viernes en hora de Chile (America/Santiago), saltando sábados
-// y domingos. Los feriados quedan fuera de alcance: no hay calendario oficial en el sistema.
-const ZONA_CHILE = 'America/Santiago';
-const formatoChile = new Intl.DateTimeFormat('en-US', {
-  timeZone: ZONA_CHILE, year: 'numeric', month: '2-digit', day: '2-digit',
-  hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23',
-});
+// ------------------------------------------------------------------ plazo de respuesta: 1 día
+// Decisión del equipo (noviembre 2026): el maestro tiene 1 día corrido (24 horas) para responder
+// una asignación, también en fin de semana (antes era 1 día hábil, y antes aún unos minutos:
+// config.plazoRespuestaMin solo se mantiene para asignaciones antiguas sin respuesta_vence_en).
+export const HORAS_PLAZO_RESPUESTA = 24;
 
-// Partes de un instante vistas en hora de Chile
-function partesEnChile(fecha) {
-  const partes = {};
-  for (const p of formatoChile.formatToParts(fecha)) partes[p.type] = p.value;
-  return {
-    anio: Number(partes.year), mes: Number(partes.month), dia: Number(partes.day),
-    hora: Number(partes.hour) % 24, minuto: Number(partes.minute), segundo: Number(partes.second),
-  };
-}
-
-// Diferencia entre la hora de Chile y UTC para un instante dado (considera horario de verano)
-function desplazamientoChileMs(fechaUtc) {
-  const p = partesEnChile(fechaUtc);
-  return Date.UTC(p.anio, p.mes - 1, p.dia, p.hora, p.minuto, p.segundo)
-    - Math.floor(fechaUtc.getTime() / 1000) * 1000;
-}
-
-// Instante UTC que corresponde a una hora de pared de Chile (se recalcula una vez por el DST)
-function instanteEnChile({ anio, mes, dia, hora, minuto, segundo }, milisegundos) {
-  const pared = Date.UTC(anio, mes - 1, dia, hora, minuto, segundo, milisegundos);
-  let utc = pared - desplazamientoChileMs(new Date(pared));
-  utc = pared - desplazamientoChileMs(new Date(utc));
-  return new Date(utc);
-}
-
-// +1 día hábil en hora de Chile desde `desde`, conservando la hora local:
-// viernes → lunes, sábado → lunes, día hábil → el día hábil siguiente.
 export function vencimientoRespuesta(desde = new Date()) {
   const inicio = desde instanceof Date ? desde : new Date(desde);
-  const p = partesEnChile(inicio);
-  // Se avanza en el calendario (UTC sobre la fecha de pared) hasta el próximo día hábil
-  let fecha = Date.UTC(p.anio, p.mes - 1, p.dia);
-  do {
-    fecha += 24 * 60 * 60 * 1000;
-  } while ([0, 6].includes(new Date(fecha).getUTCDay()));   // 0 = domingo, 6 = sábado
-  const destino = new Date(fecha);
-  return instanteEnChile({
-    anio: destino.getUTCFullYear(), mes: destino.getUTCMonth() + 1, dia: destino.getUTCDate(),
-    hora: p.hora, minuto: p.minuto, segundo: p.segundo,
-  }, inicio.getUTCMilliseconds());
+  return new Date(inicio.getTime() + HORAS_PLAZO_RESPUESTA * 3_600_000);
 }
 
 // HU-05: si el prestador no responde a tiempo, la solicitud vuelve a estar disponible
@@ -119,11 +77,11 @@ export async function liberarVencidas(db = pool) {
   for (const { id, cliente_id: clienteId } of rows) {
     await registrarEvento(db, id, 'asignada', 'creada', null, 'El maestro no respondió dentro del plazo');
     // Aviso explícito al cliente (además del aviso genérico del cambio de estado):
-    // quedó sin respuesta en 1 día hábil y ya puede elegir a otro maestro.
+    // quedó sin respuesta en 1 día y ya puede elegir a otro maestro.
     if (clienteId) {
       await crearNotificacion(db, clienteId, {
         titulo: 'El maestro no respondió',
-        texto: 'El maestro no respondió en 1 día hábil. Tu solicitud vuelve a estar disponible: puedes elegir otro maestro.',
+        texto: 'El maestro no respondió en 1 día. Tu solicitud vuelve a estar disponible: puedes elegir otro maestro.',
         solicitudId: id,
       });
     }
@@ -180,15 +138,22 @@ const sqlSolicitud = (where, extra = '') => `
          -- Modalidad "visita + cotización"
          s.modalidad, s.tarifa_visita, s.visita_programada_en, s.llegada_en, s.codigo_llegada,
          s.llegada_latitud::float AS llegada_latitud, s.llegada_longitud::float AS llegada_longitud, s.llegada_distancia_m,
+         -- Desde cuándo el cliente puede decir que el maestro no llegó: la visita pagada, o el precio cerrado
+         -- pagado con código cuya llegada aún no se confirma (misma tolerancia tras la hora acordada)
          CASE WHEN s.estado = 'visita_pagada'
+                OR (s.estado = 'pagada' AND s.modalidad = 'precio_cerrado' AND s.codigo_llegada IS NOT NULL AND s.llegada_en IS NULL)
               THEN s.visita_programada_en + make_interval(mins => ${Number(REGLAS_VISITA.toleranciaMin)}) END AS reclamo_no_llego_desde,
-         -- Lo que el cliente paga al confirmar: el total, o el saldo (total − visita) si ya pagó la visita
+         -- Lo que el cliente paga al confirmar: el precio cerrado o, con visita, la cotización
+         -- (precio_acordado = visita + cotización: el total que recibe el maestro)
          CASE WHEN s.precio_acordado IS NULL THEN NULL
               WHEN s.modalidad = 'visita' THEN s.precio_acordado - s.tarifa_visita
               ELSE s.precio_acordado END AS monto_por_pagar,
          (SELECT json_build_object('id', q.id, 'mano_obra', q.mano_obra, 'materiales', q.materiales, 'total', q.total,
                                    'detalle', q.detalle, 'estado', q.estado, 'creado_en', q.creado_en,
                                    'respondida_en', q.respondida_en,
+                                   -- incluye_visita: cotización antigua, en que el total traía la visita
+                                   'incluye_visita', q.incluye_visita,
+                                   'por_pagar', CASE WHEN q.incluye_visita THEN q.total - s.tarifa_visita ELSE q.total END,
                                    'total_anterior', (SELECT x.total FROM cotizaciones x
                                                        WHERE x.solicitud_id = s.id AND x.estado = 'reemplazada'
                                                        ORDER BY x.creado_en DESC LIMIT 1))
@@ -243,6 +208,9 @@ export const direccionVisible = (s) =>
 // visita (o el trabajo) quedó acordada. Antes de eso no hay motivo para revelarla.
 const ESTADOS_PARA_COMPARTIR = ['confirmada', 'visita_por_pagar', 'visita_pagada', 'en_diagnostico', 'cotizada', 'pagada'];
 
+export const llegadaPendiente = (s) =>
+  s.estado === 'pagada' && s.modalidad === 'precio_cerrado' && s.codigo_llegada != null && !s.llegada_en;
+
 function vistaPara(usuario, s) {
   const { codigo_llegada: codigo, ...resto } = s;
   const vista = { ...resto };
@@ -256,7 +224,12 @@ function vistaPara(usuario, s) {
     vista.direccion_visible_para_prestador = direccionVisible(s);
     vista.puede_compartir_direccion = ESTADOS_PARA_COMPARTIR.includes(s.estado) && !direccionVisible(s);
   }
-  if ((usuario.id === s.cliente?.id || usuario.rol === 'admin') && s.estado === 'visita_pagada') vista.codigo_llegada = codigo;
+  // Precio cerrado ya pagado: falta que el maestro confirme su llegada con el código (ambas partes lo saben).
+  // Los trabajos pagados antes de este cambio no tienen código y no lo exigen.
+  vista.llegada_pendiente = llegadaPendiente({ ...s, codigo_llegada: codigo });
+  if ((usuario.id === s.cliente?.id || usuario.rol === 'admin') && (s.estado === 'visita_pagada' || vista.llegada_pendiente)) {
+    vista.codigo_llegada = codigo;
+  }
   if (usuario.rol === 'prestador' && s.estado === 'asignada') vista.rango_visita = rangoVisita(s.comuna);
   return vista;
 }
@@ -374,18 +347,30 @@ export async function crear(usuario, datos) {
         `Ya tienes una solicitud activa de ${duplicada.rows[0].nombre}. Cuando se cierre o la canceles podrás pedir otra igual.`,
         409, 'SOLICITUD_ACTIVA_MISMA_CATEGORIA');
     }
-    // 2) máximo 1 solicitud por día por cliente (día calendario en hora de Chile).
-    //    Cuentan las creadas hoy en cualquier estado excepto 'cancelada': si la de hoy
-    //    se canceló, el cliente puede pedir de nuevo el mismo día.
+    // 2) máximo 1 solicitud en curso pedida hoy por cliente (día calendario en hora de Chile).
+    //    Cuentan solo las creadas hoy que siguen activas: si la de hoy ya se cerró (trabajo
+    //    terminado) o se canceló, el cliente puede pedir otra el mismo día.
+    //    Excepción: cuando las fotos mostraban trabajos de oficios distintos, la app pide uno por
+    //    solicitud y las siguientes indican de cuál se separaron (separada_de, del mismo cliente y
+    //    pedida hoy). Esas cuentan como un mismo pedido, hasta una por foto (3 en el día).
     const { rows: [{ n: hoy }] } = await db.query(
       `SELECT count(*)::int AS n FROM solicitudes
-        WHERE cliente_id = $1 AND estado <> 'cancelada'
+        WHERE cliente_id = $1 AND estado NOT IN ('cerrada', 'cancelada')
           AND (creado_en AT TIME ZONE 'America/Santiago')::date
               = (now() AT TIME ZONE 'America/Santiago')::date`,
       [usuario.id]);
-    if (hoy >= 1) {
+    let tope = 1;
+    if (datos.separada_de) {
+      const { rowCount: deHoy } = await db.query(
+        `SELECT 1 FROM solicitudes
+          WHERE id = $1 AND cliente_id = $2
+            AND (creado_en AT TIME ZONE 'America/Santiago')::date = (now() AT TIME ZONE 'America/Santiago')::date`,
+        [datos.separada_de, usuario.id]);
+      if (deHoy) tope = MAX_FOTOS_AL_SOLICITAR;
+    }
+    if (hoy >= tope) {
       throw new AppError(
-        'Ya pediste un servicio hoy. Puedes pedir otro mañana, o cancelar el de hoy y pedir de nuevo.',
+        'Ya tienes en curso un servicio que pediste hoy. Cuando se cierre o lo canceles podrás pedir otro hoy mismo; si no, mañana.',
         409, 'LIMITE_SOLICITUDES_DIA');
     }
     for (const [i, cat] of elegidas.entries()) {
@@ -409,7 +394,7 @@ export async function crear(usuario, datos) {
     throw err;
   }
 
-  // Fotos al solicitar (máx. 2, validadas en el esquema): quedan como evidencias de la
+  // Fotos al solicitar (máx. 3, validadas en el esquema): quedan como evidencias de la
   // primera solicitud del grupo. Decisión de atomicidad: guardarFoto (evidencias) usa su
   // propio pool y no participa en la transacción de creación —de hecho, dentro de ella ni
   // siquiera vería la solicitud aún no confirmada—, por lo que las fotos se guardan recién
@@ -419,7 +404,9 @@ export async function crear(usuario, datos) {
   if (datos.fotos?.length) {
     try {
       for (const foto of datos.fotos) {
-        await guardarFoto(usuario, datos.id, foto, 'Foto al solicitar');
+        // Cada foto llega sola (base64) o con los metadatos que la app leyó del original
+        const [base64, metadatos] = typeof foto === 'string' ? [foto, {}] : [foto.imagen_base64, foto.metadatos];
+        await guardarFoto(usuario, datos.id, base64, 'Foto al solicitar', metadatos);
       }
     } catch (err) {
       await pool.query('DELETE FROM solicitudes WHERE grupo_id = $1', [grupoId])
@@ -491,8 +478,29 @@ function errorDeCampo(mensaje, campo, codigo = 'DATOS_INVALIDOS') {
   return err;
 }
 
+// El día y la hora en que el maestro irá (visita de diagnóstico, o el trabajo con precio cerrado):
+// al menos 15 minutos después de ahora, con hasta 30 días de anticipación y dentro de su horario.
+async function validarFechaVisita(db, prestadorId, fecha) {
+  const cuando = new Date(fecha);
+  const minutos = (cuando.getTime() - Date.now()) / 60_000;
+  if (minutos < 15) throw errorDeCampo('La visita debe ser al menos 15 minutos después de ahora', 'visita_programada_en');
+  if (minutos > REGLAS_VISITA.maxDiasProgramacion * 24 * 60) {
+    throw errorDeCampo(`La visita se puede agendar con hasta ${REGLAS_VISITA.maxDiasProgramacion} días de anticipación`, 'visita_programada_en');
+  }
+  // Dentro de los días y horas de atención que el maestro eligió (en hora de Chile)
+  const { rows: [enHorario] } = await db.query(
+    `SELECT EXTRACT(ISODOW FROM l.t)::smallint = ANY (p.dias_atencion)
+            AND l.t::time >= p.hora_inicio AND l.t::time < p.hora_fin AS ok
+       FROM prestadores p, (SELECT $2::timestamptz AT TIME ZONE 'America/Santiago' AS t) l
+      WHERE p.usuario_id = $1`, [prestadorId, cuando]);
+  if (!enHorario?.ok) {
+    throw errorDeCampo('La visita debe quedar dentro de tu horario de atención (puedes cambiarlo en tu ficha)', 'visita_programada_en');
+  }
+  return cuando;
+}
+
 // HU-05: el prestador acepta o rechaza la asignación dentro del plazo. Al aceptar elige la modalidad:
-//  · precio_cerrado: indica el precio del trabajo (el cliente paga el total).
+//  · precio_cerrado: indica el precio del trabajo (el cliente paga el total) y el día en que irá a hacerlo.
 //  · visita: indica la tarifa de visita (dentro del rango de la comuna) y cuándo irá a diagnosticar.
 export async function responder(usuario, id, { aceptar, modalidad = 'precio_cerrado', precio, tarifa_visita, visita_programada_en }) {
   await liberarVencidas();
@@ -509,21 +517,7 @@ export async function responder(usuario, id, { aceptar, modalidad = 'precio_cerr
       if (tarifa_visita < rango.min || tarifa_visita > rango.max) {
         throw errorDeCampo(`En ${s.comuna} la visita debe estar entre ${pesos(rango.min)} y ${pesos(rango.max)}`, 'tarifa_visita');
       }
-      const cuando = new Date(visita_programada_en);
-      const minutos = (cuando.getTime() - Date.now()) / 60_000;
-      if (minutos < 15) throw errorDeCampo('La visita debe ser al menos 15 minutos después de ahora', 'visita_programada_en');
-      if (minutos > REGLAS_VISITA.maxDiasProgramacion * 24 * 60) {
-        throw errorDeCampo(`La visita se puede agendar con hasta ${REGLAS_VISITA.maxDiasProgramacion} días de anticipación`, 'visita_programada_en');
-      }
-      // Dentro de los días y horas de atención que el maestro eligió (en hora de Chile)
-      const { rows: [enHorario] } = await db.query(
-        `SELECT EXTRACT(ISODOW FROM l.t)::smallint = ANY (p.dias_atencion)
-                AND l.t::time >= p.hora_inicio AND l.t::time < p.hora_fin AS ok
-           FROM prestadores p, (SELECT $2::timestamptz AT TIME ZONE 'America/Santiago' AS t) l
-          WHERE p.usuario_id = $1`, [usuario.id, cuando]);
-      if (!enHorario?.ok) {
-        throw errorDeCampo('La visita debe quedar dentro de tu horario de atención (puedes cambiarlo en tu ficha)', 'visita_programada_en');
-      }
+      const cuando = await validarFechaVisita(db, usuario.id, visita_programada_en);
       await db.query(
         `UPDATE solicitudes SET estado = 'visita_por_pagar', modalidad = 'visita', tarifa_visita = $2,
                                 visita_programada_en = $3, confirmada_en = now()
@@ -531,10 +525,13 @@ export async function responder(usuario, id, { aceptar, modalidad = 'precio_cerr
       await registrarEvento(db, id, 'asignada', 'visita_por_pagar', usuario.id,
         `Visita de diagnóstico: ${pesos(tarifa_visita)} · ${fechaHora(cuando)}`);
     } else if (aceptar) {
+      // Con precio cerrado el maestro también indica qué día irá a hacer el trabajo (la app lo pide siempre)
+      const cuando = visita_programada_en ? await validarFechaVisita(db, usuario.id, visita_programada_en) : null;
       await db.query(
-        `UPDATE solicitudes SET estado = 'confirmada', precio_acordado = $2, confirmada_en = now() WHERE id = $1`,
-        [id, precio]);
-      await registrarEvento(db, id, 'asignada', 'confirmada', usuario.id, `Precio: ${pesos(precio)}`);
+        `UPDATE solicitudes SET estado = 'confirmada', precio_acordado = $2, visita_programada_en = $3, confirmada_en = now()
+          WHERE id = $1`, [id, precio, cuando]);
+      await registrarEvento(db, id, 'asignada', 'confirmada', usuario.id,
+        `Precio: ${pesos(precio)}${cuando ? ` · ${fechaHora(cuando)}` : ''}`);
     } else {
       await db.query(
         `UPDATE solicitudes SET estado = 'creada', prestador_id = NULL, asignada_en = NULL, respuesta_vence_en = NULL WHERE id = $1`, [id]);
@@ -624,14 +621,19 @@ async function liberarVisita(db, solicitudId, actorId) {
   if (mov) await moverLedger(db, mov, 'retenido', 'liberado', actorId);
 }
 
-// Devuelve la visita al cliente por Webpay (el prestador no llegó o el cliente canceló a tiempo)
-// y cancela la solicitud. Primero Transbank: si el reembolso falla, la transacción se revierte.
-async function devolverVisita(db, s, actorId, detalle) {
+// Devuelve al cliente por Webpay un pago retenido (la visita, o el precio cerrado completo cuando el
+// prestador no llegó) y cancela la solicitud. Primero Transbank: si el reembolso falla, la transacción se revierte.
+const devolverVisita = (db, s, actorId, detalle) => devolverRetenido(db, s, 'visita', actorId, detalle);
+
+async function devolverRetenido(db, s, concepto, actorId, detalle) {
   const { rows: [mov] } = await db.query(
     `SELECT lm.id, lm.monto_bruto, lm.monto_neto, p.id AS pago_id, p.token_webpay, p.medio, p.orden_compra, p.orden_hija
        FROM ledger_movimientos lm JOIN pagos p ON p.id = lm.pago_id
-      WHERE lm.solicitud_id = $1 AND lm.concepto = 'visita' AND lm.estado = 'retenido' FOR UPDATE OF lm`, [s.id]);
-  if (!mov) throw new AppError('La visita de esta solicitud no está retenida', 409, 'ESTADO_INVALIDO');
+      WHERE lm.solicitud_id = $1 AND lm.concepto = $2 AND lm.estado = 'retenido' FOR UPDATE OF lm`, [s.id, concepto]);
+  if (!mov) {
+    throw new AppError(concepto === 'visita' ? 'La visita de esta solicitud no está retenida' : 'El pago de esta solicitud no está retenido',
+      409, 'ESTADO_INVALIDO');
+  }
   let reembolso;
   try {
     reembolso = await reembolsarPago(mov, mov.monto_bruto);
@@ -653,8 +655,9 @@ export async function confirmarLlegada(usuario, id, { codigo, latitud, longitud 
   const resultado = await enTransaccion(async (db) => {
     const s = await bloquear(db, id);
     if (s.prestador_id !== usuario.id) throw new AppError('Solicitud no encontrada', 404, 'SOLICITUD_NO_ENCONTRADA');
-    if (s.estado !== 'visita_pagada') {
-      throw new AppError('Esta solicitud no tiene una visita pagada pendiente', 409, 'ESTADO_INVALIDO');
+    const conVisita = s.estado === 'visita_pagada';
+    if (!conVisita && !llegadaPendiente(s)) {
+      throw new AppError('Esta solicitud no tiene una llegada pendiente de confirmar', 409, 'ESTADO_INVALIDO');
     }
     if (s.intentos_codigo >= REGLAS_VISITA.maxIntentosCodigo) {
       throw new AppError('Ingresaste mal el código demasiadas veces. Escríbele al equipo de DeliMaster.', 429, 'CODIGO_BLOQUEADO');
@@ -678,14 +681,27 @@ export async function confirmarLlegada(usuario, id, { codigo, latitud, longitud 
           'latitud', 'FUERA_DE_ZONA');
       }
     }
+    const donde = distancia == null ? '' : ` a ${distancia.toLocaleString('es-CL')} m del lugar`;
+    const detalle = `Llegada confirmada con el código del cliente${donde}`;
+    if (!conVisita) {
+      // Precio cerrado: el trabajo sigue «pagado» (no cambia de estado ni se libera dinero); la llegada
+      // queda anotada en el historial sin avisos, porque el cliente está ahí mismo dictando el código.
+      await db.query(
+        `UPDATE solicitudes SET llegada_en = now(), llegada_latitud = $2, llegada_longitud = $3, llegada_distancia_m = $4
+          WHERE id = $1`,
+        [id, latitud ?? null, longitud ?? null, distancia]);
+      await db.query(
+        `INSERT INTO solicitud_eventos (solicitud_id, estado_anterior, estado_nuevo, actor_id, detalle)
+         VALUES ($1, 'pagada', 'pagada', $2, $3)`, [id, usuario.id, detalle]);
+      return { incorrecto: false };
+    }
     await db.query(
       `UPDATE solicitudes
           SET estado = 'en_diagnostico', llegada_en = now(),
               llegada_latitud = $2, llegada_longitud = $3, llegada_distancia_m = $4
         WHERE id = $1`,
       [id, latitud ?? null, longitud ?? null, distancia]);
-    const donde = distancia == null ? '' : ` a ${distancia.toLocaleString('es-CL')} m del lugar`;
-    await registrarEvento(db, id, 'visita_pagada', 'en_diagnostico', usuario.id, `Llegada confirmada con el código del cliente${donde}`);
+    await registrarEvento(db, id, 'visita_pagada', 'en_diagnostico', usuario.id, detalle);
     await liberarVisita(db, id, usuario.id);
     return { incorrecto: false };
   });
@@ -713,10 +729,9 @@ export async function cotizar(usuario, id, { mano_obra, materiales = 0, detalle 
         ? 'El cliente ya aceptó la cotización: ya no se puede corregir'
         : 'Solo puedes cotizar después de confirmar tu llegada con el código', 409, 'ESTADO_INVALIDO');
     }
+    // La cotización es solo el trabajo: la visita ya pagada va aparte y no se descuenta
     const total = mano_obra + materiales;
-    if (total < s.tarifa_visita) {
-      throw errorDeCampo(`El total debe ser al menos la visita (${pesos(s.tarifa_visita)}), que ya está pagada`, 'mano_obra');
-    }
+    if (total <= 0) throw errorDeCampo('Indica el valor del trabajo', 'mano_obra');
 
     let anterior = null;
     if (s.estado === 'cotizada') {
@@ -735,23 +750,26 @@ export async function cotizar(usuario, id, { mano_obra, materiales = 0, detalle 
     if (anterior === null) {
       await db.query("UPDATE solicitudes SET estado = 'cotizada' WHERE id = $1", [id]);
       await registrarEvento(db, id, 'en_diagnostico', 'cotizada', usuario.id,
-        `Cotización: ${pesos(total)} (saldo ${pesos(total - s.tarifa_visita)})`);
+        `Cotización: ${pesos(total)} (la visita de ${pesos(s.tarifa_visita)} va aparte)`);
     } else {
       await registrarEvento(db, id, 'cotizada', 'cotizada', usuario.id,
-        `Cotización corregida: ${pesos(total)} (antes ${pesos(anterior)}) · saldo ${pesos(total - s.tarifa_visita)}`);
+        `Cotización corregida: ${pesos(total)} (antes ${pesos(anterior)})`);
     }
   });
   return obtener(usuario, id);
 }
 
-// El cliente acepta la cotización (paga el saldo con garantía) o la rechaza (la visita queda para el prestador)
+// El cliente acepta la cotización (la paga completa, con garantía) o la rechaza (la visita queda para el prestador).
+// precio_acordado guarda el total del trabajo para el maestro: la visita más la cotización. Lo que el
+// cliente paga ahora (monto_por_pagar) es la cotización. Las cotizaciones antiguas que incluían la
+// visita se cobran como se hicieron: el total menos la visita.
 export async function responderCotizacion(usuario, id, { aceptar, cotizacion_id: vista }) {
   await enTransaccion(async (db) => {
     const s = await bloquear(db, id);
     if (s.cliente_id !== usuario.id) throw new AppError('Solicitud no encontrada', 404, 'SOLICITUD_NO_ENCONTRADA');
     if (s.estado !== 'cotizada') throw new AppError('No hay una cotización por responder', 409, 'ESTADO_INVALIDO');
     const { rows: [q] } = await db.query(
-      "SELECT id, total FROM cotizaciones WHERE solicitud_id = $1 AND estado = 'pendiente' FOR UPDATE", [id]);
+      "SELECT id, total, incluye_visita FROM cotizaciones WHERE solicitud_id = $1 AND estado = 'pendiente' FOR UPDATE", [id]);
     // El maestro la corrigió mientras el cliente miraba la anterior: debe revisar la nueva antes de responder
     if (vista && vista !== q.id) {
       throw new AppError(`El maestro corrigió la cotización: ahora es de ${pesos(q.total)}. Revísala antes de responder.`,
@@ -765,31 +783,41 @@ export async function responderCotizacion(usuario, id, { aceptar, cotizacion_id:
       await registrarEvento(db, id, 'cotizada', 'cancelada', usuario.id, 'Cotización rechazada: la visita queda para el maestro');
       return;
     }
-    const saldo = q.total - s.tarifa_visita;
-    // Si la visita ya cubre el total, no hay nada más que pagar: el trabajo puede comenzar
-    const estado = saldo > 0 ? 'confirmada' : 'pagada';
+    const totalTrabajo = q.incluye_visita ? q.total : q.total + s.tarifa_visita;
+    const porPagar = totalTrabajo - s.tarifa_visita;
+    // Solo una cotización antigua podía quedar cubierta por la visita: entonces no hay nada más que pagar
+    const estado = porPagar > 0 ? 'confirmada' : 'pagada';
     await db.query('UPDATE solicitudes SET estado = $2, precio_acordado = $3, confirmada_en = now() WHERE id = $1',
-      [id, estado, q.total]);
+      [id, estado, totalTrabajo]);
     await registrarEvento(db, id, 'cotizada', estado, usuario.id,
-      saldo > 0
-        ? `Cotización aceptada: ${pesos(q.total)} · saldo por pagar ${pesos(saldo)}`
+      porPagar > 0
+        ? `Cotización aceptada: ${pesos(porPagar)} por pagar (la visita de ${pesos(s.tarifa_visita)} ya está pagada aparte)`
         : 'Cotización aceptada: la visita cubre el total');
   });
   if (!aceptar) expulsarDeSala(id);
   return obtener(usuario, id);
 }
 
-// El prestador no llegó: pasada la tolerancia, el cliente recupera la visita al instante
+// El prestador no llegó: pasada la tolerancia, el cliente recupera al instante la visita o, con precio
+// cerrado (si el maestro no confirmó su llegada con el código), el pago completo; la solicitud se cancela.
+// Con precio cerrado no hay devolución automática: si el maestro se atrasó y llega igual, el trabajo sigue.
 export async function reclamarNoLlego(usuario, id) {
   await enTransaccion(async (db) => {
     const s = await bloquear(db, id);
     if (s.cliente_id !== usuario.id) throw new AppError('Solicitud no encontrada', 404, 'SOLICITUD_NO_ENCONTRADA');
-    if (s.estado !== 'visita_pagada') throw new AppError('Esta solicitud no tiene una visita pendiente', 409, 'ESTADO_INVALIDO');
+    const conPrecioCerrado = llegadaPendiente(s) && s.visita_programada_en != null;
+    if (s.estado !== 'visita_pagada' && !conPrecioCerrado) {
+      throw new AppError('Esta solicitud no tiene una llegada pendiente del maestro', 409, 'ESTADO_INVALIDO');
+    }
     const desde = new Date(new Date(s.visita_programada_en).getTime() + REGLAS_VISITA.toleranciaMin * 60_000);
     if (Date.now() < desde.getTime()) {
       throw new AppError(`Podrás pedir la devolución desde el ${fechaHora(desde)}`, 409, 'AUN_EN_PLAZO');
     }
-    await devolverVisita(db, s, usuario.id, 'El maestro no llegó: se devuelve la visita al cliente');
+    if (conPrecioCerrado) {
+      await devolverRetenido(db, s, 'total', usuario.id, 'El maestro no llegó: se devuelve el pago completo al cliente');
+    } else {
+      await devolverVisita(db, s, usuario.id, 'El maestro no llegó: se devuelve la visita al cliente');
+    }
   });
   expulsarDeSala(id);
   return obtener(usuario, id);
@@ -823,6 +851,9 @@ export async function finalizar(usuario, id) {
     if (s.prestador_id !== usuario.id) throw new AppError('Solicitud no encontrada', 404, 'SOLICITUD_NO_ENCONTRADA');
     if (s.estado !== 'pagada') {
       throw new AppError('Solo puedes marcar como terminado un trabajo ya pagado por el cliente', 409, 'ESTADO_INVALIDO');
+    }
+    if (llegadaPendiente(s)) {
+      throw new AppError('Primero confirma tu llegada con el código que te dicta el cliente', 409, 'LLEGADA_PENDIENTE');
     }
     await db.query("UPDATE solicitudes SET estado = 'finalizada', finalizada_en = now() WHERE id = $1", [id]);
     await registrarEvento(db, id, 'pagada', 'finalizada', usuario.id);

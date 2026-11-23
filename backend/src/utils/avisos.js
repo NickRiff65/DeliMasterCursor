@@ -35,10 +35,10 @@ const AVISOS = {
   },
   confirmada: {
     para: 'cliente',
-    asunto: (s) => (s.anterior === 'cotizada' ? 'Cotización aceptada: falta pagar el saldo' : 'El maestro aceptó tu solicitud'),
+    asunto: (s) => (s.anterior === 'cotizada' ? 'Cotización aceptada: falta pagarla' : 'El maestro aceptó tu solicitud'),
     texto: (s) => (s.anterior === 'cotizada'
-      ? `Aceptaste la cotización de ${s.prestador} por ${pesos(s.precio_acordado)}. Paga el saldo `
-        + `(${pesos(s.precio_acordado - s.tarifa_visita)}) en DeliMaster Lite para que comience el trabajo.`
+      ? `Aceptaste la cotización de ${s.prestador}. Paga ${pesos(s.precio_acordado - s.tarifa_visita)} `
+        + 'en DeliMaster Lite para que comience el trabajo (la visita ya la pagaste aparte).'
       : `${s.prestador} aceptó tu solicitud por ${pesos(s.precio_acordado)}.`)
       + '\n\nEl pago queda retenido por DeliMaster y se libera al maestro cuando confirmes que el trabajo quedó bien.',
   },
@@ -58,6 +58,9 @@ const AVISOS = {
     para: 'prestador',
     asunto: () => 'El cliente pagó el trabajo',
     texto: (s) => `${s.cliente} pagó el trabajo en ${s.comuna}:\n\n"${resumen(s)}"\n\n`
+      + (s.modalidad === 'precio_cerrado'
+        ? 'Cuando llegues al lugar, pídele al cliente el código de llegada y escríbelo en DeliMaster Pro: sin él no podrás marcar el trabajo como terminado.\n\n'
+        : '')
       + 'El dinero queda retenido por DeliMaster y se te libera cuando el cliente confirme el término. '
       + 'Registra tus gastos en materiales con su boleta y marca el trabajo como terminado al finalizar.',
   },
@@ -92,7 +95,7 @@ const AVISOS = {
 async function datosDe(solicitudId) {
   const { rows: [s] } = await pool.query(
     `SELECT s.id, s.descripcion_original AS descripcion, s.comuna, s.precio_acordado, s.tarifa_visita,
-            s.visita_programada_en, split_part(cu.nombre, ' ', 1) AS cliente, cu.email AS email_cliente,
+            s.modalidad, s.visita_programada_en, split_part(cu.nombre, ' ', 1) AS cliente, cu.email AS email_cliente,
             pu.nombre AS prestador, pu.email AS email_prestador,
             (SELECT detalle FROM solicitud_eventos e WHERE e.solicitud_id = s.id ORDER BY e.creado_en DESC LIMIT 1) AS detalle
        FROM solicitudes s

@@ -25,6 +25,7 @@ export const MOTIVOS = {
   contacto_externo: 'Contacto por fuera',
   pago_externo: 'Pago por fuera',
   enlace: 'Enlace',
+  groseria: 'Groserías',
 };
 
 export const ESTADOS = {

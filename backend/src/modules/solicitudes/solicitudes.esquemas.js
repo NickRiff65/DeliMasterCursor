@@ -1,5 +1,9 @@
 import { z } from 'zod';
 import { esquemaComuna } from '../../utils/comunas.js';
+import { esquemaMetadatosFoto } from '../../utils/verificacionFoto.js';
+
+// Fotos del problema que se pueden adjuntar al pedir el servicio (pedido del equipo, noviembre 2026: 3)
+export const MAX_FOTOS_AL_SOLICITAR = 3;
 
 const descripcion = z.string().trim()
   .min(8, 'Cuéntanos un poco más de lo que necesitas')
@@ -9,9 +13,18 @@ const slug = z.string().trim().toLowerCase().regex(/^[a-z0-9-]+$/, 'Categoría n
 
 export const esquemaInterpretar = z.object({ descripcion });
 
+// Detección del problema por foto: las mismas fotos que se adjuntan al pedir (1 a 3, en base64)
+export const esquemaAnalizarFotos = z.object({
+  fotos: z.array(z.string().min(100, 'La foto no es válida'))
+    .min(1, 'Sube al menos una foto del problema')
+    .max(MAX_FOTOS_AL_SOLICITAR, `Puedes analizar hasta ${MAX_FOTOS_AL_SOLICITAR} fotos`),
+});
+
 // Monto mínimo de un trabajo con precio cerrado (lo que el maestro cobra al aceptar).
 // Valores fijos de la ayudantía (noviembre 2026): subió de $1.000 a $5.000.
 export const PRECIO_MINIMO_CERRADO = 5000;
+// Tarifa mínima de la visita de diagnóstico (decisión del equipo, noviembre 2026)
+export const TARIFA_VISITA_MINIMA = 5000;
 
 export const esquemaCrear = z.object({
   // UUID generado en el celular: permite reenviar sin duplicar (HU-12)
@@ -30,10 +43,16 @@ export const esquemaCrear = z.object({
   latitud: z.number().min(-37.1, 'La ubicación está fuera de Chillán y Coihueco').max(-36.2, 'La ubicación está fuera de Chillán y Coihueco').optional(),
   longitud: z.number().min(-72.6, 'La ubicación está fuera de Chillán y Coihueco').max(-71.2, 'La ubicación está fuera de Chillán y Coihueco').optional(),
   creado_en_dispositivo: z.iso.datetime({ offset: true }).optional(),
-  // Fotos del problema al momento de pedir (máx. 2): quedan como evidencias de la solicitud
-  // para que el maestro cotice con más exactitud. Cada una es la imagen en base64.
-  fotos: z.array(z.string().min(1, 'La foto está vacía'))
-    .max(2, 'Puedes adjuntar hasta 2 fotos al solicitar').optional(),
+  // Fotos con varios problemas: la IA los separa en una solicitud por trabajo. Las que siguen a la
+  // primera indican de cuál se separaron, y el límite diario las cuenta como un mismo pedido.
+  separada_de: z.uuid('La solicitud de origen no es válida').optional(),
+  // Fotos del problema al momento de pedir (máx. 3): quedan como evidencias de la solicitud
+  // para que el maestro cotice con más exactitud. Cada una es la imagen en base64 o, desde la app
+  // actual, { imagen_base64, metadatos } con la fecha y el equipo leídos de la foto original.
+  fotos: z.array(z.union([
+    z.string().min(1, 'La foto está vacía'),
+    z.object({ imagen_base64: z.string().min(1, 'La foto está vacía'), metadatos: esquemaMetadatosFoto }),
+  ])).max(MAX_FOTOS_AL_SOLICITAR, `Puedes adjuntar hasta ${MAX_FOTOS_AL_SOLICITAR} fotos al solicitar`).optional(),
 });
 
 export const esquemaAsignar = z.object({
@@ -48,8 +67,9 @@ export const esquemaResponder = z.object({
   modalidad: z.enum(['precio_cerrado', 'visita'], { error: 'Modalidad no válida' }).default('precio_cerrado'),
   // Precio en pesos chilenos (enteros) que el prestador propone al aceptar con precio cerrado
   precio: pesosEnteros('Indica el precio').min(PRECIO_MINIMO_CERRADO, 'El precio mínimo es $5.000').max(10_000_000, 'El precio es demasiado alto').optional(),
-  // Visita de diagnóstico: tarifa (el rango de la comuna se valida en el servicio) y fecha y hora
-  tarifa_visita: pesosEnteros('Indica la tarifa de visita').min(1000).max(200_000).optional(),
+  // Visita de diagnóstico: tarifa (mínimo $5.000; el rango de la comuna se valida en el servicio)
+  tarifa_visita: pesosEnteros('Indica la tarifa de visita').min(TARIFA_VISITA_MINIMA, 'La visita mínima es $5.000').max(200_000).optional(),
+  // Día y hora en que el maestro irá: la visita de diagnóstico o, con precio cerrado, el trabajo
   visita_programada_en: z.iso.datetime({ offset: true, error: 'Indica la fecha y hora de la visita' }).optional(),
 }).superRefine((r, ctx) => {
   if (!r.aceptar) return;
@@ -59,8 +79,10 @@ export const esquemaResponder = z.object({
   if (r.modalidad === 'visita' && r.tarifa_visita === undefined) {
     ctx.addIssue({ code: 'custom', path: ['tarifa_visita'], message: 'Indica la tarifa de la visita' });
   }
+  // Con visita es obligatorio; con precio cerrado la app lo pide siempre (el servidor lo valida si viene,
+  // y lo acepta sin él para no dejar sin responder a quien aún tenga una versión anterior de la app)
   if (r.modalidad === 'visita' && !r.visita_programada_en) {
-    ctx.addIssue({ code: 'custom', path: ['visita_programada_en'], message: 'Indica cuándo harás la visita' });
+    ctx.addIssue({ code: 'custom', path: ['visita_programada_en'], message: 'Indica qué día y a qué hora irás' });
   }
 });
 

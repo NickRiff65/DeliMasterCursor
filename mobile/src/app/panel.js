@@ -7,12 +7,36 @@ import { Aviso } from '../components/Aviso';
 import { Boton } from '../components/Boton';
 import { BotonCuenta } from '../components/BotonCuenta';
 import { BotonAvisos } from '../components/BotonAvisos';
+import { EstadoSolicitud } from '../components/EstadoSolicitud';
+import { ProgresoSolicitud } from '../components/ProgresoSolicitud';
 import { colores, crearEstilos, degradado, espacio, letra, radio } from '../theme';
 import { useTema } from '../context/tema';
-import { pesos } from '../lib/formato';
+import { diaYHora, pesos } from '../lib/formato';
 
 // Una categoría aparece en el catálogo si no es regulada, o si su verificación está aprobada.
 const esVisible = (c) => !c.requiere_verificacion || c.verificacion === 'aprobada';
+
+// Trabajo en curso: primero lo que espera una acción del maestro, después lo que espera al cliente.
+// Las solicitudes por responder tienen su propia tarjeta.
+const PRIORIDAD_EN_CURSO = ['visita_pagada', 'en_diagnostico', 'pagada', 'en_disputa', 'finalizada', 'cotizada', 'confirmada', 'visita_por_pagar'];
+const QUE_SIGUE = {
+  visita_por_pagar: () => 'Esperando que el cliente pague la visita',
+  visita_pagada: (s) => `Visita: ${diaYHora(s.visita_programada_en)}. Al llegar, pide el código al cliente`,
+  en_diagnostico: () => 'Envía la cotización del trabajo',
+  cotizada: () => 'Esperando que el cliente responda la cotización',
+  confirmada: () => 'Esperando el pago del cliente',
+  pagada: (s) => (s.modalidad !== 'visita' && s.visita_programada_en
+    ? `Trabajo agendado: ${diaYHora(s.visita_programada_en)}` : 'Haz el trabajo y márcalo como terminado'),
+  finalizada: () => 'Esperando que el cliente confirme el cierre',
+  en_disputa: () => 'El cliente reportó un problema: el equipo está revisando',
+};
+
+function trabajosEnCurso(solicitudes) {
+  return solicitudes
+    .filter((s) => PRIORIDAD_EN_CURSO.includes(s.estado))
+    .sort((a, b) => PRIORIDAD_EN_CURSO.indexOf(a.estado) - PRIORIDAD_EN_CURSO.indexOf(b.estado)
+      || new Date(a.visita_programada_en ?? a.creado_en) - new Date(b.visita_programada_en ?? b.creado_en));
+}
 
 // DeliMaster Pro · Inicio: lo que el maestro necesita al abrir la app. Lo que se configura una vez
 // (ficha, portafolio, verificaciones, cuenta) está en Perfil, y aquí solo aparece si falta algo.
@@ -24,6 +48,7 @@ export default function Panel() {
   const [guardando, setGuardando] = useState(false);
 
   const [porResponder, setPorResponder] = useState(0);
+  const [enCurso, setEnCurso] = useState([]);
   const [datosPagoCompletos, setDatosPagoCompletos] = useState(true);
   const [dinero, setDinero] = useState(null);
 
@@ -31,6 +56,7 @@ export default function Panel() {
   useFocusEffect(useCallback(() => {
     api.get('/prestadores/yo').then((r) => setFicha(r.ficha)).catch((e) => setError(e.message));
     api.get('/solicitudes?estado=asignada').then((r) => setPorResponder(r.solicitudes.length)).catch(() => {});
+    api.get('/solicitudes').then((r) => setEnCurso(trabajosEnCurso(r.solicitudes))).catch(() => {});
     api.get('/prestadores/yo/datos-pago').then((r) => setDatosPagoCompletos(r.datos_pago.completos)).catch(() => {});
     api.get('/prestadores/yo/dinero').then(setDinero).catch(() => {});
   }, []));
@@ -89,6 +115,24 @@ export default function Panel() {
       </View>
       <Aviso mensaje={error} />
 
+      {/* El trabajo en curso, con lo que sigue (como «Sigue tu solicitud» de los clientes) */}
+      {enCurso.length ? (
+        <Pressable onPress={() => router.push(`/trabajo/${enCurso[0].id}`)} accessibilityRole="button"
+          style={({ pressed }) => [estilos.enCurso, pressed && { transform: [{ scale: 0.98 }] }]}>
+          <Text style={estilos.enCursoEtiqueta}>TRABAJO EN CURSO</Text>
+          <Text style={estilos.enCursoTitulo}>{enCurso[0].categoria_nombre}</Text>
+          <Text style={estilos.suave}>Cliente: {enCurso[0].cliente?.nombre}</Text>
+          <View style={{ alignSelf: 'flex-start', marginTop: espacio.xs }}>
+            <EstadoSolicitud estado={enCurso[0].estado} vista="prestador" />
+          </View>
+          <ProgresoSolicitud estado={enCurso[0].estado} />
+          <Text style={estilos.enCursoQueSigue}>{QUE_SIGUE[enCurso[0].estado](enCurso[0])}</Text>
+          <Text style={estilos.enCursoAccion}>
+            Ver el trabajo →{enCurso.length > 1 ? `  ·  y ${enCurso.length - 1} más en Trabajos` : ''}
+          </Text>
+        </Pressable>
+      ) : null}
+
       {/* Lo principal: solicitudes que esperan respuesta (HU-05) */}
       <Pressable style={[estilos.tarjeta, estilos.fila, porResponder > 0 && [estilos.pendientes, degradado(colores.degradadoBoton)]]}
         onPress={() => router.push('/recibidas')} accessibilityRole="button">
@@ -99,7 +143,7 @@ export default function Panel() {
               : 'Sin solicitudes por responder'}
           </Text>
           <Text style={[estilos.suave, porResponder > 0 && { color: colores.primarioSuave }]}>
-            {porResponder > 0 ? 'Tienes hasta un día hábil para responder cada una.' : 'Revisa tus trabajos en Trabajos.'}
+            {porResponder > 0 ? 'Tienes 1 día para responder cada una.' : 'Revisa tus trabajos en Trabajos.'}
           </Text>
         </View>
         <Text style={[estilos.enlace, porResponder > 0 && { color: colores.sobrePrimario }]}>Ver →</Text>
@@ -200,4 +244,13 @@ const estilos = crearEstilos((colores) => ({
   pendientes: { backgroundColor: colores.primario, borderColor: 'transparent', boxShadow: colores.sombraFuerte },
   alertaTitulo: { fontSize: 15, fontWeight: '700', color: colores.avisoTexto, marginBottom: espacio.xs },
   alertaTexto: { fontSize: 14, color: colores.avisoTexto, marginTop: 2 },
+  enCurso: {
+    backgroundColor: colores.superficie, borderRadius: radio.l, padding: espacio.l, marginBottom: espacio.m,
+    borderWidth: 1, borderColor: colores.bordeTarjeta, borderLeftWidth: 5, borderLeftColor: colores.primario,
+    boxShadow: colores.sombra, gap: 2,
+  },
+  enCursoEtiqueta: { fontSize: 12, fontWeight: '800', letterSpacing: 1.2, color: colores.primarioOscuro },
+  enCursoTitulo: { fontSize: 22, fontWeight: '900', color: colores.texto, letterSpacing: -0.4, marginTop: 2 },
+  enCursoQueSigue: { fontSize: 15, fontWeight: '700', color: colores.texto, marginTop: espacio.s },
+  enCursoAccion: { fontSize: 15, fontWeight: '800', color: colores.primarioOscuro, marginTop: espacio.m },
 }));

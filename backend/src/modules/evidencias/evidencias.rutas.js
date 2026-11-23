@@ -6,6 +6,7 @@ import { autenticar, autorizar } from '../../middlewares/autenticacion.js';
 import { limiteFotos } from '../../middlewares/limites.js';
 import { AppError } from '../../utils/AppError.js';
 import { urlApi } from '../../utils/seguridad.js';
+import { esquemaMetadatosFoto } from '../../utils/verificacionFoto.js';
 import * as servicio from './evidencias.servicio.js';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -29,6 +30,7 @@ rutasFotosSolicitud.post('/',
   validar(z.object({
     imagen_base64: z.string().min(100, 'Falta la foto'),
     descripcion: z.string().trim().max(200, 'La descripción no puede superar 200 caracteres').optional(),
+    metadatos: esquemaMetadatosFoto,   // fecha, equipo y ubicación que la app leyó de la foto original
   })),
   async (req, res) => {
     const solicitudId = id(req.params.id, 'Solicitud no encontrada', 'SOLICITUD_NO_ENCONTRADA');

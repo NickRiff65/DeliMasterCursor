@@ -63,8 +63,9 @@ export default function Perfil() {
       {cabecera}
       <Aviso mensaje={error} />
 
-      {/* Reputación: solo los trabajos cerrados en DeliMaster suman reseñas */}
-      <View style={estilos.tarjeta}>
+      {/* Reputación: solo los trabajos cerrados en DeliMaster suman reseñas. Al tocarla, se ven todas */}
+      <Pressable style={estilos.tarjeta} onPress={() => router.push('/resenas')}
+        accessibilityRole="button" accessibilityLabel="Mi reputación: ver mis reseñas">
         <Text style={estilos.etiqueta}>MI REPUTACIÓN</Text>
         <View style={estilos.fila}>
           <Estrellas promedio={ficha.calificacion_promedio} total={ficha.total_resenas} tamano={18} />
@@ -73,7 +74,8 @@ export default function Perfil() {
         <Text style={[estilos.suave, { marginTop: espacio.s }]}>
           Solo los trabajos cerrados en DeliMaster suman reseñas y te suben en el catálogo.
         </Text>
-      </View>
+        <Text style={estilos.verResenas}>Ver mis reseñas ›</Text>
+      </Pressable>
 
       {OPCIONES.map((o) => (
         <Pressable key={o.ruta} style={[estilos.tarjeta, estilos.fila]} onPress={() => router.push(o.ruta)}
@@ -102,4 +104,5 @@ const estilos = crearEstilos((colores) => ({
   suave: { fontSize: 14, color: colores.textoSuave },
   etiqueta: { fontSize: 12, fontWeight: '800', color: colores.textoSuave, letterSpacing: 1, marginBottom: espacio.xs },
   flecha: { fontSize: 24, color: colores.textoSuave },
+  verResenas: { fontSize: 15, fontWeight: '700', color: colores.primario, marginTop: espacio.s },
 }));

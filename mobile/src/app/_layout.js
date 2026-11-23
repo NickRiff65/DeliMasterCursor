@@ -78,6 +78,7 @@ function Navegacion() {
           <Stack.Screen name="recibidas" options={conInicio({ title: 'Solicitudes' })} />
           <Stack.Screen name="agenda" options={conInicio({ title: 'Mi agenda' })} />
           <Stack.Screen name="portafolio" options={conInicio({ title: 'Mi portafolio' })} />
+          <Stack.Screen name="resenas" options={conInicio({ title: 'Mis reseñas' })} />
           <Stack.Screen name="trabajo/[id]" options={conInicio({ title: 'Mi trabajo' })} />
           <Stack.Screen name="finanzas" options={conInicio({ title: 'Mis finanzas' })} />
           <Stack.Screen name="datos-pago" options={conInicio({ title: 'Datos de pago' })} />
@@ -95,6 +96,7 @@ function Navegacion() {
         {/* Compartido por ambas apps: chat de una solicitud (HU-04) y la cuenta */}
         <Stack.Protected guard={habilitado}>
           <Stack.Screen name="chat/[id]" options={conInicio({ title: 'Chat' })} />
+          <Stack.Screen name="disputa/[id]" options={conInicio({ title: 'Reclamo' })} />
           <Stack.Screen name="avisos" options={conInicio({ title: 'Avisos' })} />
           <Stack.Screen name="cuenta" options={conInicio({ title: 'Mi cuenta' })} />
         </Stack.Protected>
