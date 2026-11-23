@@ -15,3 +15,6 @@ backend/rendimiento/resultados/
 
 # Fotos reales para medir la detección por foto con IA (pueden mostrar casas de personas): no se suben
 fotos-ia/
+
+# Variables para pegar en Railway (npm run variables-railway): contiene las claves del servidor
+railway-variables.env

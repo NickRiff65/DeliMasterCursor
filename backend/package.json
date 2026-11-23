@@ -11,16 +11,17 @@
     "dev": "node --watch --env-file=.env src/server.js",
     "start": "node src/server.js",
     "db:crear": "node --env-file=.env src/db/crear-bases.js",
-    "migrate": "node --env-file=.env src/db/migrate.js",
+    "migrate": "node --env-file-if-exists=.env src/db/migrate.js",
     "db:demo": "node --env-file=.env src/db/datos-demo.js",
     "test": "node --env-file-if-exists=.env --test --test-concurrency=1 \"tests/**/*.test.js\"",
     "evaluar-fotos": "node --env-file-if-exists=.env scripts/evaluar-fotos.js",
-    "crear-admin": "node --env-file=.env src/db/crear-admin.js",
+    "crear-admin": "node --env-file-if-exists=.env src/db/crear-admin.js",
     "probar-correo": "node --env-file=.env scripts/probar-correo.js",
     "respaldo": "node --env-file=.env scripts/respaldo.js",
     "restaurar": "node --env-file=.env scripts/restaurar.js",
     "simulacro": "node --env-file=.env scripts/simulacro-restauracion.js",
-    "rendimiento": "node rendimiento/ejecutar.js"
+    "rendimiento": "node rendimiento/ejecutar.js",
+    "variables-railway": "node scripts/variables-railway.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^1.12.0",
