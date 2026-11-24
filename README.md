@@ -104,6 +104,11 @@ npm.cmd run dev             # panel en http://localhost:5173
 
 ## Servidor para el equipo (desde cualquier lugar)
 
+**Desde el 24-11-2026 el piloto corre en Railway:** https://delimaster-production.up.railway.app (Lite en `/`,
+Pro en `/pro`, panel en `/admin`). Cada `git push` a `version-completa` del repositorio privado lo vuelve a
+desplegar y aplica las migraciones. Guía y solución de problemas: [docs/despliegue-railway.md](docs/despliegue-railway.md).
+Lo que sigue describe la forma anterior (el PC con Tailscale), que queda como respaldo.
+
 El backend también entrega la versión web compilada, así todo queda en una sola dirección:
 `/` Lite, `/pro` Pro, `/admin` panel y `/api` la API (que usan las APK).
 

@@ -12,14 +12,14 @@
       },
       "env": {
         "APP_VARIANTE": "lite",
-        "EXPO_PUBLIC_API_URL": "https://delimaster.tail9c0ea1.ts.net/api"
+        "EXPO_PUBLIC_API_URL": "https://delimaster-production.up.railway.app/api"
       }
     },
     "pro": {
       "extends": "lite",
       "env": {
         "APP_VARIANTE": "pro",
-        "EXPO_PUBLIC_API_URL": "https://delimaster.tail9c0ea1.ts.net/api"
+        "EXPO_PUBLIC_API_URL": "https://delimaster-production.up.railway.app/api"
       }
     }
   }
