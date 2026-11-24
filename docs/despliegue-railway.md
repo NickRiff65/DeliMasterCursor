@@ -154,6 +154,18 @@ El script del paso 3 reemplaza el contenido de la base de Railway y termina con 
 - [ ] «Olvidé mi contraseña» envía el código por correo (Brevo).
 - [ ] En el panel, una cuenta bancaria registrada se ve completa (confirma que el `JWT_SECRET` es el mismo).
 
+## Problemas que nos pasaron (23-11-2026) y su solución
+
+| Síntoma | Causa | Solución |
+|---|---|---|
+| Railway dice «We still can't find this repository» | La app de Railway estaba *autorizada* en GitHub, pero no *instalada* | Instalarla en https://github.com/apps/railway-app, solo con el repositorio DeliMaster |
+| *Build failed* en segundos | Compilaba la rama `main`, que no tiene el `package.json` de la raíz | Settings → Source → rama `version-completa` |
+| Todo responde 502 | El dominio se generó con un puerto distinto | El servidor escucha en el `PORT` de Railway (8080): editar el puerto del dominio |
+| *Healthcheck failure* | `npm run migrate` quedó en **Start Command** | Start Command vacío; `npm run migrate` va en **Pre-deploy Command** |
+| *Pre-deploy command failed* (error vacío) | Se pegaron las variables antes de crear Postgres y `DATABASE_URL` quedó vacía | Volver a definirla: `railway variables --set 'DATABASE_URL=${{Postgres.DATABASE_URL}}'` |
+
+Desde el commit siguiente, el servidor no parte en producción sin `DATABASE_URL`, y los errores de conexión muestran el código y la dirección (por ejemplo, `ECONNREFUSED 127.0.0.1:5432`) en vez de quedar vacíos.
+
 ## Parte 6. Después
 
 - **Nuevas versiones:** un `git push` a `version-completa` del repositorio privado despliega solo y aplica las migraciones. La web ya no se compila en el PC.

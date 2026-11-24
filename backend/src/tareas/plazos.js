@@ -1,3 +1,4 @@
+import { describirError } from '../utils/describirError.js';
 // Los plazos del dinero no pueden depender de que alguien abra la app.
 // Cada minuto se liberan las asignaciones sin respuesta, se cierran los trabajos
 // que el cliente no confirmó, se devuelven las visitas a las que nadie llegó y se reintentan
@@ -11,10 +12,10 @@ export function crearRelojPlazos(revisar, { intervaloMs = INTERVALO_MS, programa
   const correr = () => {
     try {
       Promise.resolve(revisar()).catch((err) => {
-        console.error(JSON.stringify({ evento: 'plazos', error: err.message }));
+        console.error(JSON.stringify({ evento: 'plazos', error: describirError(err) }));
       });
     } catch (err) {
-      console.error(JSON.stringify({ evento: 'plazos', error: err.message }));
+      console.error(JSON.stringify({ evento: 'plazos', error: describirError(err) }));
     }
   };
   correr();

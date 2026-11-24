@@ -72,6 +72,11 @@ if (!Number.isInteger(config.comisionTope) || config.comisionTope < 0) {
   throw new Error('COMISION_TOPE debe ser un monto en pesos, entero y no negativo');
 }
 
+// En la nube la base llega en DATABASE_URL; si falta, el servidor buscaría PostgreSQL en el propio equipo
+if (config.esProduccion && !process.env.DATABASE_URL && !process.env.DB_HOST) {
+  throw new Error('En producción falta DATABASE_URL (en Railway: ${{Postgres.DATABASE_URL}})');
+}
+
 if (config.esProduccion && !config.corsOrigenes.length) {
   throw new Error('En producción define CORS_ORIGENES con los dominios del panel y de la versión web');
 }

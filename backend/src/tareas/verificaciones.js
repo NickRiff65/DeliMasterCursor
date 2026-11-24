@@ -1,3 +1,4 @@
+import { describirError } from '../utils/describirError.js';
 // Las verificaciones SEC vencen cada tres meses y nadie puede depender de acordarse.
 // Este reloj revisa los vencimientos con la misma lógica del reloj de plazos (tareas/plazos.js):
 // avisa al prestador antes de que venza y al vencer, una sola vez por hito.
@@ -10,10 +11,10 @@ export function crearRelojVerificaciones(revisar, { intervaloMs = INTERVALO_MS, 
   const correr = () => {
     try {
       Promise.resolve(revisar()).catch((err) => {
-        console.error(JSON.stringify({ evento: 'verificaciones', error: err.message }));
+        console.error(JSON.stringify({ evento: 'verificaciones', error: describirError(err) }));
       });
     } catch (err) {
-      console.error(JSON.stringify({ evento: 'verificaciones', error: err.message }));
+      console.error(JSON.stringify({ evento: 'verificaciones', error: describirError(err) }));
     }
   };
   correr();

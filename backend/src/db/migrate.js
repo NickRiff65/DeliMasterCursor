@@ -3,6 +3,7 @@
 import { readdir, readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
+import { describirError } from '../utils/describirError.js';
 
 const carpeta = path.join(path.dirname(fileURLToPath(import.meta.url)), 'migrations');
 
@@ -32,7 +33,7 @@ export async function migrar(pool, { silencioso = false } = {}) {
       nuevas++;
     } catch (err) {
       await cliente.query('ROLLBACK');
-      throw new Error(`Falló la migración ${archivo}: ${err.message}`);
+      throw new Error(`Falló la migración ${archivo}: ${describirError(err)}`);
     } finally {
       cliente.release();
     }
@@ -50,7 +51,7 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
     const cifradas = await cifrarCuentasEnClaro(pool);
     if (cifradas) console.log(`✔ ${cifradas} cuenta(s) bancaria(s) cifrada(s).`);
   } catch (err) {
-    console.error(`✘ ${err.message}`);
+    console.error(`✘ ${describirError(err)}`);
     process.exitCode = 1;
   } finally {
     await pool.end();
