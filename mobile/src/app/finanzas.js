@@ -89,22 +89,30 @@ export default function Finanzas() {
                       accessibilityIgnoresInvertColors style={estilos.icono} />
                     <Text style={estilos.categoria}>Mi dinero</Text>
                   </View>
+                  {/* El texto de la izquierda ocupa el espacio libre y puede pasar a otra línea; el monto nunca se achica
+                      (antes el monto se quedaba con lo que sobraba y se escribía un carácter por línea) */}
                   <View style={[estilos.fila, { marginTop: espacio.s }]}>
-                    <Text style={estilos.suave}>Retenido (trabajos en curso)</Text><Text style={estilos.categoria}>{pesos(dinero.retenido)}</Text>
+                    <Text style={[estilos.suave, estilos.filaTexto]}>Retenido (trabajos en curso)</Text>
+                    <Text style={estilos.monto}>{pesos(dinero.retenido)}</Text>
                   </View>
                   <View style={estilos.fila}>
-                    <Text style={estilos.suave}>Por transferir (ya liberado)</Text><Text style={estilos.categoria}>{pesos(dinero.por_transferir)}</Text>
+                    <Text style={[estilos.suave, estilos.filaTexto]}>Por transferir (ya liberado)</Text>
+                    <Text style={estilos.monto}>{pesos(dinero.por_transferir)}</Text>
                   </View>
                   <View style={estilos.fila}>
-                    <Text style={estilos.suave}>Recibido en tu cuenta</Text><Text style={estilos.ganancia}>{pesos(dinero.transferido)}</Text>
+                    <Text style={[estilos.suave, estilos.filaTexto]}>Recibido en tu cuenta</Text>
+                    <Text style={[estilos.ganancia, estilos.sinAchicar]}>{pesos(dinero.transferido)}</Text>
                   </View>
                   {dinero.transferencias.length ? (
                     <>
                       <Text style={[estilos.suave, { marginTop: espacio.s, fontWeight: '700' }]}>Transferencias recibidas</Text>
                       {dinero.transferencias.map((tr) => (
-                        <View key={tr.comprobante} style={estilos.fila}>
-                          <Text style={estilos.suave}>{fechaCorta(tr.fecha)} · N.º {tr.comprobante} · {tr.trabajos} {tr.trabajos === 1 ? 'trabajo' : 'trabajos'}</Text>
-                          <Text style={estilos.categoria}>{pesos(tr.monto)}</Text>
+                        <View key={tr.comprobante} style={[estilos.fila, { marginTop: espacio.xs }]}>
+                          <View style={estilos.filaTexto}>
+                            <Text style={estilos.suave}>{fechaCorta(tr.fecha)} · {tr.trabajos} {tr.trabajos === 1 ? 'trabajo' : 'trabajos'}</Text>
+                            <Text style={estilos.suave}>N.º {tr.comprobante}</Text>
+                          </View>
+                          <Text style={estilos.monto}>{pesos(tr.monto)}</Text>
                         </View>
                       ))}
                     </>
@@ -124,8 +132,8 @@ export default function Finanzas() {
           </View>
           <Text style={estilos.suave}>{fechaCorta(item.fecha)} · {item.cantidad_gastos} {item.cantidad_gastos === 1 ? 'gasto' : 'gastos'}</Text>
           <View style={[estilos.fila, { marginTop: espacio.s }]}>
-            <Text style={estilos.suave}>Neto {pesos(item.ingreso_neto)} − gastos {pesos(item.gastos)}</Text>
-            <Text style={estilos.ganancia}>{pesos(item.ganancia_neta)}</Text>
+            <Text style={[estilos.suave, estilos.filaTexto]}>Neto {pesos(item.ingreso_neto)} − gastos {pesos(item.gastos)}</Text>
+            <Text style={[estilos.ganancia, estilos.sinAchicar]}>{pesos(item.ganancia_neta)}</Text>
           </View>
         </Pressable>
       )}
@@ -165,6 +173,9 @@ const estilos = crearEstilos((colores) => ({
     marginBottom: espacio.m, borderWidth: 1, borderColor: colores.bordeTarjeta,
   },
   fila: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: espacio.s },
+  filaTexto: { flex: 1, flexShrink: 1 },
+  sinAchicar: { flexShrink: 0 },
+  monto: { fontSize: 15, fontWeight: '700', color: colores.texto, flexShrink: 0, textAlign: 'right' },
   categoria: { fontSize: 15, fontWeight: '700', color: colores.texto, flex: 1 },
   encabezado: { flexDirection: 'row', alignItems: 'center', gap: espacio.s },
   icono: { width: letra(24), height: letra(24) },
