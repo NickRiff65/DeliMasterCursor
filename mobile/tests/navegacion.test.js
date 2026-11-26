@@ -2,7 +2,7 @@ import { screen, userEvent } from 'expo-router/testing-library';
 import Login from '../src/app/login';
 import AceptarTerminos from '../src/app/aceptar-terminos';
 import {
-  abrirApp, simularApi, errorApi, usarVariante, sesionGuardada, tokenGuardado, cliente, prestador,
+  abrirApp, simularApi, errorApi, usarVariante, sesionGuardada, tokenGuardado, cliente, prestador, SIN_CONEXION,
 } from './ayudas';
 import { VERSION_TERMINOS } from '../src/legal/textos';
 
@@ -36,6 +36,31 @@ describe('Navegación según la sesión', () => {
     await abrirApp({ ruta: '/', pantallas: { login: Login } });
     expect(await screen.findByRole('button', { name: 'Iniciar sesión' })).toBeOnTheScreen();
     expect(tokenGuardado()).toBeNull();
+  });
+
+  // Antes cualquier falla al abrir (sin señal, servidor lento) borraba el token y había que volver a entrar
+  test('sin señal al abrir la app, la sesión guardada sigue abierta', async () => {
+    sesionGuardada('token-valido');
+    require('expo-secure-store').__datos.set('delimaster.usuario.lite', JSON.stringify(cliente));
+    simularApi({ 'GET /auth/yo': SIN_CONEXION });
+    await abrirApp({ ruta: '/', pantallas: { login: Login } });
+    expect(await screen.findByText('Pantalla index')).toBeOnTheScreen();
+    expect(tokenGuardado()).toBe('token-valido');
+  });
+
+  test('si el servidor falla al abrir, el token no se borra', async () => {
+    sesionGuardada('token-valido');
+    simularApi({ 'GET /auth/yo': errorApi(503, 'NO_DISPONIBLE', 'Servicio no disponible') });
+    await abrirApp({ ruta: '/', pantallas: { login: Login } });
+    expect(tokenGuardado()).toBe('token-valido');
+  });
+
+  test('al abrir con una sesión válida, guarda el token renovado que entrega el servidor', async () => {
+    sesionGuardada('token-viejo');
+    simularApi({ 'GET /auth/yo': { usuario: cliente, token: 'token-renovado' } });
+    await abrirApp({ ruta: '/' });
+    expect(await screen.findByText('Pantalla index')).toBeOnTheScreen();
+    expect(tokenGuardado()).toBe('token-renovado');
   });
 
   test('quien tiene términos pendientes solo puede aceptarlos o cerrar sesión', async () => {

@@ -100,6 +100,11 @@ describe('HU-10 · Registro e inicio de sesión', { skip: !hayBaseDeDatos && mot
     const res = await request(app).get('/api/auth/yo').set('Authorization', `Bearer ${body.token}`);
     assert.equal(res.status, 200);
     assert.equal(res.body.usuario.id, body.usuario.id);
+    // Sesión que se renueva sola: las apps reciben un token nuevo, válido y del mismo usuario
+    assert.ok(res.body.token);
+    const otra = await request(app).get('/api/auth/yo').set('Authorization', `Bearer ${res.body.token}`);
+    assert.equal(otra.status, 200);
+    assert.equal(otra.body.usuario.id, body.usuario.id);
   });
 
   test('GET /api/auth/yo rechaza peticiones sin token o con token alterado', async () => {

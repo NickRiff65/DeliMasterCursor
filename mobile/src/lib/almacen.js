@@ -21,3 +21,27 @@ export async function borrarToken() {
   if (esWeb) return localStorage.removeItem(CLAVE_TOKEN);
   return SecureStore.deleteItemAsync(CLAVE_TOKEN);
 }
+
+// Copia de los datos del usuario de la última sesión: permite abrir la app con la sesión iniciada aunque al abrirla
+// no haya señal o el servidor tarde en responder (antes cualquier falla de red cerraba la sesión).
+const CLAVE_USUARIO = `delimaster.usuario.${VARIANTE}`;
+
+export async function guardarUsuario(usuario) {
+  const texto = JSON.stringify(usuario);
+  if (esWeb) return localStorage.setItem(CLAVE_USUARIO, texto);
+  return SecureStore.setItemAsync(CLAVE_USUARIO, texto);
+}
+
+export async function leerUsuario() {
+  try {
+    const texto = esWeb ? localStorage.getItem(CLAVE_USUARIO) : await SecureStore.getItemAsync(CLAVE_USUARIO);
+    return texto ? JSON.parse(texto) : null;
+  } catch {
+    return null;
+  }
+}
+
+export async function borrarUsuario() {
+  if (esWeb) return localStorage.removeItem(CLAVE_USUARIO);
+  return SecureStore.deleteItemAsync(CLAVE_USUARIO);
+}

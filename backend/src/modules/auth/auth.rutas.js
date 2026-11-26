@@ -26,7 +26,11 @@ rutasAuth.post('/login', limiteAutenticacionIp, limiteLoginCuenta, validar(esque
 
 // Datos del usuario de la sesión actual (la app lo usa al abrirse)
 rutasAuth.get('/yo', autenticar, async (req, res) => {
-  res.json({ usuario: await servicio.obtenerPerfil(req.usuario.id) });
+  const usuario = await servicio.obtenerPerfil(req.usuario.id);
+  // Sesión que se renueva sola (26-11-2026): cada vez que una app abre con una sesión válida recibe un token nuevo
+  // con otros 7 días; quien usa la app no tiene que volver a iniciar sesión. El panel de administración no se renueva.
+  const token = usuario.rol === 'admin' ? undefined : servicio.firmarToken(usuario);
+  res.json({ usuario, ...(token ? { token } : {}) });
 });
 
 // Editar nombre, celular y comuna
