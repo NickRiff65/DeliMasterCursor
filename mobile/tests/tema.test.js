@@ -57,3 +57,20 @@ describe('Modo claro y oscuro', () => {
 test('las dos paletas tienen los mismos colores definidos', () => {
   expect(Object.keys(paletas.oscuro).sort()).toEqual(Object.keys(paletas.claro).sort());
 });
+
+// En Android el degradado experimental de React Native cerraba la app al terminar o calificar un trabajo
+// (IllegalArgumentException en BackgroundImageDrawable): ahí se usa un color sólido del mismo degradado.
+test('en Android los degradados son un color sólido; en la web siguen siendo degradados', () => {
+  const { Platform } = require('react-native');
+  const { degradado } = require('../src/theme');
+  const antes = Platform.OS;
+  try {
+    Platform.OS = 'android';
+    expect(degradado('linear-gradient(135deg, #074A42 0%, #0B7568 52%, #12A594 100%)')).toEqual({ backgroundColor: '#0B7568' });
+    expect(degradado('linear-gradient(135deg, #0B7568 0%, #12A594 100%)')).toEqual({ backgroundColor: '#0B7568' });
+    Platform.OS = 'web';
+    expect(degradado('linear-gradient(135deg, #0B7568 0%, #12A594 100%)')).toEqual({ backgroundImage: 'linear-gradient(135deg, #0B7568 0%, #12A594 100%)' });
+  } finally {
+    Platform.OS = antes;
+  }
+});

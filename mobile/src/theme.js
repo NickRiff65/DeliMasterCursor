@@ -183,7 +183,16 @@ export function crearEstilos(fabrica) {
 }
 
 // Fondo degradado (CSS linear-gradient): React Native lo dibuja de forma nativa y la web con CSS
-export const degradado = (css) => (Platform.OS === 'web' ? { backgroundImage: css } : { experimental_backgroundImage: css });
+// En Android, el degradado experimental de React Native (experimental_backgroundImage) cierra la app con
+// IllegalArgumentException (BackgroundImageDrawable.draw) cuando una vista con degradado se dibuja con tamaño cero:
+// pasaba al terminar o calificar un trabajo, cuando desaparecen los botones (26-11-2026). En la app nativa se usa un
+// color sólido tomado del propio degradado; la versión web (y el iPhone, que la usa) mantiene el degradado.
+const coloresDe = (css) => css.match(/#[0-9a-fA-F]{3,8}\b|rgba?\([^)]*\)/g) ?? [];
+export const degradado = (css) => {
+  if (Platform.OS === 'web') return { backgroundImage: css };
+  const c = coloresDe(css);
+  return c.length ? { backgroundColor: c.length >= 3 ? c[1] : c[0] } : {};
+};
 
 // Espaciados en escala de 4 pt: todas las pantallas respiran con el mismo ritmo
 export const espacio = { xs: 4, s: 8, m: 16, l: 24, xl: 32, xxl: 40 };
