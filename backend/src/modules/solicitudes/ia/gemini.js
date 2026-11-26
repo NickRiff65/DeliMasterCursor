@@ -13,6 +13,20 @@ export const modeloGemini = (env = process.env) => env.GEMINI_MODELO || 'gemini-
 
 export const claveGemini = (env = process.env) => Boolean(env.GEMINI_API_KEY);
 
+// Respaldo automático (26-11-2026): en el nivel gratuito cada modelo tiene su propia cuota y a ratos se satura.
+// Si el modelo responde 503 (alta demanda), 429 (cuota agotada), 404 (ya no está disponible) o 500, se prueba el
+// siguiente de la lista. GEMINI_MODELOS_RESPALDO (separados por coma) cambia la lista; vacía, no hay respaldo.
+// En la prueba del 26-11 con la clave del equipo, los dos «lite» respondieron con fotos y el esquema JSON.
+export const RESPALDO_GEMINI = ['gemini-3.1-flash-lite', 'gemini-3.5-flash-lite', 'gemini-3.5-flash'];
+const ESTADOS_RESPALDO = new Set([404, 429, 500, 503]);
+
+export function modelosGemini(env = process.env) {
+  const respaldo = env.GEMINI_MODELOS_RESPALDO !== undefined
+    ? env.GEMINI_MODELOS_RESPALDO.split(',').map((m) => m.trim()).filter(Boolean)
+    : RESPALDO_GEMINI;
+  return [...new Set([modeloGemini(env), ...respaldo])];
+}
+
 // Motivos de término que significan que la respuesta se bloqueó por seguridad (no es una falla técnica)
 const BLOQUEOS = new Set(['SAFETY', 'PROHIBITED_CONTENT', 'BLOCKLIST', 'SPII', 'IMAGE_SAFETY', 'IMAGE_PROHIBITED_CONTENT', 'RECITATION']);
 
@@ -30,9 +44,24 @@ const nuevoCliente = () => new GoogleGenAI({
   httpOptions: { timeout: 60_000, retryOptions: { attempts: 2, initialDelay: 1, httpStatusCodes: [500, 503] } },
 });
 
-export async function consultarGemini(imagenes, { instrucciones, esquema, texto }, clienteIa = (cliente ??= nuevoCliente())) {
+export async function consultarGemini(imagenes, opciones, clienteIa = (cliente ??= nuevoCliente()), modelos = modelosGemini()) {
+  let ultimoError;
+  for (const modelo of modelos) {
+    try {
+      return await consultarModelo(clienteIa, modelo, imagenes, opciones);
+    } catch (err) {
+      if (!(err instanceof ApiError) || !ESTADOS_RESPALDO.has(err.status)) throw err;
+      ultimoError = err;
+      // Sin fotos ni datos del cliente: solo qué modelo falló y con qué estado
+      console.warn(JSON.stringify({ evento: 'ia_fotos_respaldo', modelo, estado: err.status }));
+    }
+  }
+  throw ultimoError;
+}
+
+async function consultarModelo(clienteIa, modelo, imagenes, { instrucciones, esquema, texto }) {
   const respuesta = await clienteIa.models.generateContent({
-    model: modeloGemini(),
+    model: modelo,
     contents: [{
       role: 'user',
       parts: [
@@ -54,9 +83,9 @@ export async function consultarGemini(imagenes, { instrucciones, esquema, texto 
     entrada: datosUso.promptTokenCount ?? 0,
     salida: (datosUso.candidatesTokenCount ?? 0) + (datosUso.thoughtsTokenCount ?? 0),
   };
-  const modelo = respuesta.modelVersion ?? modeloGemini();
+  const version = respuesta.modelVersion ?? modelo;
   const motivo = respuesta.candidates?.[0]?.finishReason;
-  if (respuesta.promptFeedback?.blockReason || BLOQUEOS.has(motivo)) return { resultado: null, uso, modelo };
+  if (respuesta.promptFeedback?.blockReason || BLOQUEOS.has(motivo)) return { resultado: null, uso, modelo: version };
 
   const texto_ = respuesta.text;
   if (!texto_) throw new Error(`Respuesta sin datos (finishReason: ${motivo ?? 'desconocido'})`);
@@ -66,7 +95,7 @@ export async function consultarGemini(imagenes, { instrucciones, esquema, texto 
   } catch {
     throw new Error(`Respuesta que no es JSON (finishReason: ${motivo ?? 'desconocido'})`);
   }
-  return { resultado: esquema.parse(datos), uso, modelo };
+  return { resultado: esquema.parse(datos), uso, modelo: version };
 }
 
 export const describirErrorGemini = (err) => (err instanceof ApiError ? `Gemini ${err.status}` : null);

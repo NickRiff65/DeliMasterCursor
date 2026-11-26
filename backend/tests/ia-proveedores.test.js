@@ -67,6 +67,40 @@ describe('Proveedores de IA para la detección por foto', () => {
     await assert.rejects(consultarGemini(['F'], opciones, con({ text: JSON.stringify({ categoria: 'otra' }), candidates: [{ finishReason: 'STOP' }] })));
   });
 
+  test('Gemini: si el modelo está saturado, sin cuota o ya no existe, prueba el siguiente de la lista', async (t) => {
+    const { ApiError } = await import('@google/genai');
+    const { modelosGemini } = await import('../src/modules/solicitudes/ia/gemini.js');
+    t.mock.method(console, 'warn', () => {});
+    const conFallas = (fallas, pedidos) => ({ models: { generateContent: async (p) => {
+      pedidos.push(p.model);
+      if (fallas[p.model]) throw new ApiError({ message: 'falla simulada', status: fallas[p.model] });
+      return { text: JSON.stringify(respuesta), candidates: [{ finishReason: 'STOP' }] };
+    } } });
+
+    // Saturado (503) y sin cuota (429): responde el tercer modelo y ya no se consultan los demás
+    let pedidos = [];
+    const r = await consultarGemini(['F'], opciones, conFallas({ a: 503, b: 429 }, pedidos), ['a', 'b', 'c', 'd']);
+    assert.deepEqual(pedidos, ['a', 'b', 'c']);
+    assert.equal(r.modelo, 'c');
+    assert.deepEqual(r.resultado, respuesta);
+
+    // Un error que no es de capacidad (clave inválida) no se tapa probando otros modelos
+    pedidos = [];
+    await assert.rejects(consultarGemini(['F'], opciones, conFallas({ a: 401 }, pedidos), ['a', 'b']), (e) => e.status === 401);
+    assert.deepEqual(pedidos, ['a']);
+
+    // Si fallan todos, se informa el último error (el servicio responde «no pudimos analizar la foto»)
+    pedidos = [];
+    await assert.rejects(consultarGemini(['F'], opciones, conFallas({ a: 503, b: 404 }, pedidos), ['a', 'b']), (e) => e.status === 404);
+    assert.deepEqual(pedidos, ['a', 'b']);
+
+    // La lista: el modelo principal y luego el respaldo, sin repetidos; GEMINI_MODELOS_RESPALDO vacía = sin respaldo
+    assert.deepEqual(modelosGemini({}), ['gemini-3.5-flash', 'gemini-3.1-flash-lite', 'gemini-3.5-flash-lite']);
+    assert.deepEqual(modelosGemini({ GEMINI_MODELO: 'gemini-3.1-flash-lite' }), ['gemini-3.1-flash-lite', 'gemini-3.5-flash-lite', 'gemini-3.5-flash']);
+    assert.deepEqual(modelosGemini({ GEMINI_MODELOS_RESPALDO: '' }), ['gemini-3.5-flash']);
+    assert.deepEqual(modelosGemini({ GEMINI_MODELO: 'x', GEMINI_MODELOS_RESPALDO: ' y , x ' }), ['x', 'y']);
+  });
+
   test('Claude: usa Opus 5.5 con respaldo automático y devuelve la respuesta validada', async () => {
     let pedido;
     const cliente = { beta: { messages: { parse: async (p) => {
