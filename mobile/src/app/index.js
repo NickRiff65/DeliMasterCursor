@@ -151,7 +151,8 @@ const estilos = crearEstilos((colores) => ({
   saludo: { fontSize: 15, color: colores.textoSuave, fontWeight: '600' },
   pregunta: { fontSize: 28, fontWeight: '900', color: colores.texto, marginBottom: espacio.m, letterSpacing: -0.5 },
   pedir: {
-    backgroundColor: colores.primario, borderRadius: radio.l, padding: espacio.l, overflow: 'hidden',
+    // Sin overflow: 'hidden': junto con boxShadow, Android dejaba la tarjeta vacía (no dibujaba su contenido)
+    backgroundColor: colores.primario, borderRadius: radio.l, padding: espacio.l,
     boxShadow: colores.sombraFuerte,
   },
   siguiente: {

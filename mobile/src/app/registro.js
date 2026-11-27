@@ -107,7 +107,7 @@ const estilos = crearEstilos((colores) => ({
   fila: { flexDirection: 'row', gap: espacio.s },
   horario: {
     backgroundColor: colores.superficie, borderRadius: radio.m, borderWidth: 1, borderColor: colores.bordeTarjeta,
-    padding: espacio.m, marginBottom: espacio.m, boxShadow: colores.sombra, overflow: 'hidden',
+    padding: espacio.m, marginBottom: espacio.m, boxShadow: colores.sombra,   // sin overflow: 'hidden' (Android)
   },
   horarioTitulo: { fontSize: 16, fontWeight: '800', color: colores.texto },
   horarioAyuda: { fontSize: 13, color: colores.textoSuave, marginTop: espacio.xs, lineHeight: 18 },

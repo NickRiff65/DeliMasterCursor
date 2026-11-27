@@ -151,6 +151,8 @@ a { color: var(--primario); }
 /* ---------------------------------------------------------------- tablas */
 .tabla { width: 100%; border-collapse: collapse; font-size: 0.92rem; margin: 0.4rem 0 0.8rem; }
 .tabla th { text-align: left; font-size: 0.8rem; color: var(--texto-suave); font-weight: 600; padding: 0.4rem 0.5rem; border-bottom: 1px solid var(--borde); }
+/* Los encabezados de las columnas de montos se alinean a la derecha, igual que sus cifras (antes se veían corridos) */
+.tabla th.num, .tabla td.num { text-align: right; }
 .tabla td { padding: 0.55rem 0.5rem; border-bottom: 1px solid var(--borde); vertical-align: top; }
 .tabla tr:last-child td { border-bottom: none; }
 

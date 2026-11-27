@@ -225,7 +225,7 @@ const estilos = crearEstilos((colores) => ({
   contenido: { padding: espacio.m, paddingBottom: espacio.xl, maxWidth: 720, width: '100%', alignSelf: 'center' },
   portada: {
     backgroundColor: colores.logoPro, borderRadius: radio.l, padding: espacio.l, marginBottom: espacio.m,
-    overflow: 'hidden', boxShadow: colores.sombraFuerte,
+    boxShadow: colores.sombraFuerte,   // sin overflow: 'hidden': junto con boxShadow, Android no dibuja el contenido
   },
   portadaEtiqueta: { color: colores.sobreHeroeSuave, fontSize: 11, fontWeight: '800', letterSpacing: 1.2 },
   saludo: { fontSize: 28, fontWeight: '900', color: colores.sobreHeroe, marginTop: 2, letterSpacing: -0.5 },
