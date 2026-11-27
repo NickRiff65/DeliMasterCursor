@@ -106,4 +106,34 @@ describe('Maestros disponibles', () => {
     expect(llamadas.find((l) => l.ruta === '/solicitudes/s1/asignar').cuerpo).toEqual({ prestador_id: 'p1' });
     expect(llamadas.some((l) => l.ruta === '/solicitudes' && l.metodo === 'POST')).toBe(false);
   });
+
+  // Antes el perfil no mostraba el portafolio aunque el maestro hubiera subido fotos desde DeliMaster Pro
+  test('el perfil muestra las fotos de trabajos anteriores y abre cada una en grande', async () => {
+    simularApi({
+      'GET /auth/yo': { usuario: cliente },
+      'GET /prestadores/p1': { prestador: {
+        ...maestro, verificaciones: [], resenas: [], trabajos_cerrados: 12, miembro_desde: '2026-01-01', disponible: true,
+        fotos: [{ id: 'f1', url: 'https://api.test/fotos/f1' }, { id: 'f2', url: 'https://api.test/fotos/f2' }],
+      } },
+    });
+    await abrirApp({ ruta: '/prestador/p1', pantallas: { 'prestador/[id]': PerfilMaestro } });
+
+    expect(await screen.findByText('Trabajos anteriores (2)')).toBeOnTheScreen();
+    await userEvent.setup().press(screen.getByLabelText('Ver la foto 2 de los trabajos de Juan Soto'));
+    expect(await screen.findByLabelText('Foto de un trabajo de Juan Soto')).toHaveProp('source', { uri: 'https://api.test/fotos/f2' });
+    await userEvent.setup().press(screen.getByRole('button', { name: 'Cerrar la foto' }));
+    expect(screen.queryByLabelText('Foto de un trabajo de Juan Soto')).toBeNull();
+  });
+
+  test('sin fotos en el portafolio no aparece la sección', async () => {
+    simularApi({
+      'GET /auth/yo': { usuario: cliente },
+      'GET /prestadores/p1': { prestador: {
+        ...maestro, verificaciones: [], resenas: [], trabajos_cerrados: 12, miembro_desde: '2026-01-01', disponible: true, fotos: [],
+      } },
+    });
+    await abrirApp({ ruta: '/prestador/p1', pantallas: { 'prestador/[id]': PerfilMaestro } });
+    expect(await screen.findByText('Reseñas')).toBeOnTheScreen();
+    expect(screen.queryByText(/Trabajos anteriores/)).toBeNull();
+  });
 });

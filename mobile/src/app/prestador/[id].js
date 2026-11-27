@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, ScrollView, Text, View } from 'react-native';
+import { ActivityIndicator, Image, Modal, Pressable, ScrollView, Text, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { api } from '../../lib/api';
 import { Estrellas } from '../../components/Estrellas';
@@ -22,6 +22,7 @@ export default function PerfilPrestador() {
   const [p, setP] = useState(null);
   const [error, setError] = useState(null);
   const [asignando, setAsignando] = useState(false);
+  const [fotoAbierta, setFotoAbierta] = useState(null);
 
   useEffect(() => {
     api.get(`/prestadores/${id}`).then((r) => setP(r.prestador)).catch((e) => setError(e.message));
@@ -93,6 +94,21 @@ export default function PerfilPrestador() {
         </Seccion>
       ) : null}
 
+      {/* Portafolio: fotos de trabajos anteriores que el maestro subió desde DeliMaster Pro (enlaces firmados) */}
+      {p.fotos?.length ? (
+        <Seccion titulo={`Trabajos anteriores (${p.fotos.length})`}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: espacio.s }}>
+            {p.fotos.map((f, i) => (
+              <Pressable key={f.id} onPress={() => setFotoAbierta(f.url)} accessibilityRole="imagebutton"
+                accessibilityLabel={`Ver la foto ${i + 1} de los trabajos de ${p.nombre}`}>
+                <Image source={{ uri: f.url }} style={estilos.miniatura} />
+              </Pressable>
+            ))}
+          </ScrollView>
+          <Text style={[estilos.textoSuave, { marginTop: espacio.s, fontSize: 13 }]}>Toca una foto para verla en grande.</Text>
+        </Seccion>
+      ) : null}
+
       <Seccion titulo="Reseñas">
         {p.resenas.length ? p.resenas.map((r, i) => (
           <View key={i} style={estilos.resena}>
@@ -105,6 +121,17 @@ export default function PerfilPrestador() {
       </Seccion>
 
     </ScrollView>
+    <Modal visible={Boolean(fotoAbierta)} transparent animationType="fade" onRequestClose={() => setFotoAbierta(null)}>
+      <View style={estilos.visor}>
+        {fotoAbierta ? (
+          <Image source={{ uri: fotoAbierta }} style={estilos.fotoGrande} resizeMode="contain"
+            accessibilityLabel={`Foto de un trabajo de ${p.nombre}`} />
+        ) : null}
+        <Pressable onPress={() => setFotoAbierta(null)} accessibilityRole="button" accessibilityLabel="Cerrar la foto" style={estilos.cerrarVisor}>
+          <Text style={estilos.cerrarVisorTexto}>Cerrar</Text>
+        </Pressable>
+      </View>
+    </Modal>
     {/* La acción principal queda siempre a la vista, sin importar cuánto se desplace el perfil */}
     <View style={estilos.barra}>
       {error ? <Aviso mensaje={error} /> : null}
@@ -159,4 +186,11 @@ const estilos = crearEstilos((colores) => ({
   },
   barraFila: { flexDirection: 'row', alignItems: 'center', gap: espacio.m },
   barraNombre: { fontSize: 17, fontWeight: '800', color: colores.texto },
+  miniatura: { width: 120, height: 120, borderRadius: radio.s, backgroundColor: colores.fondo },
+  visor: { flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.92)', alignItems: 'center', justifyContent: 'center', padding: espacio.m },
+  fotoGrande: { width: '100%', height: '80%' },
+  cerrarVisor: {
+    marginTop: espacio.l, backgroundColor: '#FFFFFF', borderRadius: radio.pildora, paddingHorizontal: espacio.xl, paddingVertical: espacio.s,
+  },
+  cerrarVisorTexto: { color: '#000000', fontWeight: '800', fontSize: 16 },
 }));
